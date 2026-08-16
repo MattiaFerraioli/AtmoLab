@@ -37,11 +37,8 @@ export default function SpreadStats({ times, spread, meta, seriesNames, palette 
     }
   }
 
-  // Orizzonte utile: prima ora in cui la divergenza supera la soglia "accordo basso".
-  const horizon = spread.findIndex((v) => v !== null && v > loose)
-
   return (
-    <div className="grid gap-px border-t border-hair bg-hair sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-px border-t border-hair bg-hair sm:grid-cols-2 lg:grid-cols-3">
       <div className="bg-surface p-4">
         <div className="text-[11px] uppercase tracking-[0.06em] text-ink-muted">Quanto concordano</div>
         <div className="mt-1">
@@ -65,18 +62,6 @@ export default function SpreadStats({ times, spread, meta, seriesNames, palette 
         k="Momento peggiore"
         value={`${nf(max, meta.dec)} ${meta.unit}`}
         sub={iMax >= 0 ? `di distanza fra i modelli, ${fmtDayHour(times[iMax])}` : '–'}
-      />
-
-      <Tile
-        k="D'accordo per"
-        value={horizon < 0 ? 'tutto il periodo' : horizon === 0 ? '0 ore' : `${horizon} ore`}
-        sub={
-          horizon < 0
-            ? `i modelli non distano mai più di ${nf(loose, meta.dec)} ${meta.unit}`
-            : horizon === 0
-              ? `già alla prima ora i modelli distano più di ${nf(loose, meta.dec)} ${meta.unit}: guarda dove divergono, non il valore singolo`
-              : `da ${fmtDayHour(times[horizon])} distano più di ${nf(loose, meta.dec)} ${meta.unit}`
-        }
       />
 
       <Tile k="Modelli a confronto" value={seriesNames.length} sub={seriesNames.join(', ')} />
