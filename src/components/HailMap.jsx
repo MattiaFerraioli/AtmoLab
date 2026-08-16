@@ -6,7 +6,7 @@ import { DragControl, LockOverlay } from './MapLock'
 import { TILE_ATTRIB } from '../lib/constants'
 import { useIsTouch } from '../lib/hooks'
 import { hailSize, rampFor, riskBand } from '../lib/hail'
-import { fmtDayHour, nf } from '../lib/format'
+import { fmtDayHour, nf, windDir } from '../lib/format'
 
 /**
  * La griglia cambia estensione con il preset: la vista deve seguirla.
@@ -31,7 +31,7 @@ function FitToCells({ bounds }) {
   return null
 }
 
-export default function HailMap({ cells, step, origin, palette, theme, onSelectCell }) {
+export default function HailMap({ cells, step, origin, palette, theme, steering, onSelectCell }) {
   const ramp = rampFor(theme)
   const isTouch = useIsTouch()
   const [unlocked, setUnlocked] = useState(false)
@@ -97,6 +97,28 @@ export default function HailMap({ cells, step, origin, palette, theme, onSelectC
           )
         })}
       </MapContainer>
+      {/* Spostamento delle celle temporalesche: steering flow a 500 hPa.
+          Overlay DOM, non layer Leaflet: non deve ruotare/spostarsi col pan. */}
+      {steering?.towardsDeg != null && (
+        <div
+          className="absolute right-2 top-2 z-[500] flex items-center gap-1.5 rounded-lg border border-hair bg-surface/90 px-2 py-1.5 text-[11.5px] font-semibold text-ink backdrop-blur-sm"
+          title="Direzione media di spostamento dei temporali (vento a 500 hPa)"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-3.5 w-3.5"
+            style={{ transform: `rotate(${steering.towardsDeg}deg)` }}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 20V4M6 10l6-6 6 6" />
+          </svg>
+          {windDir(steering.towardsDeg)} · {nf(steering.speed, 0)} km/h
+        </div>
+      )}
       {locked && <LockOverlay onUnlock={() => setUnlocked(true)} />}
     </div>
   )

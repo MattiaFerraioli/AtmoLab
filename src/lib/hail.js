@@ -17,6 +17,8 @@
    prevista dal modello (weather_code / precipitazione).
    ============================================================ */
 
+import { bearingLabel, distanceKm, nf, windDir } from './format'
+
 export const HAIL_VARS = [
   'cape',
   'freezing_level_height',
@@ -32,6 +34,7 @@ export const HAIL_VARS = [
   'surface_pressure',
   'weather_code',
   'precipitation',
+  'wind_gusts_10m',
 ]
 
 /** Griglie: sempre 7×7 = 49 punti, cambia solo il passo (costo API costante). */
@@ -173,6 +176,9 @@ export const rampFor = (theme) => (theme === 'dark' ? RAMP_DARK : RAMP_LIGHT)
  * Riduce la risposta multi-località a una cella per punto, con la serie oraria
  * completa. Il picco NON si calcola qui: dipende dalla finestra visualizzata,
  * che la sezione decide (un giorno alla volta).
+ * Ogni punto orario porta anche CAPE, raffica prevista e le componenti u/v del
+ * vento a 500 hPa: servono a energia, rischio downburst e direzione di
+ * spostamento delle celle temporalesche.
  */
 export function summariseCells(results, points) {
   return results.map((res, k) => {
@@ -183,7 +189,19 @@ export function summariseCells(results, points) {
     for (let i = 0; i < h.time.length; i += 1) {
       const s = shipAt(h, i)
       const trigger = triggerWeight(h.weather_code?.[i] ?? 0, h.precipitation?.[i])
-      series.push({ t: h.time[i], risk: s ? s.ship * trigger : 0, ship: s?.ship ?? 0 })
+      const ws5 = h.wind_speed_500hPa?.[i]
+      const wd5 = h.wind_direction_500hPa?.[i]
+      const r = wd5 != null ? (wd5 * Math.PI) / 180 : null
+      series.push({
+        t: h.time[i],
+        risk: s ? s.ship * trigger : 0,
+        ship: s?.ship ?? 0,
+        cape: h.cape?.[i] ?? null,
+        gust: h.wind_gusts_10m?.[i] ?? null,
+        // componenti del vento in quota (km/h): media vettoriale ⇒ steering
+        u5: r === null || ws5 == null ? null : -ws5 * Math.sin(r),
+        v5: r === null || ws5 == null ? null : -ws5 * Math.cos(r),
+      })
     }
 
     return {
@@ -201,5 +219,141 @@ export function summariseCells(results, points) {
 
 /** Picco di rischio dentro una serie già ristretta alla finestra visibile. */
 export function peakOf(series) {
-  return series.reduce((best, p) => (p.risk > best.risk ? p : best), { risk: 0, ship: 0, t: null })
+  return series.reduce((best, p) => (p.risk > best.risk ? p : best), {
+    risk: 0,
+    ship: 0,
+    t: null,
+    cape: null,
+    gust: null,
+  })
+}
+
+/** Fascia descrittiva del CAPE (energia disponibile alla convezione, J/kg). */
+export function capeBand(v) {
+  if (v === null || v === undefined) return null
+  if (v >= 4000) return 'estrema'
+  if (v >= 2500) return 'alta'
+  if (v >= 1000) return 'moderata'
+  if (v >= 300) return 'debole'
+  return 'quasi nulla'
+}
+
+/**
+ * Direzione e velocità di spostamento delle celle temporalesche, come media
+ * vettoriale del vento a 500 hPa su tutte le celle e ore visibili. È lo
+ * steering flow: approssima il moto dei temporali, non lo determina — ma è
+ * l'informazione che spiega "i fenomeni scenderanno verso sud-est".
+ */
+export function steeringOf(cells) {
+  let u = 0
+  let v = 0
+  let n = 0
+  for (const c of cells) {
+    for (const p of c.series) {
+      if (p.u5 === null || p.v5 === null) continue
+      u += p.u5
+      v += p.v5
+      n += 1
+    }
+  }
+  if (!n) return null
+  u /= n
+  v /= n
+  const speed = Math.hypot(u, v)
+  if (speed < 8) return { speed, towardsDeg: null } // quasi fermo: direzione senza senso
+  const towardsDeg = ((Math.atan2(u, v) * 180) / Math.PI + 360) % 360
+  return { speed, towardsDeg }
+}
+
+
+/* ------------------------------------------------------------
+   Sintesi testuale — due o tre frasi generate dai numeri, nello
+   stile degli outlook convettivi: dove, quando, con che cosa.
+   Regole rigide e soglie esplicite: meglio una frase povera ma
+   vera che una ricca e inventata.
+   ------------------------------------------------------------ */
+
+const DAY_PARTS = [
+  { label: 'nella notte', from: 0, to: 6 },
+  { label: 'al mattino', from: 6, to: 12 },
+  { label: 'nel pomeriggio', from: 12, to: 18 },
+  { label: 'in serata', from: 18, to: 24 },
+]
+
+const joinList = (items) =>
+  items.length <= 1 ? items[0] ?? '' : `${items.slice(0, -1).join(', ')} e ${items[items.length - 1]}`
+
+/**
+ * cells: già ristrette al giorno visibile (serie filtrate).
+ * centre: {latitude, longitude} della località.
+ */
+export function buildNarrative(cells, centre) {
+  const sentences = []
+  const sizeRank = { '—': 0, '< 1 cm': 1, '1–2 cm': 2, '2–3 cm': 3, '3–5 cm': 4, '> 5 cm': 5 }
+
+  for (const part of DAY_PARTS) {
+    const active = []
+    let partMaxShip = 0
+    let partMaxRisk = 0
+    for (const c of cells) {
+      let best = 0
+      let bestShip = 0
+      for (const p of c.series) {
+        const h = new Date(p.t).getHours()
+        if (h < part.from || h >= part.to) continue
+        if (p.risk > best) {
+          best = p.risk
+          bestShip = p.ship
+        }
+      }
+      if (best >= 0.2) {
+        const km = distanceKm(centre.latitude, centre.longitude, c.gridLat, c.gridLon)
+        active.push({ km, sector: km < 40 ? null : bearingLabel(centre.latitude, centre.longitude, c.gridLat, c.gridLon) })
+        partMaxShip = Math.max(partMaxShip, bestShip)
+        partMaxRisk = Math.max(partMaxRisk, best)
+      }
+    }
+    if (!active.length) continue
+
+    const here = active.some((a) => a.sector === null)
+    const sectors = [...new Set(active.filter((a) => a.sector).map((a) => a.sector))].slice(0, 3)
+    const where =
+      here && sectors.length
+        ? `sulla zona e verso ${joinList(sectors)}`
+        : here
+          ? 'sulla zona'
+          : `nelle aree a ${joinList(sectors)}`
+    const size = hailSize(partMaxShip)
+    const strength = partMaxRisk >= 0.5 ? 'temporali forti' : 'temporali'
+    const hailTxt = sizeRank[size.label] >= 2 ? `, possibile grandine fino a ${size.label}` : ''
+    sentences.push(`${part.label[0].toUpperCase()}${part.label.slice(1)} ${strength} ${where}${hailTxt}.`)
+  }
+
+  if (!sentences.length) {
+    // Niente sopra la soglia "moderato": distinguere il debole dal nulla,
+    // altrimenti la frase smentisce i numeri mostrati due righe sotto.
+    let weak = 0
+    for (const c of cells) for (const p of c.series) if (p.risk > weak) weak = p.risk
+    return {
+      sentences: [
+        weak >= 0.05
+          ? 'Solo convezione debole e isolata nell\u2019area: qualche rovescio o breve temporale possibile, grandine improbabile.'
+          : 'Giornata senza convezione rilevante nell\u2019area: ambiente poco favorevole alla grandine, o nessun temporale previsto dai modelli.',
+      ],
+      quiet: true,
+    }
+  }
+
+  /* Raffiche: massimo previsto nelle sole ore convettive. */
+  let gustMax = 0
+  for (const c of cells)
+    for (const p of c.series) if (p.risk >= 0.05 && p.gust > gustMax) gustMax = p.gust
+  if (gustMax >= 60)
+    sentences.push(`Nei temporali raffiche fino a ~${Math.round(gustMax / 5) * 5} km/h.`)
+
+  const steering = steeringOf(cells)
+  if (steering?.towardsDeg != null)
+    sentences.push(`Celle in spostamento verso ${windDir(steering.towardsDeg)} a ~${nf(steering.speed, 0)} km/h.`)
+
+  return { sentences, quiet: false }
 }

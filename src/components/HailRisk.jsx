@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import HailMap from './HailMap'
 import { Card, Message, Segmented, Skeleton } from './Ui'
-import { GRIDS, GRID_SIDE, HAIL_DAYS, RISK_LABELS, hailSize, peakOf, rampFor, riskBand } from '../lib/hail'
-import { fmtDayHour, nf, relativePosition } from '../lib/format'
+import { GRIDS, GRID_SIDE, HAIL_DAYS, RISK_LABELS, buildNarrative, capeBand, hailSize, peakOf, rampFor, riskBand, steeringOf } from '../lib/hail'
+import { fmtDayHour, nf, relativePosition, windDir } from '../lib/format'
 import { useIsMobile } from '../lib/hooks'
 
 const CENTRE = (GRID_SIDE - 1) / 2
@@ -35,8 +35,14 @@ function RiskTooltip({ active, payload, label, palette, ramp }) {
         {band.label}
       </div>
       <div className="tnum mt-1 text-ink-sec">
-        SHIP ambiente {nf(p.ship, 2)} · diametro {hailSize(p.ship).label}
+        SHIP {nf(p.ship, 2)} · diametro {hailSize(p.ship).label}
       </div>
+      {p.cape != null && (
+        <div className="tnum text-ink-sec">
+          CAPE {nf(p.cape, 0)} J/kg ({capeBand(p.cape)})
+          {p.gust != null && <> · raffiche ~{nf(p.gust, 0)} km/h</>}
+        </div>
+      )}
     </div>
   )
 }
@@ -76,11 +82,24 @@ export default function HailRisk({
         (p) => p.t.slice(0, 10) === targetDay && p.t.slice(0, 13) >= localNowHour,
       )
       const peak = peakOf(series)
-      return { ...c, series, risk: peak.risk, ship: peak.ship, when: peak.t }
+      return { ...c, series, risk: peak.risk, ship: peak.ship, when: peak.t, cape: peak.cape, gust: peak.gust }
     })
   }, [rawCells, targetDay])
 
   const ranked = useMemo(() => [...(cells ?? [])].sort((a, b) => b.risk - a.risk), [cells])
+  const steering = useMemo(() => (cells?.length ? steeringOf(cells) : null), [cells])
+  const narrative = useMemo(
+    () => (cells?.length ? buildNarrative(cells, location) : null),
+    [cells, location],
+  )
+  // Raffica massima nelle sole ore convettive: una raffica da fronte senza
+  // temporale non c'entra col downburst e qui non deve comparire.
+  const gustMax = useMemo(() => {
+    if (!cells?.length) return null
+    let g = 0
+    for (const c of cells) for (const p of c.series) if (p.risk >= 0.05 && p.gust > g) g = p.gust
+    return g > 0 ? g : null
+  }, [cells])
   const worst = ranked[0]
   const centre = cells?.find((c) => c.row === CENTRE && c.col === CENTRE)
   const focus = selected ?? centre ?? worst
@@ -134,7 +153,16 @@ export default function HailRisk({
         </span>
       </div>
 
-      <div className="grid gap-px border-b border-hair bg-hair sm:grid-cols-2 lg:grid-cols-4">
+      {narrative && (
+        <div className="border-b border-hair p-4">
+          <div className="mb-1 text-[11px] uppercase tracking-[0.06em] text-ink-muted">In sintesi</div>
+          <p className="max-w-[75ch] text-[13.5px] leading-relaxed text-ink-sec">
+            {narrative.sentences.join(' ')}
+          </p>
+        </div>
+      )}
+
+      <div className="grid gap-px border-b border-hair bg-hair sm:grid-cols-2 lg:grid-cols-5">
         <div className="bg-surface p-4">
           <div className="text-[11px] uppercase tracking-[0.06em] text-ink-muted">Rischio massimo nell&apos;area</div>
           <div className="mt-1">
@@ -162,8 +190,30 @@ export default function HailRisk({
           </span>
         </Tile>
 
-        <Tile k="Quando" sub={quiet ? 'nessun picco significativo' : `SHIP ambiente ${nf(worst?.ship ?? 0, 2)}`}>
+        <Tile
+          k="Quando"
+          sub={
+            quiet
+              ? 'nessun picco significativo'
+              : worst?.cape != null
+                ? `energia ${capeBand(worst.cape)} · CAPE ${nf(worst.cape, 0)} J/kg`
+                : `SHIP ambiente ${nf(worst?.ship ?? 0, 2)}`
+          }
+        >
           <span className="text-[17px]">{worst?.when && !quiet ? fmtDayHour(worst.when) : '–'}</span>
+        </Tile>
+
+        <Tile
+          k="Raffiche nei temporali"
+          sub={gustMax ? 'previste dai modelli nelle ore convettive' : 'nessuna convezione prevista'}
+        >
+          {gustMax ? (
+            <>
+              ~{Math.round(gustMax / 5) * 5} <span className="text-[13px] text-ink-sec">km/h</span>
+            </>
+          ) : (
+            '–'
+          )}
         </Tile>
       </div>
 
@@ -177,6 +227,7 @@ export default function HailRisk({
             origin={location}
             palette={palette}
             theme={theme}
+            steering={steering}
             onSelectCell={setSelected}
           />
           <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-ink-sec">

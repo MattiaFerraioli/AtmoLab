@@ -152,6 +152,22 @@ Il grafico accetta al massimo **8 modelli insieme**: oltre gli 8 slot della pale
 restano distinguibili in modo affidabile (anche per chi ha deficit di visione dei colori). Ogni
 modello mantiene il proprio colore anche quando gli altri vengono tolti.
 
+## Sezione temporali: cosa mostra oltre alla grandine
+
+Il formato è ispirato agli outlook convettivi (ESTOFEX, SPC, e i forecaster italiani che ne
+seguono lo schema): non solo "quanto rischio", ma dove, quando, con che energia e con che vento.
+
+- **In sintesi** — due o tre frasi generate dai numeri: fascia oraria, settori rispetto alla
+  località, diametro atteso, raffiche, direzione di spostamento. Soglie rigide: sotto il livello
+  "moderato" la frase lo dice, non inventa fenomeni.
+- **Raffiche nei temporali** — massima raffica prevista dai modelli nelle sole ore convettive
+  (rischio ≥ 0,05): una raffica da fronte senza temporale non c'entra col downburst e non compare.
+- **CAPE** — l'energia disponibile alla convezione, con fascia descrittiva (quasi nulla < 300,
+  debole, moderata, alta ≥ 2500, estrema ≥ 4000 J/kg). Già usata dentro SHIP, ora anche esposta.
+- **Spostamento delle celle** — freccia sulla mappa con direzione e velocità: è lo steering flow,
+  la media vettoriale del vento a 500 hPa su griglia e ore visibili. Approssima il moto dei
+  temporali ("i fenomeni scenderanno verso sud-est"), non lo determina.
+
 ## Come si calcola il rischio grandine
 
 Open-Meteo **non pubblica un diametro di grandine previsto**: il parametro `hail` viene accettato
