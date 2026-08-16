@@ -105,6 +105,10 @@ Verificato a 390 px. Le scelte che il CSS da solo non copriva:
   altrimenti il dito sulla mappa blocca lo scroll della pagina.
 - Assi Recharts più stretti e `minTickGap` al posto di un `interval` fisso, che sotto i 420 px
   sovrapponeva le etichette.
+- **Safe area**: il viewport è `viewport-fit=cover`, quindi da PWA installata il contenuto passa
+  sotto la status bar e sotto la barra gesti. Topbar, contenuto e footer compensano con
+  `env(safe-area-inset-*)` (classi `.safe-top` / `.safe-x` / `.safe-bottom` in `index.css`);
+  su desktop l'inset vale 0 e non cambia nulla.
 
 ## Icone meteo
 

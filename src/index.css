@@ -93,6 +93,20 @@ body {
   box-shadow: var(--shadow);
 }
 
+/* Safe area: il viewport è dichiarato `viewport-fit=cover`, quindi da PWA
+   installata il contenuto passa SOTTO la status bar e sotto la barra gesti.
+   Senza queste compensazioni la topbar finisce nascosta dall'orologio. */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-x {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 .tnum {
   font-variant-numeric: tabular-nums;
 }

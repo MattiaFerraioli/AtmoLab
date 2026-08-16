@@ -238,7 +238,7 @@ export default function App() {
         onRefresh={() => setReloadKey((k) => k + 1)}
       />
 
-      <main className="mx-auto max-w-[1180px] px-5 pb-16">
+      <main className="safe-x mx-auto max-w-[1180px] px-4 pb-16 sm:px-5">
         <div className="pt-6">
           {forecastError ? (
             <Message tone="error">Impossibile caricare la previsione: {forecastError}</Message>
@@ -342,7 +342,7 @@ export default function App() {
           <MapPanel location={location} palette={palette} theme={theme} onPick={setLocation} />
         </Section>
 
-        <footer className="mt-9 border-t border-hair pt-4 text-[12.5px] text-ink-muted">
+        <footer className="safe-bottom mt-9 border-t border-hair pt-4 text-[12.5px] text-ink-muted">
           Dati:{' '}
           <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="text-accent">
             Open-Meteo
