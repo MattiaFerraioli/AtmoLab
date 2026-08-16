@@ -85,8 +85,9 @@ Cose da sapere:
   orario della cella scelta. Si guarda **un giorno alla volta** — oggi, domani o dopodomani, oppure
   il giorno scelto nella striscia dei 14 giorni. Su oggi le ore già passate sono escluse.
 - **Ricerca** — per città con autocomplete; ogni risultato mostra bandiera, regione, paese e
-  popolazione, che bastano a distinguere gli omonimi. Preferiti salvati in locale,
-  geolocalizzazione, mappa cliccabile per prendere una coordinata qualsiasi.
+  popolazione, che bastano a distinguere gli omonimi. Preferiti salvati in locale e
+  geolocalizzazione, che risolve il nome del comune invece di mostrare le coordinate
+  (reverse geocoding BigDataCloud, gratuito e senza chiave — Open-Meteo non lo offre).
 - **LED di freschezza** in topbar — verde con l'ora dell'ultimo scaricamento, ambra durante il
   fetch, rosso lampeggiante se il fetch fallisce o i dati superano i 30 minuti. Cliccandolo
   ricarica tutto. Misura la freschezza del *nostro* fetch, non la corsa del modello: quella sta in

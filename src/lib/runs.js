@@ -57,12 +57,6 @@ export async function fetchModelRuns(signal) {
   return runs
 }
 
-/** "corsa 06Z" — le corse si identificano con l'ora UTC di inizializzazione. */
-export function runLabel(ms) {
-  const d = new Date(ms)
-  return `${String(d.getUTCHours()).padStart(2, '0')}Z del ${d.getUTCDate()}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`
-}
-
 /** Età della corsa in ore, per segnalare un modello fermo da troppo. */
 export function runAgeHours(ms) {
   return (Date.now() - ms) / 3_600_000

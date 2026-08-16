@@ -4,11 +4,10 @@ import CurrentHero from './components/CurrentHero'
 import DailyStrip from './components/DailyStrip'
 import HourlyChart from './components/HourlyChart'
 import ModelCompare from './components/ModelCompare'
-import MapPanel from './components/MapPanel'
 import HailRisk from './components/HailRisk'
 import Favourites from './components/Favourites'
 import { Card, DayFilterBar, Message, Section } from './components/Ui'
-import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison } from './lib/api'
+import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, reverseGeocode } from './lib/api'
 import { DEFAULT_LOCATION, DEFAULT_MODELS, MAX_MODELS, MODELS } from './lib/constants'
 import { GRIDS, GRID_SIDE, MAX_HAIL_OFFSET, buildGrid, summariseCells } from './lib/hail'
 import { fmtLong, fmtTime } from './lib/format'
@@ -209,15 +208,22 @@ export default function App() {
       return
     }
     navigator.geolocation.getCurrentPosition(
-      (p) =>
+      async (p) => {
+        const latitude = +p.coords.latitude.toFixed(4)
+        const longitude = +p.coords.longitude.toFixed(4)
+        // Il nome si risolve PRIMA di impostare la località: cambiarlo dopo
+        // significherebbe una seconda identità di oggetto e quindi rifare
+        // tutte e tre le chiamate.
+        const place = await reverseGeocode(latitude, longitude)
         setLocation({
-          name: 'Posizione attuale',
-          country: '',
-          country_code: '',
-          admin1: 'GPS',
-          latitude: +p.coords.latitude.toFixed(4),
-          longitude: +p.coords.longitude.toFixed(4),
-        }),
+          name: place?.name ?? 'Posizione attuale',
+          country: place?.country ?? '',
+          country_code: place?.country_code ?? '',
+          admin1: place?.admin1 ?? 'GPS',
+          latitude,
+          longitude,
+        })
+      },
       () => window.alert('Permesso di geolocalizzazione negato.'),
     )
   }, [setLocation])
@@ -336,10 +342,6 @@ export default function App() {
               theme={theme}
             />
           )}
-        </Section>
-
-        <Section title="Mappa" hint="clicca un punto qualsiasi per la previsione di quella coordinata">
-          <MapPanel location={location} palette={palette} theme={theme} onPick={setLocation} />
         </Section>
 
         <footer className="safe-bottom mt-9 border-t border-hair pt-4 text-[12.5px] text-ink-muted">

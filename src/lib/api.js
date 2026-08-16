@@ -4,6 +4,7 @@ import { HAIL_VARS } from './hail'
 const FORECAST = 'https://api.open-meteo.com/v1/forecast'
 const GEOCODE = 'https://geocoding-api.open-meteo.com/v1/search'
 const AIRQUALITY = 'https://air-quality-api.open-meteo.com/v1/air-quality'
+const REVERSE = 'https://api.bigdatacloud.net/data/reverse-geocode-client'
 
 async function getJSON(url, signal) {
   const res = await fetch(url, { signal })
@@ -80,6 +81,36 @@ export async function fetchHailGrid(points, days, timezone, signal) {
   })
   const json = await getJSON(`${FORECAST}?${p}`, signal)
   return Array.isArray(json) ? json : [json]
+}
+
+/**
+ * Nome della località da coordinate. Open-Meteo non fa reverse geocoding, quindi
+ * si usa BigDataCloud: gratuito, senza chiave, pensato per l'uso da browser.
+ * Non è critico — se fallisce si resta sulle coordinate.
+ */
+export async function reverseGeocode(latitude, longitude) {
+  const p = new URLSearchParams({ latitude, longitude, localityLanguage: 'it' })
+  // Timeout esplicito: è un contorno, e senza di questo un endpoint lento
+  // bloccherebbe del tutto l'impostazione della località.
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 4000)
+  try {
+    const res = await fetch(`${REVERSE}?${p}`, { signal: ctrl.signal })
+    if (!res.ok) return null
+    const d = await res.json()
+    const name = d.city || d.locality || d.principalSubdivision
+    if (!name) return null
+    return {
+      name,
+      admin1: d.principalSubdivision || '',
+      country: d.countryName || '',
+      country_code: d.countryCode || '',
+    }
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 /** Ricerca località. I risultati portano già il paese, quindi disambiguare

@@ -5,13 +5,14 @@ function Tile({ k, value, sub }) {
     <div className="bg-surface p-4">
       <div className="text-[11px] uppercase tracking-[0.06em] text-ink-muted">{k}</div>
       <div className="tnum mt-1 text-[22px] font-semibold tracking-[-0.02em]">{value}</div>
-      {sub && <div className="mt-0.5 text-[12.5px] text-ink-sec">{sub}</div>}
+      {sub && <div className="mt-0.5 text-[12.5px] leading-snug text-ink-sec">{sub}</div>}
     </div>
   )
 }
 
 /**
- * Statistiche di divergenza. `spread` = max−min tra i modelli attivi, ora per ora.
+ * Statistiche di divergenza. `spread` = differenza fra il modello che dà il
+ * valore più alto e quello che lo dà più basso, ora per ora.
  * Le soglie di accordo sono per variabile (VARS[].agree).
  */
 export default function SpreadStats({ times, spread, meta, seriesNames, palette }) {
@@ -42,7 +43,7 @@ export default function SpreadStats({ times, spread, meta, seriesNames, palette 
   return (
     <div className="grid gap-px border-t border-hair bg-hair sm:grid-cols-2 lg:grid-cols-4">
       <div className="bg-surface p-4">
-        <div className="text-[11px] uppercase tracking-[0.06em] text-ink-muted">Accordo tra modelli</div>
+        <div className="text-[11px] uppercase tracking-[0.06em] text-ink-muted">Quanto concordano</div>
         <div className="mt-1">
           <span
             className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] font-semibold"
@@ -52,28 +53,33 @@ export default function SpreadStats({ times, spread, meta, seriesNames, palette 
             {level}
           </span>
         </div>
-        <div className="mt-1 text-[12.5px] text-ink-sec">
-          divergenza media {nf(avg, meta.dec)} {meta.unit}
+        <div className="mt-1 text-[12.5px] leading-snug text-ink-sec">
+          Fra il modello più alto e il più basso corrono in media{' '}
+          <strong className="tnum font-semibold">
+            {nf(avg, meta.dec)} {meta.unit}
+          </strong>
         </div>
       </div>
 
       <Tile
-        k="Divergenza massima"
+        k="Momento peggiore"
         value={`${nf(max, meta.dec)} ${meta.unit}`}
-        sub={iMax >= 0 ? fmtDayHour(times[iMax]) : '–'}
+        sub={iMax >= 0 ? `di distanza fra i modelli, ${fmtDayHour(times[iMax])}` : '–'}
       />
 
       <Tile
-        k="Previsione concorde fino a"
-        value={horizon < 0 ? "tutto l'orizzonte" : `+${horizon} h`}
+        k="Si può contare su"
+        value={horizon < 0 ? 'tutto il periodo' : horizon === 0 ? 'niente' : `${horizon} ore`}
         sub={
           horizon < 0
-            ? `divergenza sempre sotto ${nf(loose, meta.dec)} ${meta.unit}`
-            : `poi supera ${nf(loose, meta.dec)} ${meta.unit} · ${fmtDayHour(times[horizon])}`
+            ? `i modelli non si allontanano mai oltre ${nf(loose, meta.dec)} ${meta.unit}`
+            : horizon === 0
+              ? `i modelli sono già oltre ${nf(loose, meta.dec)} ${meta.unit} di distanza`
+              : `poi si allontanano oltre ${nf(loose, meta.dec)} ${meta.unit} · ${fmtDayHour(times[horizon])}`
         }
       />
 
-      <Tile k="Modelli confrontati" value={seriesNames.length} sub={seriesNames.join(', ')} />
+      <Tile k="Modelli a confronto" value={seriesNames.length} sub={seriesNames.join(', ')} />
     </div>
   )
 }
