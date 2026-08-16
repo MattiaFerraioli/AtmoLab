@@ -68,14 +68,14 @@ export default function SpreadStats({ times, spread, meta, seriesNames, palette 
       />
 
       <Tile
-        k="Si può contare su"
-        value={horizon < 0 ? 'tutto il periodo' : horizon === 0 ? 'niente' : `${horizon} ore`}
+        k="D'accordo per"
+        value={horizon < 0 ? 'tutto il periodo' : horizon === 0 ? '0 ore' : `${horizon} ore`}
         sub={
           horizon < 0
-            ? `i modelli non si allontanano mai oltre ${nf(loose, meta.dec)} ${meta.unit}`
+            ? `i modelli non distano mai più di ${nf(loose, meta.dec)} ${meta.unit}`
             : horizon === 0
-              ? `i modelli sono già oltre ${nf(loose, meta.dec)} ${meta.unit} di distanza`
-              : `poi si allontanano oltre ${nf(loose, meta.dec)} ${meta.unit} · ${fmtDayHour(times[horizon])}`
+              ? `già alla prima ora i modelli distano più di ${nf(loose, meta.dec)} ${meta.unit}: guarda dove divergono, non il valore singolo`
+              : `da ${fmtDayHour(times[horizon])} distano più di ${nf(loose, meta.dec)} ${meta.unit}`
         }
       />
 
