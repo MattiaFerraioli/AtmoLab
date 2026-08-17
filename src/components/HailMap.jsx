@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { MapContainer, Rectangle, Tooltip, useMap } from 'react-leaflet'
-import { TileLayer } from 'react-leaflet'
+import L from 'leaflet'
+import { MapContainer, Marker, Rectangle, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { DragControl, LockOverlay } from './MapLock'
 import { TILE_ATTRIB } from '../lib/constants'
-import { useIsTouch } from '../lib/hooks'
-import { hailSize, rampFor, riskBand } from '../lib/hail'
 import { fmtDayHour, nf, windDir } from '../lib/format'
+import { useIsTouch } from '../lib/hooks'
+import { SEVERITY_COLORS, SEVERITY_LABELS } from '../lib/hazards'
+
+/** Quante celle portano l'etichetta: oltre, la mappa diventa illeggibile. */
+const MAX_LABELS = 8
 
 /**
  * La griglia cambia estensione con il preset: la vista deve seguirla.
@@ -22,8 +25,6 @@ function FitToCells({ bounds }) {
       map.fitBounds(bounds, { padding: [14, 14], animate: false })
     }
     fit()
-    // Al primo montaggio il container può essere ancora a dimensione zero:
-    // finché non si stabilizza, fitBounds calcolerebbe uno zoom troppo basso.
     const observer = new ResizeObserver(fit)
     observer.observe(map.getContainer())
     return () => observer.disconnect()
@@ -31,14 +32,26 @@ function FitToCells({ bounds }) {
   return null
 }
 
-export default function HailMap({ cells, step, origin, palette, theme, steering, onSelectCell }) {
-  const ramp = rampFor(theme)
+/** Etichetta col valore vero della cella: il colore da solo non basta a dire "2–3 cm". */
+function valueIcon(text, color) {
+  return L.divIcon({
+    className: '',
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+    html: `<span style="
+      position:absolute; transform:translate(-50%,-50%); white-space:nowrap;
+      background:${color}; color:#fff; font:600 11px/1 system-ui,sans-serif;
+      padding:3px 6px; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,.45);
+    ">${text}</span>`,
+  })
+}
+
+export default function HailMap({ cells, step, origin, palette, theme, steering, hazard, onSelectCell }) {
   const isTouch = useIsTouch()
   const [unlocked, setUnlocked] = useState(false)
   const locked = isTouch && !unlocked
   const half = step / 2
 
-  // Memoizzato: un array nuovo a ogni render rilancerebbe il fit di continuo.
   const bounds = useMemo(() => {
     if (!cells.length) return null
     const lats = cells.map((c) => c.gridLat)
@@ -48,6 +61,31 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
       [Math.max(...lats) + half, Math.max(...lons) + half],
     ]
   }, [cells, half])
+
+  /* Etichette solo sui MASSIMI LOCALI da "moderato" in su: etichettare tutte le
+     celle sopra soglia le faceva accavallare, perché celle adiacenti hanno
+     valori simili e distano pochi pixel. Un massimo locale è una cella che non
+     ha vicini (8-connessi) con valore più alto. */
+  const labelled = useMemo(() => {
+    const key = (c) => `${c.row},${c.col}`
+    const byCell = new Map(cells.map((c) => [key(c), c]))
+    const isLocalMax = (c) => {
+      for (let dr = -1; dr <= 1; dr += 1)
+        for (let dc = -1; dc <= 1; dc += 1) {
+          if (!dr && !dc) continue
+          const n = byCell.get(`${c.row + dr},${c.col + dc}`)
+          if (n && n.metric.value > c.metric.value) return false
+        }
+      return true
+    }
+    return new Set(
+      cells
+        .filter((c) => c.severity >= 2 && c.metric.badge !== '—' && isLocalMax(c))
+        .sort((a, b) => b.metric.value - a.metric.value)
+        .slice(0, MAX_LABELS)
+        .map((c) => `${c.gridLat},${c.gridLon}`),
+    )
+  }, [cells])
 
   return (
     <div className="relative z-[1] h-[320px] overflow-hidden rounded-2xl border border-hair card-shadow sm:h-[440px]">
@@ -62,8 +100,8 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
         <DragControl enabled={!locked} />
 
         {cells.map((c) => {
-          const band = riskBand(c.risk)
-          const size = hailSize(c.ship)
+          const color = SEVERITY_COLORS[c.severity]
+          const showLabel = labelled.has(`${c.gridLat},${c.gridLon}`)
           return (
             <Rectangle
               key={`${c.gridLat},${c.gridLon}`}
@@ -72,33 +110,41 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                 [c.gridLat + half, c.gridLon + half],
               ]}
               pathOptions={{
-                color: ramp[band.step],
-                weight: band.step === 0 ? 0.5 : 1,
-                opacity: band.step === 0 ? 0.25 : 0.7,
-                fillColor: ramp[band.step],
-                fillOpacity: band.step === 0 ? 0.06 : 0.2 + band.step * 0.15,
+                color,
+                weight: c.severity === 0 ? 0.4 : 1.1,
+                opacity: c.severity === 0 ? 0.15 : 0.75,
+                fillColor: color,
+                fillOpacity: c.severity === 0 ? 0.04 : 0.1 + c.severity * 0.12,
               }}
               eventHandlers={{ click: () => onSelectCell?.(c) }}
             >
               <Tooltip sticky>
                 <div className="text-[12px] leading-snug">
-                  <strong>{band.label}</strong>
+                  <strong>
+                    {hazard.label} · {SEVERITY_LABELS[c.severity]}
+                  </strong>
                   <br />
-                  SHIP {nf(c.ship, 2)} · diametro {size.label}
+                  {c.metric.badge} · {c.metric.detail}
                   <br />
-                  {c.when ? fmtDayHour(c.when) : 'nessun picco'}
+                  {c.metric.at ? fmtDayHour(c.metric.at) : 'nessun picco'}
                   <br />
                   <span style={{ opacity: 0.7 }}>
                     {c.gridLat.toFixed(2)}°, {c.gridLon.toFixed(2)}°
                   </span>
                 </div>
               </Tooltip>
+              {showLabel && (
+                <Marker
+                  position={[c.gridLat, c.gridLon]}
+                  icon={valueIcon(c.metric.badge, color)}
+                  interactive={false}
+                />
+              )}
             </Rectangle>
           )
         })}
       </MapContainer>
-      {/* Spostamento delle celle temporalesche: steering flow a 500 hPa.
-          Overlay DOM, non layer Leaflet: non deve ruotare/spostarsi col pan. */}
+
       {steering?.towardsDeg != null && (
         <div
           className="absolute right-2 top-2 z-[500] flex items-center gap-1.5 rounded-lg border border-hair bg-surface/90 px-2 py-1.5 text-[11.5px] font-semibold text-ink backdrop-blur-sm"

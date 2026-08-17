@@ -167,11 +167,6 @@ export function hailSize(ship) {
   return { label: '—', note: 'grandine non attesa' }
 }
 
-/** Ramp sequenziale blu (una sola tinta) — su tema scuro va dal cupo al chiaro. */
-const RAMP_LIGHT = ['#cde2fb', '#9ec5f4', '#5598e7', '#256abf', '#0d366b']
-const RAMP_DARK = ['#184f95', '#256abf', '#3987e5', '#86b6ef', '#cde2fb']
-export const rampFor = (theme) => (theme === 'dark' ? RAMP_DARK : RAMP_LIGHT)
-
 /**
  * Riduce la risposta multi-località a una cella per punto, con la serie oraria
  * completa. Il picco NON si calcola qui: dipende dalla finestra visualizzata,
@@ -198,6 +193,7 @@ export function summariseCells(results, points) {
         ship: s?.ship ?? 0,
         cape: h.cape?.[i] ?? null,
         gust: h.wind_gusts_10m?.[i] ?? null,
+        precip: h.precipitation?.[i] ?? null,
         // componenti del vento in quota (km/h): media vettoriale ⇒ steering
         u5: r === null || ws5 == null ? null : -ws5 * Math.sin(r),
         v5: r === null || ws5 == null ? null : -ws5 * Math.cos(r),

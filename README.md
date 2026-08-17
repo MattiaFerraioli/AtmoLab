@@ -152,7 +152,31 @@ Il grafico accetta al massimo **8 modelli insieme**: oltre gli 8 slot della pale
 restano distinguibili in modo affidabile (anche per chi ha deficit di visione dei colori). Ogni
 modello mantiene il proprio colore anche quando gli altri vengono tolti.
 
-## Sezione temporali: cosa mostra oltre alla grandine
+## Sezione temporali: tre pericoli sulla stessa griglia
+
+Un selettore commuta fra **Grandine**, **Vento** e **Pioggia**: cambia il numero che si guarda,
+non i dati scaricati — gli stessi 15 parametri per 49 celle servono tutti e tre.
+
+| Pericolo | Metrica di colore | Valore mostrato | Soglie |
+| --- | --- | --- | --- |
+| Grandine | rischio combinato ambiente × innesco | diametro stimato | 0,05 / 0,2 / 0,5 / 1 |
+| Vento | raffica massima del giorno | km/h | 60 / 75 / 90 / 105 km/h |
+| Pioggia | accumulo totale sulla finestra | mm (punta oraria a fianco) | 10 / 25 / 50 / 80 mm |
+
+**Affidabilità diversa, detta esplicitamente nella UI**: vento e pioggia sono output diretti del
+modello; la grandine è una ricostruzione da parametri d'ambiente. La nota in fondo alla sezione
+cambia col pericolo selezionato e lo dice.
+
+**Scala colore**: giallo → arancio → rosso → viola, la convenzione degli outlook convettivi
+(SPC, ESTOFEX). È una deroga consapevole alla regola "sequenziale = una sola tinta": su mappa
+scura la rampa monocroma rendeva le celle indistinguibili. Il valore numerico è comunque stampato
+sulle celle significative, quindi il colore non porta mai da solo l'informazione.
+
+**Etichette sulla mappa**: solo sui massimi locali sopra "moderato", massimo otto. Etichettare
+tutte le celle sopra soglia le faceva accavallare, perché celle adiacenti hanno valori simili e
+distano pochi pixel.
+
+## Cosa mostra in più, per tutti e tre
 
 Il formato è ispirato agli outlook convettivi (ESTOFEX, SPC, e i forecaster italiani che ne
 seguono lo schema): non solo "quanto rischio", ma dove, quando, con che energia e con che vento.

@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import HailMap from './HailMap'
 import { Card, Message, Segmented, Skeleton } from './Ui'
-import { GRIDS, GRID_SIDE, HAIL_DAYS, RISK_LABELS, buildNarrative, capeBand, hailSize, peakOf, rampFor, riskBand, steeringOf } from '../lib/hail'
-import { fmtDayHour, nf, relativePosition, windDir } from '../lib/format'
+import { GRIDS, GRID_SIDE, HAIL_DAYS, buildNarrative, capeBand, hailSize, peakOf, steeringOf } from '../lib/hail'
+import { HAZARDS, SEVERITY_COLORS, SEVERITY_LABELS, applyHazard, hazardById, severityOf } from '../lib/hazards'
+import { fmtDayHour, nf, relativePosition } from '../lib/format'
 import { useIsMobile } from '../lib/hooks'
 
 const CENTRE = (GRID_SIDE - 1) / 2
@@ -18,10 +19,11 @@ function Tile({ k, children, sub }) {
   )
 }
 
-function RiskTooltip({ active, payload, label, palette, ramp }) {
+function RiskTooltip({ active, payload, label, palette, hazard }) {
   if (!active || !payload?.length) return null
   const p = payload[0].payload
-  const band = riskBand(p.risk)
+  const value = hazard.hourly.pick(p)
+  const sev = severityOf(value, hazard.hourly.bands)
   return (
     <div
       className="rounded-xl border p-2.5 text-[12.5px] card-shadow"
@@ -31,12 +33,12 @@ function RiskTooltip({ active, payload, label, palette, ramp }) {
         {fmtDayHour(label)}
       </div>
       <div className="flex items-center gap-2">
-        <span className="h-2.5 w-2.5 rounded-sm" style={{ background: ramp[band.step] }} />
-        {band.label}
+        <span className="h-2.5 w-2.5 rounded-sm" style={{ background: SEVERITY_COLORS[sev] }} />
+        {hazard.hourly.label} {nf(value ?? 0, hazard.hourly.dec)} {hazard.hourly.unit}
       </div>
-      <div className="tnum mt-1 text-ink-sec">
-        SHIP {nf(p.ship, 2)} · diametro {hailSize(p.ship).label}
-      </div>
+      {hazard.id === 'hail' && (
+        <div className="tnum mt-1 text-ink-sec">diametro {hailSize(p.ship).label}</div>
+      )}
       {p.cape != null && (
         <div className="tnum text-ink-sec">
           CAPE {nf(p.cape, 0)} J/kg ({capeBand(p.cape)})
@@ -57,6 +59,8 @@ export default function HailRisk({
   targetDay,
   dayOffset,
   onDayOffsetChange,
+  hazardId,
+  onHazardChange,
   dayLocked,
   dayOutOfRange,
   palette,
@@ -65,7 +69,6 @@ export default function HailRisk({
   const [selected, setSelected] = useState(null)
   const isMobile = useIsMobile()
   const step = GRIDS.find((g) => g.id === grid)?.step ?? 0.7
-  const ramp = rampFor(theme)
 
   // Cambiando località, griglia o giorno, il dettaglio torna sulla cella centrale.
   useEffect(() => setSelected(null), [location, grid, targetDay])
@@ -86,7 +89,12 @@ export default function HailRisk({
     })
   }, [rawCells, targetDay])
 
-  const ranked = useMemo(() => [...(cells ?? [])].sort((a, b) => b.risk - a.risk), [cells])
+  const hazard = hazardById(hazardId)
+  const hazardCells = useMemo(() => (cells ? applyHazard(cells, hazardId) : null), [cells, hazardId])
+  const ranked = useMemo(
+    () => [...(hazardCells ?? [])].sort((a, b) => b.metric.value - a.metric.value),
+    [hazardCells],
+  )
   const steering = useMemo(() => (cells?.length ? steeringOf(cells) : null), [cells])
   const narrative = useMemo(
     () => (cells?.length ? buildNarrative(cells, location) : null),
@@ -101,7 +109,7 @@ export default function HailRisk({
     return g > 0 ? g : null
   }, [cells])
   const worst = ranked[0]
-  const centre = cells?.find((c) => c.row === CENTRE && c.col === CENTRE)
+  const centre = hazardCells?.find((c) => c.row === CENTRE && c.col === CENTRE)
   const focus = selected ?? centre ?? worst
 
   const focusSeries = useMemo(() => focus?.series ?? [], [focus])
@@ -116,15 +124,20 @@ export default function HailRisk({
     )
   if (loading || !cells) return <Skeleton className="h-[520px] w-full" />
 
-  const worstBand = riskBand(worst?.risk ?? 0)
-  const worstColor = ramp[worstBand.step]
-  const worstSize = hailSize(worst?.ship ?? 0)
-  const quiet = (worst?.risk ?? 0) < 0.05
-  const peakRisk = Math.max(...focusSeries.map((p) => p.risk), 0)
+  const worstSeverity = worst?.severity ?? 0
+  const worstColor = SEVERITY_COLORS[worstSeverity]
+  const quiet = worstSeverity === 0
+  const peakRisk = Math.max(...focusSeries.map((p) => hazard.hourly.pick(p) ?? 0), 0)
 
   return (
     <Card>
       <div className="flex flex-wrap items-center gap-2 border-b border-hair p-3 sm:gap-3 sm:p-4">
+        <Segmented
+          ariaLabel="Pericolo da mappare"
+          options={HAZARDS.map((h) => ({ value: h.id, label: h.label }))}
+          value={hazardId}
+          onChange={onHazardChange}
+        />
         <Segmented
           ariaLabel="Estensione dell'area analizzata"
           options={GRIDS.map((g) => ({ value: g.id, label: g.label }))}
@@ -164,7 +177,9 @@ export default function HailRisk({
 
       <div className="grid gap-px border-b border-hair bg-hair sm:grid-cols-2 lg:grid-cols-5">
         <div className="bg-surface p-4">
-          <div className="text-[11px] uppercase tracking-[0.06em] text-ink-muted">Rischio massimo nell&apos;area</div>
+          <div className="text-[11px] uppercase tracking-[0.06em] text-ink-muted">
+            {hazard.label} · massimo nell&apos;area
+          </div>
           <div className="mt-1">
             <span
               className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] font-semibold"
@@ -174,14 +189,14 @@ export default function HailRisk({
               }}
             >
               <span className="h-2 w-2 rounded-full" style={{ background: worstColor }} />
-              {worstBand.label}
+              {SEVERITY_LABELS[worstSeverity]}
             </span>
           </div>
-          <div className="tnum mt-1 text-[12.5px] text-ink-sec">indice {nf(worst?.risk ?? 0, 2)}</div>
+          <div className="mt-1 text-[12.5px] text-ink-sec">{worst?.metric.detail ?? '–'}</div>
         </div>
 
-        <Tile k="Diametro stimato" sub={worstSize.note}>
-          {worstSize.label}
+        <Tile k={hazard.id === 'hail' ? 'Diametro stimato' : hazard.id === 'wind' ? 'Raffica massima' : 'Accumulo massimo'} sub={worst?.metric.note ?? '–'}>
+          {worst?.metric.badge ?? '—'}
         </Tile>
 
         <Tile k="Dove" sub={worst ? `${worst.gridLat.toFixed(2)}°, ${worst.gridLon.toFixed(2)}°` : '–'}>
@@ -200,7 +215,7 @@ export default function HailRisk({
                 : `SHIP ambiente ${nf(worst?.ship ?? 0, 2)}`
           }
         >
-          <span className="text-[17px]">{worst?.when && !quiet ? fmtDayHour(worst.when) : '–'}</span>
+          <span className="text-[17px]">{worst?.metric.at && !quiet ? fmtDayHour(worst.metric.at) : '–'}</span>
         </Tile>
 
         <Tile
@@ -222,19 +237,23 @@ export default function HailRisk({
       <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[minmax(0,460px)_1fr]">
         <div>
           <HailMap
-            cells={cells}
+            cells={hazardCells}
             step={step}
             origin={location}
             palette={palette}
             theme={theme}
             steering={steering}
+            hazard={hazard}
             onSelectCell={setSelected}
           />
           <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-ink-sec">
             <span className="text-ink-muted">Rischio:</span>
-            {RISK_LABELS.map((label, i) => (
+            {SEVERITY_LABELS.map((label, i) => (
               <span key={label} className="inline-flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-sm" style={{ background: ramp[i], opacity: i === 0 ? 0.45 : 1 }} />
+                <span
+                  className="h-3 w-3 rounded-sm"
+                  style={{ background: SEVERITY_COLORS[i], opacity: i === 0 ? 0.4 : 1 }}
+                />
                 {label}
               </span>
             ))}
@@ -242,7 +261,7 @@ export default function HailRisk({
         </div>
 
         <div>
-          <div className="mb-2 text-[13px] font-semibold text-ink-sec">Celle a rischio maggiore</div>
+          <div className="mb-2 text-[13px] font-semibold text-ink-sec">Celle più esposte</div>
           {quiet ? (
             <Message>
               Nessuna cella con rischio apprezzabile {dayOffset === 0 ? 'per il resto di oggi' : 'in questo giorno'}.
@@ -251,8 +270,7 @@ export default function HailRisk({
           ) : (
             <ol className="flex flex-col gap-1.5">
               {ranked.slice(0, 8).map((c) => {
-                const band = riskBand(c.risk)
-                const size = hailSize(c.ship)
+                const color = SEVERITY_COLORS[c.severity]
                 const isFocus = focus && c.gridLat === focus.gridLat && c.gridLon === focus.gridLon
                 return (
                   <li key={`${c.gridLat},${c.gridLon}`}>
@@ -262,18 +280,18 @@ export default function HailRisk({
                         isFocus ? 'border-accent' : 'border-hair hover:border-axis'
                       }`}
                     >
-                      <span className="h-7 w-1.5 shrink-0 rounded-full" style={{ background: ramp[band.step] }} />
+                      <span className="h-7 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px] font-semibold">
                           {relativePosition(location.latitude, location.longitude, c.gridLat, c.gridLon)}
                         </span>
                         <span className="block text-[11.5px] text-ink-muted">
-                          {fmtDayHour(c.when)} · {band.label}
+                          {c.metric.at ? fmtDayHour(c.metric.at) : '–'} · {SEVERITY_LABELS[c.severity]}
                         </span>
                       </span>
                       <span className="tnum shrink-0 text-right">
-                        <span className="block text-[13px] font-semibold">{size.label}</span>
-                        <span className="block text-[11.5px] text-ink-muted">SHIP {nf(c.ship, 2)}</span>
+                        <span className="block text-[13px] font-semibold">{c.metric.badge}</span>
+                        <span className="block text-[11.5px] text-ink-muted">{c.metric.detail}</span>
                       </span>
                     </button>
                   </li>
@@ -286,7 +304,7 @@ export default function HailRisk({
 
       <div className="border-t border-hair p-4 pt-3">
         <div className="mb-1 ml-1 text-[13px] font-semibold text-ink-sec">
-          Andamento orario ·{' '}
+          {hazard.hourly.label} ora per ora ·{' '}
           {focus
             ? relativePosition(location.latitude, location.longitude, focus.gridLat, focus.gridLon) === 'qui'
               ? location.name
@@ -312,18 +330,20 @@ export default function HailRisk({
               tickLine={false}
               axisLine={{ stroke: palette.axis }}
               width={isMobile ? 44 : 54}
-              domain={[0, (m) => Math.max(0.1, Math.ceil(m * 1.15 * 20) / 20)]}
-              tickFormatter={(v) => nf(v, 2)}
+              domain={[0, (m) => Math.max(hazard.hourly.bands[0], Math.ceil(m * 1.15 * 20) / 20)]}
+              tickFormatter={(v) => nf(v, hazard.hourly.dec)}
             />
             {/* Soglia "Alto" mostrata solo se la scala la contiene, altrimenti schiaccia i dati */}
-            {peakRisk >= 0.3 && <ReferenceLine y={0.5} stroke={palette.axis} strokeDasharray="4 4" />}
+            {peakRisk >= hazard.hourly.bands[1] && (
+              <ReferenceLine y={hazard.hourly.bands[2]} stroke={palette.axis} strokeDasharray="4 4" />
+            )}
             <Tooltip
               cursor={{ fill: palette.ink, fillOpacity: 0.06 }}
-              content={<RiskTooltip palette={palette} ramp={ramp} />}
+              content={<RiskTooltip palette={palette} hazard={hazard} />}
             />
-            <Bar dataKey="risk" radius={[3, 3, 0, 0]} isAnimationActive={false}>
+            <Bar dataKey={hazard.id === 'hail' ? 'risk' : hazard.id === 'wind' ? 'gust' : 'precip'} radius={[3, 3, 0, 0]} isAnimationActive={false}>
               {focusSeries.map((p) => (
-                <Cell key={p.t} fill={ramp[riskBand(p.risk).step]} />
+                <Cell key={p.t} fill={SEVERITY_COLORS[severityOf(hazard.hourly.pick(p), hazard.hourly.bands)]} />
               ))}
             </Bar>
           </BarChart>
@@ -331,14 +351,34 @@ export default function HailRisk({
       </div>
 
       <div className="border-t border-hair p-4 text-[12.5px] leading-relaxed text-ink-muted">
-        <strong className="text-ink-sec">Come si legge.</strong> Open-Meteo non pubblica un diametro di grandine
-        previsto, quindi l&apos;indice è ricostruito dai parametri d&apos;ambiente con la formula <strong>SHIP</strong>{' '}
-        (Significant Hail Parameter, Storm Prediction Center): CAPE, rapporto di mescolanza, gradiente termico 700–500
-        hPa, temperatura a 500 hPa, shear del vento 0–6 km e quota dello zero termico. SHIP &gt; 1 indica ambiente
-        favorevole a grandine ≥ 5 cm. Poiché SHIP descrive il potenziale e non l&apos;innesco, il rischio mostrato pesa
-        SHIP con la convezione effettivamente prevista dal modello (codice meteo e precipitazione). Il diametro è una{' '}
-        <strong>stima da parametri</strong>, non l&apos;uscita di un modello di grandine: usalo per capire dove e quando
-        guardare, non come previsione puntuale.
+        {hazard.id === 'hail' ? (
+          <>
+            <strong className="text-ink-sec">Come si legge.</strong> Open-Meteo non pubblica un diametro di grandine
+            previsto, quindi l&apos;indice è ricostruito dai parametri d&apos;ambiente con la formula{' '}
+            <strong>SHIP</strong> (Significant Hail Parameter, Storm Prediction Center): CAPE, rapporto di mescolanza,
+            gradiente termico 700–500 hPa, temperatura a 500 hPa, shear del vento 0–6 km e quota dello zero termico.
+            SHIP &gt; 1 indica ambiente favorevole a grandine ≥ 5 cm. Poiché SHIP descrive il potenziale e non
+            l&apos;innesco, il rischio mostrato pesa SHIP con la convezione effettivamente prevista dal modello. Il
+            diametro è una <strong>stima da parametri</strong>, non l&apos;uscita di un modello di grandine: fra i tre
+            pericoli è il meno affidabile, usalo per capire dove e quando guardare.
+          </>
+        ) : hazard.id === 'wind' ? (
+          <>
+            <strong className="text-ink-sec">Come si legge.</strong> A differenza della grandine, qui non si ricostruisce
+            niente: la raffica è <strong>output diretto del modello</strong> (`wind_gusts_10m`), quindi più affidabile.
+            Il valore è il massimo previsto nella giornata per ogni cella. La riga sotto distingue i due casi che
+            contano: raffica <em>nel temporale</em> — è un downburst, breve e localizzato — oppure vento di gradiente,
+            più costante e prevedibile. Sopra i 90 km/h si entra nel campo dei danni.
+          </>
+        ) : (
+          <>
+            <strong className="text-ink-sec">Come si legge.</strong> Anche qui il dato è{' '}
+            <strong>output diretto del modello</strong>, non una stima. Il numero grande è l&apos;accumulo totale sulla
+            finestra vista: è quello che allaga. La punta oraria accanto dice se arriva tutto insieme o distribuito —
+            30 mm in un&apos;ora sono un nubifragio, gli stessi 30 mm in dodici ore sono pioggia normale. Le soglie del
+            colore sono sull&apos;accumulo, quelle del grafico orario sull&apos;intensità.
+          </>
+        )}
       </div>
     </Card>
   )

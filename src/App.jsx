@@ -85,6 +85,7 @@ export default function App() {
 
   const [hailGrid, setHailGrid] = useLocalStorage('hailGrid', 'region')
   const [hailDayOffset, setHailDayOffset] = useLocalStorage('hailDayOffset', 0)
+  const [hazardId, setHazardId] = useLocalStorage('hazard', 'hail')
   const [hailCells, setHailCells] = useState(null)
   const [hailLoading, setHailLoading] = useState(true)
   const [hailError, setHailError] = useState(null)
@@ -308,8 +309,8 @@ export default function App() {
         </Section>
 
         <Section
-          title="Rischio grandine"
-          hint="dove l'ambiente è favorevole alla grandine, quando, e con che diametro atteso"
+          title="Rischio temporali"
+          hint="grandine, raffiche e accumuli: dove, quando, e con che intensità"
           action={hailEnabled && hailUpdatedAt ? <Stamp at={hailUpdatedAt} /> : null}
         >
           {!hailEnabled ? (
@@ -322,7 +323,7 @@ export default function App() {
                 onClick={() => setHailEnabled(true)}
                 className="cursor-pointer rounded-xl border border-accent bg-accent/10 px-4 py-2 text-[13px] font-semibold text-ink transition hover:bg-accent/20"
               >
-                Calcola rischio grandine
+                Calcola rischio temporali
               </button>
             </Card>
           ) : (
@@ -336,6 +337,8 @@ export default function App() {
               targetDay={hailTargetDay}
               dayOffset={hailOffset}
               onDayOffsetChange={setHailDayOffset}
+              hazardId={hazardId}
+              onHazardChange={setHazardId}
               dayLocked={Boolean(selectedDay)}
               dayOutOfRange={hailDayOutOfRange}
               palette={palette}
