@@ -91,3 +91,68 @@ export function ensembleFractions(json) {
 
   return { time, memberCount: suffixes.length, fractions }
 }
+
+
+/* ------------------------------------------------------------
+   Griglia ensemble: frazione di membri oltre soglia, per cella.
+   Stessa definizione di evento dell'accordo fra modelli
+   deterministici, così i numeri sono confrontabili fra sezioni.
+   ------------------------------------------------------------ */
+
+export const ENSEMBLE_MAP_METRICS = [
+  { id: 'storm', label: 'Temporali', hint: 'membri con convezione in atto' },
+  { id: 'wind', label: 'Raffiche ≥ 60', hint: 'membri con vento da danni' },
+  { id: 'rain', label: 'Pioggia ≥ 10 mm', hint: 'membri con accumulo giornaliero' },
+]
+
+const STORM_CODES = new Set([95, 96, 99])
+
+/** Riduce la griglia ensemble a celle con serie di frazioni orarie. */
+export function ensembleGridCells(results, points) {
+  return results.map((res, k) => {
+    const h = res.hourly
+    const t = h.time
+    const suffixes = memberSuffixes(h)
+    const n = suffixes.length
+
+    const series = []
+    const rainTotals = new Map() // giorno -> accumulo per membro
+
+    for (let i = 0; i < t.length; i += 1) {
+      let storm = 0
+      let gust = 0
+      const day = t[i].slice(0, 10)
+      if (!rainTotals.has(day)) rainTotals.set(day, new Array(n).fill(0))
+      const totals = rainTotals.get(day)
+
+      suffixes.forEach((suf, m) => {
+        const cape = h[`cape${suf}`]?.[i]
+        const precip = h[`precipitation${suf}`]?.[i]
+        const wgust = h[`wind_gusts_10m${suf}`]?.[i]
+        const wcode = h[`weather_code${suf}`]?.[i]
+        if (STORM_CODES.has(wcode) || ((precip ?? 0) >= 1 && (cape ?? 0) >= 500)) storm += 1
+        if ((wgust ?? 0) >= 60) gust += 1
+        totals[m] += precip ?? 0
+      })
+      series.push({ t: t[i], storm: storm / n, gust: gust / n })
+    }
+
+    const rainByDay = new Map()
+    for (const [day, totals] of rainTotals) rainByDay.set(day, totals.filter((x) => x >= 10).length / n)
+
+    const point = points[k]
+    return {
+      gridLat: point.lat,
+      gridLon: point.lon,
+      row: point.row,
+      col: point.col,
+      memberCount: n,
+      utcOffset: res.utc_offset_seconds ?? 0,
+      series,
+      rainByDay,
+    }
+  })
+}
+
+/** Severità 0–4 di una frazione: soglie 10% / un terzo / due terzi / 90%. */
+export const fractionStep = (f) => (f >= 0.9 ? 4 : f > 2 / 3 ? 3 : f >= 1 / 3 ? 2 : f >= 0.1 ? 1 : 0)

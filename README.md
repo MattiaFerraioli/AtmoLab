@@ -246,6 +246,12 @@ null; ICON-D2-EPS fuori dominio risponde `nan` e rompe il parse). Mostra, ora pe
 di membri con SHIP > 0,8 e > 1,5, CAPE ≥ 1000, pioggia ≥ 1 mm/h, raffiche ≥ 60 km/h. La prima
 serie della risposta è il run di controllo (senza suffisso), poi `_member01…`.
 
+**Mappa ensemble** — la stessa griglia 7×7 della sezione deterministica, ma colorata con la
+frazione dei 31 membri oltre soglia (temporali / raffiche ≥ 60 / pioggia ≥ 10 mm), zone e
+etichette in percentuale. Solo le 4 variabili di superficie: misurato 1,65 MB in 0,6 s — coi
+livelli in quota per membro sarebbero ~7 MB, quindi la grandine ensemble resta sul punto.
+Caricamento con un click separato che dichiara il peso. Soglie di colore: 10% / 33% / 67% / 90%.
+
 **Confronto nel tempo** (`lib/history.js`): ogni giorno in cui le sezioni sono aperte si salva in
 localStorage una riga con il previsto deterministico e le frazioni ensemble di oggi; dal giorno
 dopo arriva l'osservato ERA5 (lag ~1 giorno: pioggia e raffiche — la grandine osservata non esiste

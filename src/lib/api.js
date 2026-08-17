@@ -156,6 +156,23 @@ export function fetchEnsemblePoint({ latitude, longitude }, days, timezone, sign
   return getJSON(`${ENSEMBLE}?${p}`, signal)
 }
 
+/**
+ * Ensemble su griglia: SOLO le 4 variabili di superficie. Con i livelli in
+ * quota per membro (SHIP) la stessa griglia peserebbe ~7 MB: misurato. Così
+ * sono ~1,6 MB — accettabile per un click esplicito, mai automatico.
+ */
+export function fetchEnsembleGrid(points, days, timezone, signal) {
+  const p = new URLSearchParams({
+    latitude: points.map((x) => x.lat).join(','),
+    longitude: points.map((x) => x.lon).join(','),
+    timezone: timezone || 'auto',
+    forecast_days: days,
+    models: ENSEMBLE_MODEL,
+    hourly: 'cape,precipitation,wind_gusts_10m,weather_code',
+  })
+  return getJSON(`${ENSEMBLE}?${p}`, signal).then((json) => (Array.isArray(json) ? json : [json]))
+}
+
 /** Osservato (ERA5/ERA5T, lag ~1 giorno): per la verifica a posteriori. */
 const ARCHIVE = 'https://archive-api.open-meteo.com/v1/archive'
 

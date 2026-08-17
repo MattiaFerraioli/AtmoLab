@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { Card, Message, Skeleton } from './Ui'
-import { fetchEnsemblePoint, fetchObserved } from '../lib/api'
-import { ENSEMBLE_METRICS, ensembleFractions } from '../lib/ensemble'
+import HailMap from './HailMap'
+import { Card, Message, Segmented, Skeleton } from './Ui'
+import { fetchEnsembleGrid, fetchEnsemblePoint, fetchObserved } from '../lib/api'
+import { ENSEMBLE_MAP_METRICS, ENSEMBLE_METRICS, ensembleFractions, ensembleGridCells, fractionStep } from '../lib/ensemble'
 import { recordObserved, recordSnapshot, snapshotsFor } from '../lib/history'
+import { GRIDS, buildGrid } from '../lib/hail'
+import { SEVERITY_COLORS } from '../lib/hazards'
 import { fmtDayHour, nf } from '../lib/format'
 import { useIsMobile } from '../lib/hooks'
 
@@ -151,7 +154,160 @@ function HistoryTable({ location }) {
   )
 }
 
-export default function EnsemblePanel({ location, timezone, detSnapshot, palette }) {
+const FRACTION_LEGEND = [
+  { step: 1, label: '≥ 10%' },
+  { step: 2, label: '≥ 33%' },
+  { step: 3, label: '≥ 67%' },
+  { step: 4, label: '≥ 90%' },
+]
+
+/**
+ * Mappa a zone della frazione di membri, stessa pipeline della sezione
+ * deterministica (buildZones via HailMap): cambia solo la grandezza — qui il
+ * valore È già una probabilità, quindi niente tratto/etichetta "prob.".
+ */
+function EnsembleMap({ location, timezone, gridId, palette, theme }) {
+  const [enabled, setEnabled] = useState(false)
+  const [cells, setCells] = useState(null)
+  const [error, setError] = useState(null)
+  const [metricId, setMetricId] = useState('storm')
+  const [dayOffset, setDayOffset] = useState(0)
+
+  useEffect(() => {
+    setEnabled(false)
+    setCells(null)
+    setError(null)
+  }, [location])
+
+  useEffect(() => {
+    if (!enabled) return undefined
+    const ctrl = new AbortController()
+    const step = GRIDS.find((g) => g.id === gridId)?.step ?? 0.7
+    const points = buildGrid(location, step)
+    fetchEnsembleGrid(points, 2, timezone, ctrl.signal)
+      .then((results) => setCells(ensembleGridCells(results, points)))
+      .catch((e) => {
+        if (e.name !== 'AbortError') setError(e.message)
+      })
+    return () => ctrl.abort()
+  }, [enabled, location, timezone, gridId])
+
+  const metric = ENSEMBLE_MAP_METRICS.find((m) => m.id === metricId) ?? ENSEMBLE_MAP_METRICS[0]
+
+  /* Celle nel formato che HailMap/buildZones già capiscono. */
+  const mapCells = useMemo(() => {
+    if (!cells) return null
+    /* Le ore delle serie sono locali alla località: "adesso" e "oggi" vanno
+       calcolati col suo offset, non con l'orologio del browser. */
+    const offsetMs = (cells[0]?.utcOffset ?? 0) * 1000
+    const localNow = new Date(Date.now() + offsetMs)
+    const nowHour = localNow.toISOString().slice(0, 13)
+    const base = new Date(localNow)
+    base.setUTCDate(base.getUTCDate() + dayOffset)
+    const day = base.toISOString().slice(0, 10)
+
+    return cells.map((c) => {
+      let frac = 0
+      let at = null
+      if (metricId === 'rain') {
+        frac = c.rainByDay.get(day) ?? 0
+      } else {
+        const key = metricId === 'wind' ? 'gust' : 'storm'
+        for (const p of c.series) {
+          if (p.t.slice(0, 10) !== day) continue
+          if (dayOffset === 0 && p.t.slice(0, 13) < nowHour) continue
+          if (p[key] > frac) {
+            frac = p[key]
+            at = p.t
+          }
+        }
+      }
+      const members = Math.round(frac * c.memberCount)
+      return {
+        ...c,
+        severity: fractionStep(frac),
+        prob: null,
+        metric: {
+          value: frac,
+          badge: frac >= 0.1 ? `${Math.round(frac * 100)}%` : '—',
+          detail: `${members} membri su ${c.memberCount}`,
+          at,
+        },
+      }
+    })
+  }, [cells, metricId, dayOffset])
+
+  const step = GRIDS.find((g) => g.id === gridId)?.step ?? 0.7
+
+  if (!enabled)
+    return (
+      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-hair pt-3">
+        <div className="min-w-[220px] flex-1 text-[12.5px] text-ink-sec">
+          La stessa griglia della sezione sopra, ma con la frazione dei 31 membri: temporali, raffiche e pioggia.
+          Niente grandine qui — i livelli in quota per membro peserebbero ~7 MB; SHIP ensemble resta sul punto.
+        </div>
+        <button
+          onClick={() => setEnabled(true)}
+          className="cursor-pointer rounded-xl border border-accent bg-accent/10 px-4 py-2 text-[13px] font-semibold text-ink transition hover:bg-accent/20"
+        >
+          Carica mappa (~1,6 MB)
+        </button>
+      </div>
+    )
+
+  if (error)
+    return (
+      <div className="mt-4 border-t border-hair pt-3">
+        <Message tone="error">Mappa ensemble non disponibile: {error}</Message>
+      </div>
+    )
+  if (!mapCells) return <Skeleton className="mt-4 h-[360px] w-full" />
+
+  return (
+    <div className="mt-4 border-t border-hair pt-3">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <Segmented
+          ariaLabel="Metrica della mappa ensemble"
+          options={ENSEMBLE_MAP_METRICS.map((m) => ({ value: m.id, label: m.label }))}
+          value={metricId}
+          onChange={setMetricId}
+        />
+        <Segmented
+          ariaLabel="Giorno della mappa ensemble"
+          options={[
+            { value: 0, label: 'Oggi' },
+            { value: 1, label: 'Domani' },
+          ]}
+          value={dayOffset}
+          onChange={setDayOffset}
+        />
+        <span className="text-[12px] text-ink-muted">{metric.hint}</span>
+      </div>
+
+      <HailMap
+        cells={mapCells}
+        step={step}
+        origin={location}
+        palette={palette}
+        theme={theme}
+        steering={null}
+        hazard={{ id: 'ensemble', label: metric.label }}
+      />
+
+      <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-ink-sec">
+        <span className="text-ink-muted">Membri oltre soglia:</span>
+        {FRACTION_LEGEND.map(({ step: st, label }) => (
+          <span key={st} className="inline-flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded-sm" style={{ background: SEVERITY_COLORS[st] }} />
+            {label}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default function EnsemblePanel({ location, timezone, detSnapshot, gridId, palette, theme }) {
   const [enabled, setEnabled] = useState(false)
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
@@ -226,6 +382,8 @@ export default function EnsemblePanel({ location, timezone, detSnapshot, palette
           <FracChart key={m.id} metric={m} data={chartData} memberCount={data.memberCount} palette={palette} isMobile={isMobile} />
         ))}
       </div>
+
+      <EnsembleMap location={location} timezone={timezone} gridId={gridId} palette={palette} theme={theme} />
 
       <div className="mt-4 border-t border-hair pt-3">
         <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-muted">

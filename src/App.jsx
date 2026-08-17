@@ -394,7 +394,9 @@ export default function App() {
             location={location}
             timezone={forecast?.timezone ?? location.timezone}
             detSnapshot={detSnapshot}
+            gridId={hailGrid}
             palette={palette}
+            theme={theme}
           />
         </Section>
 
