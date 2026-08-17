@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { PALETTE } from './constants'
 import { fetchModelRuns } from './runs'
+import { reverseGeocode } from './api'
 
 /** Stato persistito in localStorage, con fallback silenzioso se non disponibile. */
 export function useLocalStorage(key, initial) {
@@ -98,4 +99,38 @@ export function useClickOutside(onOutside) {
     return () => document.removeEventListener('mousedown', handler)
   }, [onOutside])
   return ref
+}
+
+
+/* Cache di modulo per i nomi da coordinate: la cella peggiore cambia a ogni
+   switch di pericolo o di giorno, ma spesso è la stessa. Chiave arrotondata
+   a 0,1 grado, cioè la scala a cui il nome non cambia comunque. */
+const nameCache = new Map()
+
+/** Nome della località di una cella di griglia. null finché non risolve. */
+export function useCellName(lat, lon) {
+  const key = lat == null ? null : `${lat.toFixed(1)},${lon.toFixed(1)}`
+  const [name, setName] = useState(() => (key ? (nameCache.get(key) ?? null) : null))
+
+  useEffect(() => {
+    if (!key) {
+      setName(null)
+      return
+    }
+    if (nameCache.has(key)) {
+      setName(nameCache.get(key))
+      return
+    }
+    let alive = true
+    reverseGeocode(lat, lon).then((r) => {
+      const label = r?.name ?? null
+      nameCache.set(key, label)
+      if (alive) setName(label)
+    })
+    return () => {
+      alive = false
+    }
+  }, [key, lat, lon])
+
+  return name
 }

@@ -10,7 +10,7 @@
    SHIP = MUCAPE · w · LR75 · (−T500) · shear / 42.000.000
    con correzioni per CAPE debole, lapse rate basso e zero
    termico basso. SHIP > 1 ⇒ ambiente favorevole a grandine
-   significativa (≥ 5 cm).
+   significativa (oltre i 4 cm).
 
    SHIP descrive l'AMBIENTE, non dice se il temporale si innesca:
    il valore va quindi pesato con la convezione effettivamente
@@ -160,20 +160,10 @@ export function riskBand(risk) {
  */
 export function hailSize(ship) {
   if (ship >= 1.5) return { label: '> 4 cm', note: 'grandine grossa, distruttiva' }
-  if (ship >= 0.8) return { label: '2–4 cm', note: 'danni a colture e carrozzerie' }
+  if (ship >= 0.8) return { label: '2–4 cm', note: 'danni a colture, coperture e veicoli' }
   if (ship >= 0.35) return { label: '1–2 cm', note: 'chicchi piccoli' }
   if (ship > 0.05) return { label: '< 1 cm', note: 'graupel / chicchi minuti' }
   return { label: '—', note: 'grandine non attesa' }
-}
-
-/**
- * Coda della stima: SHIP maggiorato del 35%, l'incertezza tipica fra ambiente
- * e cella reale. Se cade in una fascia più alta, la UI mostra "fino a".
- */
-export function hailSizeTail(ship) {
-  const central = hailSize(ship)
-  const tail = hailSize(ship * 1.35)
-  return tail.label !== central.label ? tail : null
 }
 
 /**
@@ -315,7 +305,9 @@ const joinList = (items) =>
  */
 export function buildNarrative(cells, centre) {
   const sentences = []
-  const sizeRank = { '—': 0, '< 1 cm': 1, '1–2 cm': 2, '2–3 cm': 3, '3–5 cm': 4, '> 5 cm': 5 }
+  // Deve restare allineato alle etichette di hailSize(): con chiavi vecchie
+  // sizeRank[label] è undefined e la grandine spariva dalla sintesi.
+  const sizeRank = { '—': 0, '< 1 cm': 1, '1–2 cm': 2, '2–4 cm': 3, '> 4 cm': 4 }
 
   for (const part of DAY_PARTS) {
     const active = []
@@ -374,7 +366,7 @@ export function buildNarrative(cells, centre) {
   const anyRotation = cells.some(
     (c) => hasRotationPotential(c.series) && c.series.some((p) => p.risk >= 0.2),
   )
-  if (anyRotation) sentences.push('Possibili supercelle (rotazione) nelle celle più intense.')
+  if (anyRotation) sentences.push('Nelle celle più intense l\u2019ambiente è da temporale rotante (supercella).')
 
   /* Raffiche: massimo previsto nelle sole ore convettive. */
   let gustMax = 0

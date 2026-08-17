@@ -275,7 +275,7 @@ export default function App() {
 
         <Section
           title="Previsione 14 giorni"
-          hint={selectedDay ? 'clicca di nuovo il giorno per togliere il filtro' : 'clicca un giorno per filtrare i dati sotto'}
+          hint={selectedDay ? 'clicca di nuovo il giorno per togliere il filtro' : 'seleziona un giorno per filtrare'}
         >
           <DailyStrip forecast={forecast} selectedDay={selectedDay} onSelectDay={setSelectedDay} />
           {selectedDay && (
@@ -294,7 +294,7 @@ export default function App() {
 
         <Section
           title="Confronto tra modelli"
-          hint="stessa località, previsioni diverse: dove i modelli concordano la previsione è affidabile"
+          hint="stessa località, previsioni diverse: differenze tra i modelli"
           action={comparisonUpdatedAt ? <Stamp at={comparisonUpdatedAt} /> : null}
         >
           <ModelCompare

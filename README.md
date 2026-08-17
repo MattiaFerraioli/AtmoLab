@@ -187,8 +187,9 @@ scura la rampa monocroma rendeva le celle indistinguibili. Il valore numerico è
 sulle celle significative, quindi il colore non porta mai da solo l'informazione.
 
 **Zone per fascia di diametro**: per la grandine le zone NON seguono il rischio ma la fascia di
-diametro (le stesse soglie di `hailSize`), così una zona etichettata "2–4 cm" contiene solo celle
-di quella fascia — prima il contorno seguiva il rischio e l'etichetta il diametro del punto
+diametro (le stesse soglie di `hailSize`, che `sizeRank` in `buildNarrative` deve rispecchiare —
+con chiavi disallineate la grandine sparisce silenziosamente dalla sintesi), così una zona
+etichettata "2–4 cm" contiene solo celle di quella fascia — prima il contorno seguiva il rischio e l'etichetta il diametro del punto
 peggiore, e una zona "rischio basso" grande mezzo nord-ovest sembrava tutta da 2–4 cm. La
 probabilità d'innesco è a tre livelli, dalle soglie di rischio (0,2 / 0,5): **bassa** = contorno
 puntinato, **media** = tratteggiato, **alta** = continuo; il livello è scritto anche

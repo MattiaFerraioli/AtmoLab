@@ -2,10 +2,10 @@ import { useEffect, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import HailMap from './HailMap'
 import { Card, Message, Segmented, Skeleton } from './Ui'
-import { GRIDS, GRID_SIDE, HAIL_DAYS, buildNarrative, capeBand, hailSize, hailSizeTail, hasRotationPotential, peakOf, steeringOf } from '../lib/hail'
+import { GRIDS, GRID_SIDE, HAIL_DAYS, buildNarrative, capeBand, hailSize, hasRotationPotential, peakOf, steeringOf } from '../lib/hail'
 import { HAZARDS, SEVERITY_COLORS, SEVERITY_LABELS, applyHazard, hailZoneStep, hazardById, severityOf, zoneSpecOf } from '../lib/hazards'
 import { fmtDayHour, nf, relativePosition } from '../lib/format'
-import { useIsMobile } from '../lib/hooks'
+import { useCellName, useIsMobile } from '../lib/hooks'
 
 const CENTRE = (GRID_SIDE - 1) / 2
 
@@ -14,7 +14,7 @@ function Tile({ k, children, sub }) {
     <div className="bg-surface p-4">
       <div className="text-[11px] uppercase tracking-[0.06em] text-ink-muted">{k}</div>
       <div className="tnum mt-1 text-[22px] font-semibold tracking-[-0.02em]">{children}</div>
-      {sub && <div className="mt-0.5 text-[12.5px] text-ink-sec">{sub}</div>}
+      {sub && <div className="mt-0.5 truncate text-[12.5px] text-ink-sec">{sub}</div>}
     </div>
   )
 }
@@ -123,6 +123,7 @@ export default function HailRisk({
   const focus = selected ?? centre ?? worst
 
   const focusSeries = useMemo(() => focus?.series ?? [], [focus])
+  const worstName = useCellName(worst?.gridLat, worst?.gridLon)
 
   if (error) return <Message tone="error">Rischio grandine non disponibile: {error}</Message>
   if (dayOutOfRange)
@@ -170,12 +171,6 @@ export default function HailRisk({
             onChange={onDayOffsetChange}
           />
         )}
-        <span className="min-w-0 basis-full text-[12.5px] text-ink-muted lg:basis-auto">
-          {GRID_SIDE}×{GRID_SIDE} punti · lato {GRIDS.find((g) => g.id === grid)?.span}
-          {' · '}
-          {hiRes ? 'modello ICON-2I 2,2 km' : 'blend multi-modello'}
-          {dayOffset === 0 && !dayLocked && ' · dalle ore correnti a fine giornata'}
-        </span>
       </div>
 
       {narrative && (
@@ -209,16 +204,16 @@ export default function HailRisk({
 
         <Tile
           k={hazard.id === 'hail' ? 'Diametro stimato' : hazard.id === 'wind' ? 'Raffica massima' : 'Accumulo massimo'}
-          sub={
-            hazard.id === 'hail' && worst && hailSizeTail(worst.ship)
-              ? `possibile fino a ${hailSizeTail(worst.ship).label} · ${worst.metric.note}`
-              : (worst?.metric.note ?? '–')
-          }
+          sub={worst?.metric.note ?? '–'}
         >
           {worst?.metric.badge ?? '—'}
         </Tile>
 
-        <Tile k="Dove" sub={worst ? `${worst.gridLat.toFixed(2)}°, ${worst.gridLon.toFixed(2)}°` : '–'}>
+        {/* Distanza e direzione come valore: è l'informazione utile e sempre
+            sensata. Il nome del posto sta sotto, come contesto — su celle
+            remote o sul mare il reverse geocoding restituisce toponimi oscuri,
+            che in testata sarebbero peggio delle coordinate che sostituiscono. */}
+        <Tile k="Dove" sub={worstName ?? undefined}>
           <span className="text-[17px]">
             {worst ? relativePosition(location.latitude, location.longitude, worst.gridLat, worst.gridLon) : '–'}
           </span>
@@ -329,7 +324,15 @@ export default function HailRisk({
                         </span>
                         <span className="block text-[11.5px] text-ink-muted">
                           {c.metric.at ? fmtDayHour(c.metric.at) : '–'} · {SEVERITY_LABELS[c.severity]}
-                          {c.rotation && <span className="font-semibold text-[#8b3fb5]"> · rotaz.</span>}
+                          {c.rotation && (
+                            <span
+                              className="font-semibold text-[#8b3fb5]"
+                              title="Ambiente da temporale rotante: CAPE e shear 0–6 km oltre le soglie classiche da supercella, quindi rotazione possibile ma non certa."
+                            >
+                              {' '}
+                              · rotante?
+                            </span>
+                          )}
                         </span>
                       </span>
                       <span className="tnum shrink-0 text-right">
@@ -353,7 +356,6 @@ export default function HailRisk({
               ? location.name
               : `${focus.gridLat.toFixed(2)}°, ${focus.gridLon.toFixed(2)}°`
             : '–'}
-          <span className="font-normal text-ink-muted"> — clicca una cella sulla mappa o nella lista per cambiarla</span>
         </div>
         <ResponsiveContainer width="100%" height={170}>
           <BarChart data={focusSeries} margin={{ top: 6, right: 10, bottom: 4, left: isMobile ? 2 : -6 }}>
@@ -394,16 +396,20 @@ export default function HailRisk({
       </div>
 
       <div className="border-t border-hair p-4 text-[12.5px] leading-relaxed text-ink-muted">
+        <div className="mb-2">
+          Griglia {GRID_SIDE}×{GRID_SIDE} · lato {GRIDS.find((g) => g.id === grid)?.span} ·{' '}
+          {hiRes ? 'modello ICON-2I a 2,2 km' : 'blend multi-modello'}
+        </div>
         {hazard.id === 'hail' ? (
           <>
             <strong className="text-ink-sec">Come si legge.</strong> Open-Meteo non pubblica un diametro di grandine
             previsto, quindi l&apos;indice è ricostruito dai parametri d&apos;ambiente con la formula{' '}
             <strong>SHIP</strong> (Significant Hail Parameter, Storm Prediction Center): CAPE, rapporto di mescolanza,
             gradiente termico 700–500 hPa, temperatura a 500 hPa, shear del vento 0–6 km e quota dello zero termico.
-            SHIP &gt; 1 indica ambiente favorevole a grandine ≥ 5 cm. Poiché SHIP descrive il potenziale e non
-            l&apos;innesco, il rischio mostrato pesa SHIP con la convezione effettivamente prevista dal modello. Il
-            diametro è una <strong>stima da parametri</strong>, non l&apos;uscita di un modello di grandine: fra i tre
-            pericoli è il meno affidabile, usalo per capire dove e quando guardare.
+            SHIP &gt; 1 indica ambiente favorevole a grandine oltre i 4 cm. Poiché SHIP descrive il potenziale e non
+            l&apos;innesco, il rischio mostrato pesa SHIP con la convezione effettivamente prevista dal modello. Fidati di
+            questo numero meno che delle raffiche e degli accumuli: serve a capire dove e quando guardare, non quanto
+            grossa verrà la grandine.
           </>
         ) : hazard.id === 'wind' ? (
           <>

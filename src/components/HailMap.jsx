@@ -114,7 +114,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                 {c.rotation && (
                   <>
                     {' '}
-                    · <strong style={{ color: '#8b3fb5' }}>rotaz.</strong>
+                    · <strong style={{ color: '#8b3fb5' }}>rotante?</strong>
                   </>
                 )}
                 <br />

@@ -57,7 +57,7 @@ export default function ModelRuns({ runs, coverage, horizons, slots, selected, p
           >
             <path d="m9 6 6 6-6 6" />
           </svg>
-          Quanto sono aggiornati i modelli
+          Aggiornamento modelli
         </span>
       </summary>
 
@@ -92,7 +92,7 @@ export default function ModelRuns({ runs, coverage, horizons, slots, selected, p
                 </Row>
 
                 <Row k="Pubblicato">
-                  {run ? `${whenLabel(run.available)} · rifatto ogni ${run.updateIntervalHours} h` : '–'}
+                  {run ? `${whenLabel(run.available)} · ogni ${run.updateIntervalHours} h` : '–'}
                 </Row>
 
                 <Row k="Arriva a">
@@ -120,15 +120,6 @@ export default function ModelRuns({ runs, coverage, horizons, slots, selected, p
         })}
       </div>
 
-      <p className="mt-2 text-[12px] leading-relaxed text-ink-muted">
-        Ogni modello rifà i conti da capo a intervalli fissi, partendo dalle osservazioni più
-        recenti: <strong className="text-ink-sec">Calcolato</strong> è quando è partito l&apos;ultimo
-        giro, <strong className="text-ink-sec">Pubblicato</strong> quando il risultato è diventato
-        disponibile. I giri non arrivano tutti alla stessa distanza — quelli di metà mattina e di
-        sera sono spesso più corti — ed è per questo che nel grafico le linee finiscono in giorni
-        diversi. Dove un modello si ferma prima <em>solo qui</em>, o non copre affatto la zona, lo
-        trovi scritto in arancione.
-      </p>
     </details>
   )
 }
