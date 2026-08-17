@@ -68,7 +68,7 @@ export function fetchModelComparison({ latitude, longitude }, variable, days, si
  * coordinate su latitude/longitude e risponde con un array nello stesso ordine:
  * 49 punti × 3 giorni × 14 variabili stanno in una sola richiesta (~250 kB).
  */
-export async function fetchHailGrid(points, days, timezone, signal) {
+export async function fetchHailGrid(points, days, timezone, model, signal) {
   const p = new URLSearchParams({
     latitude: points.map((x) => x.lat).join(','),
     longitude: points.map((x) => x.lon).join(','),
@@ -79,6 +79,9 @@ export async function fetchHailGrid(points, days, timezone, signal) {
     forecast_days: days,
     hourly: HAIL_VARS.join(','),
   })
+  // Un punto fuori dal dominio di un modello regionale produce `latitude: nan`
+  // nella risposta — JSON invalido: chi chiama deve garantire il bbox.
+  if (model) p.set('models', model)
   const json = await getJSON(`${FORECAST}?${p}`, signal)
   return Array.isArray(json) ? json : [json]
 }

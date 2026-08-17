@@ -9,7 +9,7 @@ import Favourites from './components/Favourites'
 import { Card, DayFilterBar, Message, Section } from './components/Ui'
 import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, reverseGeocode } from './lib/api'
 import { DEFAULT_LOCATION, DEFAULT_MODELS, MAX_MODELS, MODELS } from './lib/constants'
-import { GRIDS, GRID_SIDE, MAX_HAIL_OFFSET, buildGrid, summariseCells } from './lib/hail'
+import { GRIDS, GRID_SIDE, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, summariseCells } from './lib/hail'
 import { fmtLong, fmtTime } from './lib/format'
 import { useLocalStorage, useModelRuns, useTheme } from './lib/hooks'
 
@@ -87,6 +87,7 @@ export default function App() {
   const [hailDayOffset, setHailDayOffset] = useLocalStorage('hailDayOffset', 0)
   const [hazardId, setHazardId] = useLocalStorage('hazard', 'hail')
   const [hailCells, setHailCells] = useState(null)
+  const [hailHiRes, setHailHiRes] = useState(false)
   const [hailLoading, setHailLoading] = useState(true)
   const [hailError, setHailError] = useState(null)
   /* Non persistito e spento all'avvio: la griglia è 49 località × 14 variabili,
@@ -164,9 +165,14 @@ export default function App() {
     const ctrl = new AbortController()
     const step = GRIDS.find((g) => g.id === hailGrid)?.step ?? 0.7
     const points = buildGrid(location, step)
+    /* Dentro il dominio ICON-2I ed entro 48 h la griglia usa il modello a
+       2,2 km: CAPE, raffiche e pioggia risolti alla scala della cella invece
+       che lisciati dal blend globale. Fuori, o oltre, si torna al best-match. */
+    const hiRes = gridFitsIcon2i(points, hailDays)
+    setHailHiRes(hiRes)
     setHailLoading(true)
     setHailError(null)
-    fetchHailGrid(points, hailDays, forecast?.timezone ?? location.timezone, ctrl.signal)
+    fetchHailGrid(points, hailDays, forecast?.timezone ?? location.timezone, hiRes ? ICON2I_MODEL : null, ctrl.signal)
       .then((results) => {
         setHailCells(summariseCells(results, points))
         setHailUpdatedAt(Date.now())
@@ -339,6 +345,7 @@ export default function App() {
               onDayOffsetChange={setHailDayOffset}
               hazardId={hazardId}
               onHazardChange={setHazardId}
+              hiRes={hailHiRes}
               dayLocked={Boolean(selectedDay)}
               dayOutOfRange={hailDayOutOfRange}
               palette={palette}

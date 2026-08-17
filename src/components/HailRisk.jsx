@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import HailMap from './HailMap'
 import { Card, Message, Segmented, Skeleton } from './Ui'
-import { GRIDS, GRID_SIDE, HAIL_DAYS, buildNarrative, capeBand, hailSize, peakOf, steeringOf } from '../lib/hail'
+import { GRIDS, GRID_SIDE, HAIL_DAYS, buildNarrative, capeBand, hailSize, hailSizeTail, hasRotationPotential, peakOf, steeringOf } from '../lib/hail'
 import { HAZARDS, SEVERITY_COLORS, SEVERITY_LABELS, applyHazard, hazardById, severityOf } from '../lib/hazards'
 import { fmtDayHour, nf, relativePosition } from '../lib/format'
 import { useIsMobile } from '../lib/hooks'
@@ -61,6 +61,7 @@ export default function HailRisk({
   onDayOffsetChange,
   hazardId,
   onHazardChange,
+  hiRes,
   dayLocked,
   dayOutOfRange,
   palette,
@@ -85,7 +86,16 @@ export default function HailRisk({
         (p) => p.t.slice(0, 10) === targetDay && p.t.slice(0, 13) >= localNowHour,
       )
       const peak = peakOf(series)
-      return { ...c, series, risk: peak.risk, ship: peak.ship, when: peak.t, cape: peak.cape, gust: peak.gust }
+      return {
+        ...c,
+        series,
+        risk: peak.risk,
+        ship: peak.ship,
+        when: peak.t,
+        cape: peak.cape,
+        gust: peak.gust,
+        rotation: hasRotationPotential(series),
+      }
     })
   }, [rawCells, targetDay])
 
@@ -162,6 +172,8 @@ export default function HailRisk({
         )}
         <span className="min-w-0 basis-full text-[12.5px] text-ink-muted lg:basis-auto">
           {GRID_SIDE}×{GRID_SIDE} punti · lato {GRIDS.find((g) => g.id === grid)?.span}
+          {' · '}
+          {hiRes ? 'modello ICON-2I 2,2 km' : 'blend multi-modello'}
           {dayOffset === 0 && !dayLocked && ' · dalle ore correnti a fine giornata'}
         </span>
       </div>
@@ -195,7 +207,14 @@ export default function HailRisk({
           <div className="mt-1 text-[12.5px] text-ink-sec">{worst?.metric.detail ?? '–'}</div>
         </div>
 
-        <Tile k={hazard.id === 'hail' ? 'Diametro stimato' : hazard.id === 'wind' ? 'Raffica massima' : 'Accumulo massimo'} sub={worst?.metric.note ?? '–'}>
+        <Tile
+          k={hazard.id === 'hail' ? 'Diametro stimato' : hazard.id === 'wind' ? 'Raffica massima' : 'Accumulo massimo'}
+          sub={
+            hazard.id === 'hail' && worst && hailSizeTail(worst.ship)
+              ? `possibile fino a ${hailSizeTail(worst.ship).label} · ${worst.metric.note}`
+              : (worst?.metric.note ?? '–')
+          }
+        >
           {worst?.metric.badge ?? '—'}
         </Tile>
 
@@ -287,6 +306,7 @@ export default function HailRisk({
                         </span>
                         <span className="block text-[11.5px] text-ink-muted">
                           {c.metric.at ? fmtDayHour(c.metric.at) : '–'} · {SEVERITY_LABELS[c.severity]}
+                          {c.rotation && <span className="font-semibold text-[#8b3fb5]"> · rotaz.</span>}
                         </span>
                       </span>
                       <span className="tnum shrink-0 text-right">
@@ -376,7 +396,10 @@ export default function HailRisk({
             <strong>output diretto del modello</strong>, non una stima. Il numero grande è l&apos;accumulo totale sulla
             finestra vista: è quello che allaga. La punta oraria accanto dice se arriva tutto insieme o distribuito —
             30 mm in un&apos;ora sono un nubifragio, gli stessi 30 mm in dodici ore sono pioggia normale. Le soglie del
-            colore sono sull&apos;accumulo, quelle del grafico orario sull&apos;intensità.
+            colore sono sull&apos;accumulo, quelle del grafico orario sull&apos;intensità. Attenzione ai confronti: questi
+            mm sono <strong>medie d&apos;area</strong> della cella di griglia; nel cuore di un temporale il massimo
+            puntuale vale tipicamente 2–3 volte tanto. Un prodotto che mostra &quot;70 mm&quot; sulla traccia di una
+            cella e questa mappa che dice 30 stanno descrivendo lo stesso evento.
           </>
         )}
       </div>

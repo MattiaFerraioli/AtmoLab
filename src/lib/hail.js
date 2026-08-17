@@ -159,12 +159,41 @@ export function riskBand(risk) {
  * Stima da parametri, non output di un modello di grandine.
  */
 export function hailSize(ship) {
-  if (ship >= 1.5) return { label: '> 5 cm', note: 'grandine grossa, distruttiva' }
-  if (ship >= 1) return { label: '3–5 cm', note: 'grandine significativa' }
-  if (ship >= 0.7) return { label: '2–3 cm', note: 'danni a colture e carrozzerie' }
-  if (ship >= 0.3) return { label: '1–2 cm', note: 'chicchi piccoli' }
+  if (ship >= 1.5) return { label: '> 4 cm', note: 'grandine grossa, distruttiva' }
+  if (ship >= 0.8) return { label: '2–4 cm', note: 'danni a colture e carrozzerie' }
+  if (ship >= 0.35) return { label: '1–2 cm', note: 'chicchi piccoli' }
   if (ship > 0.05) return { label: '< 1 cm', note: 'graupel / chicchi minuti' }
   return { label: '—', note: 'grandine non attesa' }
+}
+
+/**
+ * Coda della stima: SHIP maggiorato del 35%, l'incertezza tipica fra ambiente
+ * e cella reale. Se cade in una fascia più alta, la UI mostra "fino a".
+ */
+export function hailSizeTail(ship) {
+  const central = hailSize(ship)
+  const tail = hailSize(ship * 1.35)
+  return tail.label !== central.label ? tail : null
+}
+
+/**
+ * Potenziale di rotazione (supercella): CAPE ≥ 1000 J/kg e shear 0–6 km
+ * ≥ 18 m/s in un'ora con innesco. Sono le soglie classiche della
+ * letteratura sulle supercelle, non una nostra invenzione.
+ */
+export function hasRotationPotential(series) {
+  return series.some((p) => p.risk >= 0.05 && (p.cape ?? 0) >= 1000 && (p.shear ?? 0) >= 18)
+}
+
+/** Bbox conservativo del dominio ICON-2I: fuori, l'API risponde `nan`. */
+const ICON2I = { latMin: 35, latMax: 48.8, lonMin: 4.5, lonMax: 20.5 }
+export const ICON2I_MODEL = 'italia_meteo_arpae_icon_2i'
+
+export function gridFitsIcon2i(points, days) {
+  if (days > 2) return false // oltre ~48 h l'orizzonte del 2,2 km non è garantito
+  return points.every(
+    (p) => p.lat >= ICON2I.latMin && p.lat <= ICON2I.latMax && p.lon >= ICON2I.lonMin && p.lon <= ICON2I.lonMax,
+  )
 }
 
 /**
@@ -194,6 +223,7 @@ export function summariseCells(results, points) {
         cape: h.cape?.[i] ?? null,
         gust: h.wind_gusts_10m?.[i] ?? null,
         precip: h.precipitation?.[i] ?? null,
+        shear: s?.shear ?? null, // 0–6 km, m/s: serve al potenziale di rotazione
         // componenti del vento in quota (km/h): media vettoriale ⇒ steering
         u5: r === null || ws5 == null ? null : -ws5 * Math.sin(r),
         v5: r === null || ws5 == null ? null : -ws5 * Math.cos(r),
@@ -339,6 +369,12 @@ export function buildNarrative(cells, centre) {
       quiet: true,
     }
   }
+
+  /* Rotazione: se una cella intensa ha CAPE e shear da supercella, va detto. */
+  const anyRotation = cells.some(
+    (c) => hasRotationPotential(c.series) && c.series.some((p) => p.risk >= 0.2),
+  )
+  if (anyRotation) sentences.push('Possibili supercelle (rotazione) nelle celle più intense.')
 
   /* Raffiche: massimo previsto nelle sole ore convettive. */
   let gustMax = 0

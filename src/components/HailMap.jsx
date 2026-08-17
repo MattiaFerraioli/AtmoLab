@@ -125,6 +125,12 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                   </strong>
                   <br />
                   {c.metric.badge} · {c.metric.detail}
+                  {c.rotation && (
+                    <>
+                      {' '}
+                      · <strong style={{ color: '#8b3fb5' }}>rotaz.</strong>
+                    </>
+                  )}
                   <br />
                   {c.metric.at ? fmtDayHour(c.metric.at) : 'nessun picco'}
                   <br />

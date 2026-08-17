@@ -159,9 +159,23 @@ non i dati scaricati — gli stessi 15 parametri per 49 celle servono tutti e tr
 
 | Pericolo | Metrica di colore | Valore mostrato | Soglie |
 | --- | --- | --- | --- |
-| Grandine | rischio combinato ambiente × innesco | diametro stimato | 0,05 / 0,2 / 0,5 / 1 |
+| Grandine | rischio combinato ambiente × innesco | diametro (<1 / 1–2 / 2–4 / >4 cm) + coda "fino a" | 0,05 / 0,2 / 0,5 / 1 |
 | Vento | raffica massima del giorno | km/h | 60 / 75 / 90 / 105 km/h |
 | Pioggia | accumulo totale sulla finestra | mm (punta oraria a fianco) | 10 / 25 / 50 / 80 mm |
+
+**Sorgente della griglia**: dentro il dominio ICON-2I (bbox conservativo lat 35–48,8 / lon
+4,5–20,5) ed entro 48 ore, la griglia usa il modello a 2,2 km — CAPE, raffiche e pioggia risolti
+alla scala della cella. Fuori, o oltre, si torna al blend best-match. L'etichetta nei controlli
+dice quale dei due sta rispondendo. Attenzione a estendere il bbox: un punto fuori dominio fa
+rispondere all'API `latitude: nan`, che non è JSON valido e rompe il parse.
+
+**Rotazione**: badge "rotaz." (viola) quando una cella ha CAPE ≥ 1000 J/kg e shear 0–6 km
+≥ 18 m/s in un'ora con innesco — le soglie classiche del potenziale da supercella. Lo shear era
+già calcolato dentro SHIP, ora è esposto.
+
+**Punto vs area**: i mm di pioggia sono medie della cella di griglia; il massimo puntuale nel
+cuore di un temporale vale tipicamente 2–3×. Un prodotto per-cella che dice "70 mm" e questa
+mappa che dice 30 descrivono lo stesso evento. La nota in-app lo spiega.
 
 **Affidabilità diversa, detta esplicitamente nella UI**: vento e pioggia sono output diretti del
 modello; la grandine è una ricostruzione da parametri d'ambiente. La nota in fondo alla sezione
