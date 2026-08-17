@@ -186,9 +186,13 @@ cambia col pericolo selezionato e lo dice.
 scura la rampa monocroma rendeva le celle indistinguibili. Il valore numerico è comunque stampato
 sulle celle significative, quindi il colore non porta mai da solo l'informazione.
 
-**Etichette sulla mappa**: solo sui massimi locali sopra "moderato", massimo otto. Etichettare
-tutte le celle sopra soglia le faceva accavallare, perché celle adiacenti hanno valori simili e
-distano pochi pixel.
+**Zone stile outlook** (`src/lib/zones.js`): le celle non si disegnano più come quadretti
+indipendenti — per ogni livello di severità le celle contigue vengono raggruppate in componenti
+connesse e se ne traccia il contorno, annidato come negli outlook SPC/ESTOFEX (il livello 2 sta
+dentro l'1). Ogni zona porta una sola etichetta col valore, posta sulla cella di massimo, a
+partire dal livello "Basso": prima le etichette scattavano solo da "moderato" in su e una
+giornata tutta gialla lasciava la mappa muta. I rettangoli restano come hit-area invisibili per
+tooltip e selezione.
 
 ## Cosa mostra in più, per tutti e tre
 

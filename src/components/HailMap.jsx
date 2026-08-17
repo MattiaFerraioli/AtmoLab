@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import L from 'leaflet'
-import { MapContainer, Marker, Rectangle, TileLayer, Tooltip, useMap } from 'react-leaflet'
+import { MapContainer, Marker, Polygon, Rectangle, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { DragControl, LockOverlay } from './MapLock'
 import { TILE_ATTRIB } from '../lib/constants'
 import { fmtDayHour, nf, windDir } from '../lib/format'
 import { useIsTouch } from '../lib/hooks'
 import { SEVERITY_COLORS, SEVERITY_LABELS } from '../lib/hazards'
-
-/** Quante celle portano l'etichetta: oltre, la mappa diventa illeggibile. */
-const MAX_LABELS = 8
+import { buildZones } from '../lib/zones'
 
 /**
  * La griglia cambia estensione con il preset: la vista deve seguirla.
@@ -62,30 +60,8 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
     ]
   }, [cells, half])
 
-  /* Etichette solo sui MASSIMI LOCALI da "moderato" in su: etichettare tutte le
-     celle sopra soglia le faceva accavallare, perché celle adiacenti hanno
-     valori simili e distano pochi pixel. Un massimo locale è una cella che non
-     ha vicini (8-connessi) con valore più alto. */
-  const labelled = useMemo(() => {
-    const key = (c) => `${c.row},${c.col}`
-    const byCell = new Map(cells.map((c) => [key(c), c]))
-    const isLocalMax = (c) => {
-      for (let dr = -1; dr <= 1; dr += 1)
-        for (let dc = -1; dc <= 1; dc += 1) {
-          if (!dr && !dc) continue
-          const n = byCell.get(`${c.row + dr},${c.col + dc}`)
-          if (n && n.metric.value > c.metric.value) return false
-        }
-      return true
-    }
-    return new Set(
-      cells
-        .filter((c) => c.severity >= 2 && c.metric.badge !== '—' && isLocalMax(c))
-        .sort((a, b) => b.metric.value - a.metric.value)
-        .slice(0, MAX_LABELS)
-        .map((c) => `${c.gridLat},${c.gridLon}`),
-    )
-  }, [cells])
+  /* Zone stile outlook: contorni per livello, un'etichetta per zona. */
+  const zones = useMemo(() => buildZones(cells, step), [cells, step])
 
   return (
     <div className="relative z-[1] h-[320px] overflow-hidden rounded-2xl border border-hair card-shadow sm:h-[440px]">
@@ -99,56 +75,68 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
         <FitToCells bounds={bounds} />
         <DragControl enabled={!locked} />
 
-        {cells.map((c) => {
-          const color = SEVERITY_COLORS[c.severity]
-          const showLabel = labelled.has(`${c.gridLat},${c.gridLon}`)
-          return (
-            <Rectangle
-              key={`${c.gridLat},${c.gridLon}`}
-              bounds={[
-                [c.gridLat - half, c.gridLon - half],
-                [c.gridLat + half, c.gridLon + half],
-              ]}
+        {zones.map((z, zi) =>
+          z.rings.map((ring, ri) => (
+            <Polygon
+              key={`z${zi}-${ri}`}
+              positions={ring}
+              interactive={false}
               pathOptions={{
-                color,
-                weight: c.severity === 0 ? 0.4 : 1.1,
-                opacity: c.severity === 0 ? 0.15 : 0.75,
-                fillColor: color,
-                fillOpacity: c.severity === 0 ? 0.04 : 0.1 + c.severity * 0.12,
+                color: SEVERITY_COLORS[z.level],
+                weight: 2,
+                opacity: 0.9,
+                fillColor: SEVERITY_COLORS[z.level],
+                fillOpacity: 0.07 + z.level * 0.05,
               }}
-              eventHandlers={{ click: () => onSelectCell?.(c) }}
-            >
-              <Tooltip sticky>
-                <div className="text-[12px] leading-snug">
-                  <strong>
-                    {hazard.label} · {SEVERITY_LABELS[c.severity]}
-                  </strong>
-                  <br />
-                  {c.metric.badge} · {c.metric.detail}
-                  {c.rotation && (
-                    <>
-                      {' '}
-                      · <strong style={{ color: '#8b3fb5' }}>rotaz.</strong>
-                    </>
-                  )}
-                  <br />
-                  {c.metric.at ? fmtDayHour(c.metric.at) : 'nessun picco'}
-                  <br />
-                  <span style={{ opacity: 0.7 }}>
-                    {c.gridLat.toFixed(2)}°, {c.gridLon.toFixed(2)}°
-                  </span>
-                </div>
-              </Tooltip>
-              {showLabel && (
-                <Marker
-                  position={[c.gridLat, c.gridLon]}
-                  icon={valueIcon(c.metric.badge, color)}
-                  interactive={false}
-                />
-              )}
-            </Rectangle>
-          )
-        })}
+            />
+          )),
+        )}
+
+        {cells.map((c) => (
+          <Rectangle
+            key={`${c.gridLat},${c.gridLon}`}
+            bounds={[
+              [c.gridLat - half, c.gridLon - half],
+              [c.gridLat + half, c.gridLon + half],
+            ]}
+            pathOptions={{ stroke: false, fillColor: '#000', fillOpacity: 0 }}
+            eventHandlers={{ click: () => onSelectCell?.(c) }}
+          >
+            <Tooltip sticky>
+              <div className="text-[12px] leading-snug">
+                <strong>
+                  {hazard.label} · {SEVERITY_LABELS[c.severity]}
+                </strong>
+                <br />
+                {c.metric.badge} · {c.metric.detail}
+                {c.rotation && (
+                  <>
+                    {' '}
+                    · <strong style={{ color: '#8b3fb5' }}>rotaz.</strong>
+                  </>
+                )}
+                <br />
+                {c.metric.at ? fmtDayHour(c.metric.at) : 'nessun picco'}
+                <br />
+                <span style={{ opacity: 0.7 }}>
+                  {c.gridLat.toFixed(2)}°, {c.gridLon.toFixed(2)}°
+                </span>
+              </div>
+            </Tooltip>
+          </Rectangle>
+        ))}
+
+        {zones.map(
+          (z, zi) =>
+            z.label && (
+              <Marker
+                key={`l${zi}`}
+                position={z.label.at}
+                icon={valueIcon(z.label.text, SEVERITY_COLORS[z.label.severity])}
+                interactive={false}
+              />
+            ),
+        )}
       </MapContainer>
 
       {steering?.towardsDeg != null && (
