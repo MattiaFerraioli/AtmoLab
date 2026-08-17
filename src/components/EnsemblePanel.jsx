@@ -373,7 +373,9 @@ export default function EnsemblePanel({ location, timezone, detSnapshot, gridId,
           GFS ensemble 0,5° · {data.memberCount} membri
         </span>
         <span className="text-[12px] text-ink-muted">
-          solo il punto di {location.name} · prossime 48 ore · SHIP calcolato membro per membro
+          solo il punto di {location.name} · prossime 48 ore · SHIP calcolato membro per membro · il CAPE di GFS a
+          0,5° corre più basso dei modelli km-scale: confronta le frazioni nel tempo, non i valori assoluti con la
+          sezione sopra
         </span>
       </div>
 

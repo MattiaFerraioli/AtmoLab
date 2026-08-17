@@ -33,10 +33,14 @@ const VARS = [
 ]
 
 /** Soglie delle frazioni mostrate: dichiarate qui, dichiarate in UI. */
+/* Soglie tarate sul metro di GFS 0,5°, non su quello dei modelli km-scale:
+   misurato sullo stesso punto e ora, ICON-2I dà CAPE 1950 dove il GFS
+   deterministico dà 910 e il miglior membro 960. Una soglia assoluta presa
+   dall'alta risoluzione qui non scatterebbe mai. */
 export const ENSEMBLE_METRICS = [
   { id: 'ship08', label: 'SHIP > 0,8', hint: 'ambiente da grandine 2–4 cm' },
   { id: 'ship15', label: 'SHIP > 1,5', hint: 'ambiente da grandine oltre 4 cm' },
-  { id: 'cape1000', label: 'CAPE ≥ 1000', hint: 'energia convettiva moderata o più' },
+  { id: 'cape500', label: 'CAPE ≥ 500', hint: 'energia convettiva significativa, sul metro di GFS' },
   { id: 'rain1', label: 'pioggia ≥ 1 mm/h', hint: 'precipitazione in atto' },
   { id: 'gust60', label: 'raffiche ≥ 60 km/h', hint: 'vento da danni leggeri' },
 ]
@@ -72,7 +76,7 @@ export function ensembleFractions(json) {
   const fractions = time.map((t, i) => {
     let ship08 = 0
     let ship15 = 0
-    let cape1000 = 0
+    let cape500 = 0
     let rain1 = 0
     let gust60 = 0
     for (const view of views) {
@@ -81,12 +85,12 @@ export function ensembleFractions(json) {
         if (s.ship > 0.8) ship08 += 1
         if (s.ship > 1.5) ship15 += 1
       }
-      if ((view.cape[i] ?? 0) >= 1000) cape1000 += 1
+      if ((view.cape[i] ?? 0) >= 500) cape500 += 1
       if ((view.precipitation[i] ?? 0) >= 1) rain1 += 1
       if ((view.wind_gusts_10m[i] ?? 0) >= 60) gust60 += 1
     }
     const n = views.length
-    return { t, ship08: ship08 / n, ship15: ship15 / n, cape1000: cape1000 / n, rain1: rain1 / n, gust60: gust60 / n }
+    return { t, ship08: ship08 / n, ship15: ship15 / n, cape500: cape500 / n, rain1: rain1 / n, gust60: gust60 / n }
   })
 
   return { time, memberCount: suffixes.length, fractions }

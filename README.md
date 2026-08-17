@@ -243,7 +243,10 @@ fuori scala. Modello: **GFS 0,5° (31 membri)** — l'unico su ensemble-api con 
 per membro, quindi l'unico dove SHIP si calcola membro per membro con i suoi ingredienti (ECMWF
 ha 51 membri ma manca lo zero termico; gli ICON EPS accettano le variabili in quota ma tornano
 null; ICON-D2-EPS fuori dominio risponde `nan` e rompe il parse). Mostra, ora per ora, la frazione
-di membri con SHIP > 0,8 e > 1,5, CAPE ≥ 1000, pioggia ≥ 1 mm/h, raffiche ≥ 60 km/h. La prima
+di membri con SHIP > 0,8 e > 1,5, CAPE ≥ 500, pioggia ≥ 1 mm/h, raffiche ≥ 60 km/h. La soglia
+CAPE è tarata sul metro di GFS: misurato sullo stesso punto/ora, ICON-2I dà 1950 J/kg dove il GFS
+deterministico dà 910 e il miglior membro 960 — una soglia da modello km-scale (1000+) qui non
+scatterebbe mai. Il bias è dichiarato anche in UI. La prima
 serie della risposta è il run di controllo (senza suffisso), poi `_member01…`.
 
 **Mappa ensemble** — la stessa griglia 7×7 della sezione deterministica, ma colorata con la
