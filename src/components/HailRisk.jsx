@@ -407,9 +407,9 @@ export default function HailRisk({
             <strong>SHIP</strong> (Significant Hail Parameter, Storm Prediction Center): CAPE, rapporto di mescolanza,
             gradiente termico 700–500 hPa, temperatura a 500 hPa, shear del vento 0–6 km e quota dello zero termico.
             SHIP &gt; 1 indica ambiente favorevole a grandine oltre i 4 cm. Poiché SHIP descrive il potenziale e non
-            l&apos;innesco, il rischio mostrato pesa SHIP con la convezione effettivamente prevista dal modello. Fidati di
-            questo numero meno che delle raffiche e degli accumuli: serve a capire dove e quando guardare, non quanto
-            grossa verrà la grandine.
+            l&apos;innesco, il rischio mostrato pesa SHIP con la convezione effettivamente prevista dal modello. Questo
+            valore va interpretato con maggiore cautela rispetto a raffiche e accumuli. La sua funzione è indicativa solo
+            per localizzazione e tempistica, meno per l&apos;entità della grandine.
           </>
         ) : hazard.id === 'wind' ? (
           <>
