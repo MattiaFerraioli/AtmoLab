@@ -33,7 +33,8 @@ function FitToCells({ bounds }) {
 
 /** Etichetta di zona: valore sopra, probabilità d'innesco sotto (se nota). */
 function valueIcon(text, color, prob) {
-  const sub = prob ? `<div style="font:500 9px/1.1 system-ui;opacity:.85;margin-top:1px">prob. ${prob}</div>` : ''
+  const text2 = prob === 'nessuna' ? 'solo ambiente' : prob ? `prob. ${prob}` : ''
+  const sub = text2 ? `<div style="font:500 9px/1.1 system-ui;opacity:.85;margin-top:1px">${text2}</div>` : ''
   return L.divIcon({
     className: '',
     iconSize: [0, 0],
@@ -87,7 +88,8 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                 color: SEVERITY_COLORS[z.level],
                 weight: 2,
                 opacity: 0.9,
-                dashArray: z.prob === 'bassa' ? '3 9' : z.prob === 'media' ? '10 7' : null,
+                dashArray:
+                  z.prob === 'nessuna' ? '2 10' : z.prob === 'bassa' ? '3 9' : z.prob === 'media' ? '10 7' : null,
                 fillColor: SEVERITY_COLORS[z.level],
                 fillOpacity: 0.07 + z.level * 0.05,
               }}

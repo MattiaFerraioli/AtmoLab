@@ -214,7 +214,9 @@ export default function HailRisk({
           </div>
           <div className="mt-1 truncate text-[12.5px] text-ink-sec">
             {worst?.prob != null
-              ? `${hazard.id === 'hail' ? 'innesco previsto da' : 'previsto da'} ${fractionText(worst.prob)}`
+              ? worst.prob <= 0
+                ? 'nessun modello prevede l\u2019innesco: solo ambiente favorevole'
+                : `${hazard.id === 'hail' ? 'innesco previsto da' : 'previsto da'} ${fractionText(worst.prob)}`
               : (worst?.metric.detail ?? '–')}
           </div>
         </div>
@@ -289,11 +291,12 @@ export default function HailRisk({
               <span className="inline-flex items-center gap-3 text-ink-muted">
                 <span
                   className="text-ink-muted"
-                  title={`Accordo fra ${AGREEMENT_COUNT} modelli (ECMWF, GFS, ICON): bassa = al più uno prevede l'evento, media = due, alta = tutti.`}
+                  title={`Accordo fra ${AGREEMENT_COUNT} modelli (ECMWF, GFS, ICON): bassa = uno prevede l'evento, media = due, alta = tutti. "Solo ambiente" = nessuno lo prevede: restano le condizioni, manca l'innesco.`}
                 >
                   · probabilità:
                 </span>
                 {[
+                  ['solo ambiente', '1 7'],
                   ['bassa', '2 6'],
                   ['media', '7 5'],
                   ['alta', null],
@@ -430,8 +433,9 @@ export default function HailRisk({
             gradiente termico 700–500 hPa, temperatura a 500 hPa, shear del vento 0–6 km e quota dello zero termico.
             SHIP &gt; 1 indica ambiente favorevole a grandine oltre i 4 cm. Poiché SHIP descrive il potenziale e non
             l&apos;innesco, l&apos;indice orario pesa SHIP con la convezione prevista. La <strong>probabilità</strong>{' '}
-            delle zone è invece l&apos;accordo fra tre modelli indipendenti (ECMWF, GFS, ICON): bassa = al più uno
-            prevede l&apos;innesco, media = due, alta = tutti e tre. Questo valore va interpretato con maggiore cautela
+            delle zone è invece l&apos;accordo fra tre modelli indipendenti (ECMWF, GFS, ICON): bassa = uno prevede
+            l&apos;innesco, media = due, alta = tutti e tre; &quot;solo ambiente&quot; = nessuno lo prevede — le
+            condizioni per la grandine ci sarebbero, manca il temporale che la produce. Questo valore va interpretato con maggiore cautela
             rispetto a raffiche e accumuli. La sua funzione è indicativa solo per localizzazione e tempistica, meno per
             l&apos;entità della grandine.
           </>

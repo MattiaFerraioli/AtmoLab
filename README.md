@@ -230,8 +230,10 @@ La "probabilità" delle zone (bassa/media/alta, nel tratto del contorno e nell'e
 SHIP × un peso d'innesco letto da un solo run: è una **frequenza reale** — quanti modelli su tre
 (ECMWF, GFS, ICON, `lib/agreement.js`) prevedono l'evento nella cella. Evento: convezione per la
 grandine (codice temporalesco, o pioggia ≥ 1 mm/h con CAPE ≥ 500), raffiche ≥ 60 km/h per il
-vento, accumulo giornaliero ≥ 10 mm per la pioggia. Soglie a terzi: bassa = al più un modello,
-media = due, alta = tutti. I **valori** (diametro, raffica, accumulo, geometria delle zone)
+vento, accumulo giornaliero ≥ 10 mm per la pioggia. Soglie: bassa = un modello,
+media = due, alta = tutti; **zero modelli è uno stato a sé** ("solo ambiente", contorno puntinato
+finissimo): le condizioni per l'evento ci sarebbero, ma nessuno prevede l'innesco — non è una
+probabilità bassa, è assenza di innesco, e mascherarla da "bassa" era scorretto. I **valori** (diametro, raffica, accumulo, geometria delle zone)
 restano dal modello a più alta risoluzione: mai mediare gli ingredienti fra modelli — la media
 cancella proprio le code che si cercano. Costo: +4 variabili × 3 modelli sulla stessa griglia.
 
