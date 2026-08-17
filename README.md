@@ -224,6 +224,34 @@ seguono lo schema): non solo "quanto rischio", ma dove, quando, con che energia 
   la media vettoriale del vento a 500 hPa su griglia e ore visibili. Approssima il moto dei
   temporali ("i fenomeni scenderanno verso sud-est"), non lo determina.
 
+## Probabilità: accordo fra modelli
+
+La "probabilità" delle zone (bassa/media/alta, nel tratto del contorno e nell'etichetta) non è più
+SHIP × un peso d'innesco letto da un solo run: è una **frequenza reale** — quanti modelli su tre
+(ECMWF, GFS, ICON, `lib/agreement.js`) prevedono l'evento nella cella. Evento: convezione per la
+grandine (codice temporalesco, o pioggia ≥ 1 mm/h con CAPE ≥ 500), raffiche ≥ 60 km/h per il
+vento, accumulo giornaliero ≥ 10 mm per la pioggia. Soglie a terzi: bassa = al più un modello,
+media = due, alta = tutti. I **valori** (diametro, raffica, accumulo, geometria delle zone)
+restano dal modello a più alta risoluzione: mai mediare gli ingredienti fra modelli — la media
+cancella proprio le code che si cercano. Costo: +4 variabili × 3 modelli sulla stessa griglia.
+
+## Ensemble (sperimentale)
+
+Sezione separata, on-demand, **solo sul punto della località**: una chiamata ensemble pesa come
+~31 normali (misurato: 149 KB per 31 membri × 15 variabili × 2 giorni), la griglia 7×7 sarebbe
+fuori scala. Modello: **GFS 0,5° (31 membri)** — l'unico su ensemble-api con i livelli in quota
+per membro, quindi l'unico dove SHIP si calcola membro per membro con i suoi ingredienti (ECMWF
+ha 51 membri ma manca lo zero termico; gli ICON EPS accettano le variabili in quota ma tornano
+null; ICON-D2-EPS fuori dominio risponde `nan` e rompe il parse). Mostra, ora per ora, la frazione
+di membri con SHIP > 0,8 e > 1,5, CAPE ≥ 1000, pioggia ≥ 1 mm/h, raffiche ≥ 60 km/h. La prima
+serie della risposta è il run di controllo (senza suffisso), poi `_member01…`.
+
+**Confronto nel tempo** (`lib/history.js`): ogni giorno in cui le sezioni sono aperte si salva in
+localStorage una riga con il previsto deterministico e le frazioni ensemble di oggi; dal giorno
+dopo arriva l'osservato ERA5 (lag ~1 giorno: pioggia e raffiche — la grandine osservata non esiste
+in nessun dataset gratuito, il confronto su SHIP resta indiretto). Massimo 60 righe, nessun
+backend.
+
 ## Come si calcola il rischio grandine
 
 Open-Meteo **non pubblica un diametro di grandine previsto**: il parametro `hail` viene accettato

@@ -116,6 +116,69 @@ export async function reverseGeocode(latitude, longitude) {
   }
 }
 
+/**
+ * Accordo fra modelli per la probabilità: stessi punti della griglia, set
+ * ridotto di variabili, tre modelli globali che coprono ovunque (niente nan).
+ * Le chiavi tornano come `<variabile>_<modello>`.
+ */
+export const AGREEMENT_MODELS = ['ecmwf_ifs025', 'gfs_seamless', 'icon_seamless']
+
+export async function fetchProbGrid(points, days, timezone, signal) {
+  const p = new URLSearchParams({
+    latitude: points.map((x) => x.lat).join(','),
+    longitude: points.map((x) => x.lon).join(','),
+    timezone: timezone || 'auto',
+    forecast_days: days,
+    hourly: 'cape,precipitation,wind_gusts_10m,weather_code',
+    models: AGREEMENT_MODELS.join(','),
+  })
+  const json = await getJSON(`${FORECAST}?${p}`, signal)
+  return Array.isArray(json) ? json : [json]
+}
+
+/**
+ * Ensemble su UN punto. gfs05 è l'unico con i livelli in quota per membro
+ * (SHIP calcolabile con gli ingredienti del membro); ECMWF ha più membri ma
+ * manca lo zero termico. Una chiamata pesa come ~31 normali: mai su griglia.
+ */
+const ENSEMBLE = 'https://ensemble-api.open-meteo.com/v1/ensemble'
+export const ENSEMBLE_MODEL = 'gfs05'
+
+export function fetchEnsemblePoint({ latitude, longitude }, days, timezone, signal) {
+  const p = new URLSearchParams({
+    latitude,
+    longitude,
+    timezone: timezone || 'auto',
+    forecast_days: days,
+    models: ENSEMBLE_MODEL,
+    hourly: HAIL_VARS.join(','),
+  })
+  return getJSON(`${ENSEMBLE}?${p}`, signal)
+}
+
+/** Osservato (ERA5/ERA5T, lag ~1 giorno): per la verifica a posteriori. */
+const ARCHIVE = 'https://archive-api.open-meteo.com/v1/archive'
+
+export async function fetchObserved({ latitude, longitude }, dateISO, signal) {
+  const p = new URLSearchParams({
+    latitude,
+    longitude,
+    start_date: dateISO,
+    end_date: dateISO,
+    daily: 'precipitation_sum,wind_gusts_10m_max',
+    timezone: 'auto',
+  })
+  try {
+    const d = await getJSON(`${ARCHIVE}?${p}`, signal)
+    const rain = d.daily?.precipitation_sum?.[0]
+    const gust = d.daily?.wind_gusts_10m_max?.[0]
+    if (rain == null && gust == null) return null
+    return { rain, gust }
+  } catch {
+    return null // non ancora disponibile: normale per il giorno in corso
+  }
+}
+
 /** Ricerca località. I risultati portano già il paese, quindi disambiguare
  *  fra omonimi è questione di leggere la riga giusta, non di pre-filtrare. */
 export async function searchPlaces(name, signal) {

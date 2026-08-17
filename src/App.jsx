@@ -5,11 +5,13 @@ import DailyStrip from './components/DailyStrip'
 import HourlyChart from './components/HourlyChart'
 import ModelCompare from './components/ModelCompare'
 import HailRisk from './components/HailRisk'
+import EnsemblePanel from './components/EnsemblePanel'
 import Favourites from './components/Favourites'
 import { Card, DayFilterBar, Message, Section } from './components/Ui'
-import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, reverseGeocode } from './lib/api'
+import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, fetchProbGrid, reverseGeocode } from './lib/api'
 import { DEFAULT_LOCATION, DEFAULT_MODELS, MAX_MODELS, MODELS } from './lib/constants'
 import { GRIDS, GRID_SIDE, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, summariseCells } from './lib/hail'
+import { agreementCells } from './lib/agreement'
 import { fmtLong, fmtTime } from './lib/format'
 import { useLocalStorage, useModelRuns, useTheme } from './lib/hooks'
 
@@ -87,6 +89,7 @@ export default function App() {
   const [hailDayOffset, setHailDayOffset] = useLocalStorage('hailDayOffset', 0)
   const [hazardId, setHazardId] = useLocalStorage('hazard', 'hail')
   const [hailCells, setHailCells] = useState(null)
+  const [hailAgreement, setHailAgreement] = useState(null)
   const [hailHiRes, setHailHiRes] = useState(false)
   const [hailLoading, setHailLoading] = useState(true)
   const [hailError, setHailError] = useState(null)
@@ -139,6 +142,27 @@ export default function App() {
   const hailDays = clamp(hailOffset + 1, 1, MAX_HAIL_OFFSET + 1)
   const hailTargetDay = selectedDay ?? addDays(locationToday, hailDayOffset)
 
+  /* Snapshot deterministico per il confronto nel tempo: i massimi di OGGI
+     dalla griglia già scaricata. Solo quando la vista è su oggi — salvare i
+     numeri di dopodomani sotto la data di oggi falserebbe la verifica. */
+  const detSnapshot = useMemo(() => {
+    if (!hailCells || hailTargetDay !== locationToday) return null
+    let ship = 0
+    let gust = 0
+    let rain = 0
+    for (const c of hailCells) {
+      let cellRain = 0
+      for (const p of c.series) {
+        if (p.t.slice(0, 10) !== locationToday) continue
+        if (p.ship > ship) ship = p.ship
+        if ((p.gust ?? 0) > gust) gust = p.gust
+        cellRain += p.precip ?? 0
+      }
+      if (cellRain > rain) rain = cellRain
+    }
+    return { ship, gust, rain }
+  }, [hailCells, hailTargetDay, locationToday])
+
   /* --- confronto modelli: una sola chiamata per tutti i modelli --- */
   useEffect(() => {
     const ctrl = new AbortController()
@@ -172,7 +196,8 @@ export default function App() {
     setHailHiRes(hiRes)
     setHailLoading(true)
     setHailError(null)
-    fetchHailGrid(points, hailDays, forecast?.timezone ?? location.timezone, hiRes ? ICON2I_MODEL : null, ctrl.signal)
+    const tz = forecast?.timezone ?? location.timezone
+    fetchHailGrid(points, hailDays, tz, hiRes ? ICON2I_MODEL : null, ctrl.signal)
       .then((results) => {
         setHailCells(summariseCells(results, points))
         setHailUpdatedAt(Date.now())
@@ -184,6 +209,12 @@ export default function App() {
         setHailError(e.message)
         setHailLoading(false)
       })
+    /* Accordo fra modelli, in parallelo: se fallisce si perde solo la
+       probabilità, i valori restano — quindi errore non fatale. */
+    setHailAgreement(null)
+    fetchProbGrid(points, hailDays, tz, ctrl.signal)
+      .then((results) => setHailAgreement(agreementCells(results)))
+      .catch(() => setHailAgreement(null))
     return () => ctrl.abort()
   }, [location, hailGrid, hailDays, hailDayOutOfRange, hailEnabled, forecast?.timezone, reloadKey])
 
@@ -345,6 +376,7 @@ export default function App() {
               onDayOffsetChange={setHailDayOffset}
               hazardId={hazardId}
               onHazardChange={setHazardId}
+              agreement={hailAgreement}
               hiRes={hailHiRes}
               dayLocked={Boolean(selectedDay)}
               dayOutOfRange={hailDayOutOfRange}
@@ -352,6 +384,18 @@ export default function App() {
               theme={theme}
             />
           )}
+        </Section>
+
+        <Section
+          title="Ensemble"
+          hint="sperimentale — probabilità dai 31 membri di GFS, da confrontare nel tempo con la sezione sopra"
+        >
+          <EnsemblePanel
+            location={location}
+            timezone={forecast?.timezone ?? location.timezone}
+            detSnapshot={detSnapshot}
+            palette={palette}
+          />
         </Section>
 
         <footer className="safe-bottom mt-9 border-t border-hair pt-4 text-[12.5px] text-ink-muted">

@@ -4,6 +4,7 @@ import HailMap from './HailMap'
 import { Card, Message, Segmented, Skeleton } from './Ui'
 import { GRIDS, GRID_SIDE, HAIL_DAYS, buildNarrative, capeBand, hailSize, hasRotationPotential, peakOf, steeringOf } from '../lib/hail'
 import { HAZARDS, SEVERITY_COLORS, SEVERITY_LABELS, applyHazard, hailZoneStep, hazardById, severityOf, zoneSpecOf } from '../lib/hazards'
+import { AGREEMENT_COUNT, cellFraction, fractionText } from '../lib/agreement'
 import { fmtDayHour, nf, relativePosition } from '../lib/format'
 import { useCellName, useIsMobile } from '../lib/hooks'
 
@@ -61,6 +62,7 @@ export default function HailRisk({
   onDayOffsetChange,
   hazardId,
   onHazardChange,
+  agreement,
   hiRes,
   dayLocked,
   dayOutOfRange,
@@ -100,7 +102,18 @@ export default function HailRisk({
   }, [rawCells, targetDay])
 
   const hazard = hazardById(hazardId)
-  const hazardCells = useMemo(() => (cells ? applyHazard(cells, hazardId) : null), [cells, hazardId])
+  const hazardCells = useMemo(() => {
+    if (!cells) return null
+    const enriched = applyHazard(cells, hazardId)
+    if (!agreement) return enriched
+    /* Le ore valide sono le stesse del filtro dei valori: giorno scelto, e su
+       oggi niente passato. La serie della cella le conosce già. */
+    return enriched.map((c, k) => {
+      const valid = new Set(c.series.map((p) => p.t))
+      const frac = cellFraction(agreement[k], hazardId, (t) => valid.has(t), targetDay)
+      return { ...c, prob: frac }
+    })
+  }, [cells, hazardId, agreement, targetDay])
   const ranked = useMemo(
     () => [...(hazardCells ?? [])].sort((a, b) => b.metric.value - a.metric.value),
     [hazardCells],
@@ -199,7 +212,11 @@ export default function HailRisk({
               {SEVERITY_LABELS[worstSeverity]}
             </span>
           </div>
-          <div className="mt-1 text-[12.5px] text-ink-sec">{worst?.metric.detail ?? '–'}</div>
+          <div className="mt-1 truncate text-[12.5px] text-ink-sec">
+            {worst?.prob != null
+              ? `${hazard.id === 'hail' ? 'innesco previsto da' : 'previsto da'} ${fractionText(worst.prob)}`
+              : (worst?.metric.detail ?? '–')}
+          </div>
         </div>
 
         <Tile
@@ -270,7 +287,12 @@ export default function HailRisk({
             ))}
             {hazard.id === 'hail' && (
               <span className="inline-flex items-center gap-3 text-ink-muted">
-                <span className="text-ink-muted">· probabilità:</span>
+                <span
+                  className="text-ink-muted"
+                  title={`Accordo fra ${AGREEMENT_COUNT} modelli (ECMWF, GFS, ICON): bassa = al più uno prevede l'evento, media = due, alta = tutti.`}
+                >
+                  · probabilità:
+                </span>
                 {[
                   ['bassa', '2 6'],
                   ['media', '7 5'],
@@ -407,15 +429,18 @@ export default function HailRisk({
             <strong>SHIP</strong> (Significant Hail Parameter, Storm Prediction Center): CAPE, rapporto di mescolanza,
             gradiente termico 700–500 hPa, temperatura a 500 hPa, shear del vento 0–6 km e quota dello zero termico.
             SHIP &gt; 1 indica ambiente favorevole a grandine oltre i 4 cm. Poiché SHIP descrive il potenziale e non
-            l&apos;innesco, il rischio mostrato pesa SHIP con la convezione effettivamente prevista dal modello. Questo
-            valore va interpretato con maggiore cautela rispetto a raffiche e accumuli. La sua funzione è indicativa solo
-            per localizzazione e tempistica, meno per l&apos;entità della grandine.
+            l&apos;innesco, l&apos;indice orario pesa SHIP con la convezione prevista. La <strong>probabilità</strong>{' '}
+            delle zone è invece l&apos;accordo fra tre modelli indipendenti (ECMWF, GFS, ICON): bassa = al più uno
+            prevede l&apos;innesco, media = due, alta = tutti e tre. Questo valore va interpretato con maggiore cautela
+            rispetto a raffiche e accumuli. La sua funzione è indicativa solo per localizzazione e tempistica, meno per
+            l&apos;entità della grandine.
           </>
         ) : hazard.id === 'wind' ? (
           <>
             <strong className="text-ink-sec">Come si legge.</strong> A differenza della grandine, qui non si ricostruisce
             niente: la raffica è <strong>output diretto del modello</strong> (`wind_gusts_10m`), quindi più affidabile.
-            Il valore è il massimo previsto nella giornata per ogni cella. La riga sotto distingue i due casi che
+            Il valore è il massimo previsto nella giornata per ogni cella, dal modello a più alta risoluzione; la
+            probabilità è l&apos;accordo fra tre modelli su raffiche ≥ 60 km/h. La riga sotto distingue i due casi che
             contano: raffica <em>nel temporale</em> — è un downburst, breve e localizzato — oppure vento di gradiente,
             più costante e prevedibile. Sopra i 90 km/h si entra nel campo dei danni.
           </>
@@ -424,7 +449,8 @@ export default function HailRisk({
             <strong className="text-ink-sec">Come si legge.</strong> Anche qui il dato è{' '}
             <strong>output diretto del modello</strong>, non una stima. Il numero grande è l&apos;accumulo totale sulla
             finestra vista: è quello che allaga. La punta oraria accanto dice se arriva tutto insieme o distribuito —
-            30 mm in un&apos;ora sono un nubifragio, gli stessi 30 mm in dodici ore sono pioggia normale. Le soglie del
+            30 mm in un&apos;ora sono un nubifragio, gli stessi 30 mm in dodici ore sono pioggia normale. La
+            probabilità delle zone è l&apos;accordo fra tre modelli su un accumulo giornaliero ≥ 10 mm. Le soglie del
             colore sono sull&apos;accumulo, quelle del grafico orario sull&apos;intensità. Attenzione ai confronti: questi
             mm sono <strong>medie d&apos;area</strong> della cella di griglia; nel cuore di un temporale il massimo
             puntuale vale tipicamente 2–3 volte tanto. Un prodotto che mostra &quot;70 mm&quot; sulla traccia di una

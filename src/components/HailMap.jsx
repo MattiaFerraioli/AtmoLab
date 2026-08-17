@@ -7,6 +7,7 @@ import { TILE_ATTRIB } from '../lib/constants'
 import { fmtDayHour, nf, windDir } from '../lib/format'
 import { useIsTouch } from '../lib/hooks'
 import { SEVERITY_COLORS, SEVERITY_LABELS, zoneSpecOf } from '../lib/hazards'
+import { fractionText } from '../lib/agreement'
 import { buildZones } from '../lib/zones'
 
 /**
@@ -119,6 +120,12 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                 )}
                 <br />
                 {c.metric.at ? fmtDayHour(c.metric.at) : 'nessun picco'}
+                {c.prob != null && (
+                  <>
+                    <br />
+                    {hazard.id === 'hail' ? 'innesco previsto da' : 'previsto da'} {fractionText(c.prob)}
+                  </>
+                )}
                 <br />
                 <span style={{ opacity: 0.7 }}>
                   {c.gridLat.toFixed(2)}°, {c.gridLon.toFixed(2)}°

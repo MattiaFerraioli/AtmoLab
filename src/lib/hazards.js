@@ -1,4 +1,5 @@
 import { hailSize, riskBand } from './hail'
+import { fractionLabel } from './agreement'
 import { nf } from './format'
 
 /* ============================================================
@@ -153,19 +154,21 @@ const SHIP_ZONE_BANDS = [0.05, 0.35, 0.8, 1.5]
 
 export const hailZoneStep = (ship) => severityOf(ship, SHIP_ZONE_BANDS)
 
+/** Massima frazione d'accordo nella zona → bassa/media/alta, o null senza dati. */
+function probFromCells(comp) {
+  const fracs = comp.map((c) => c.prob).filter((x) => x != null)
+  return fracs.length ? fractionLabel(Math.max(...fracs)) : null
+}
+
 export function zoneSpecOf(hazard) {
   if (hazard.id === 'hail') {
     return {
       stepOf: (c) => hailZoneStep(c.metric.ship ?? 0),
       valueOf: (c) => c.metric.ship ?? 0,
       labels: ['< 1 cm', '1–2 cm', '2–4 cm', '> 4 cm'],
-      /* Probabilità d'innesco della zona, dal rischio massimo al suo interno:
-         soglie di riskBand (0,2 / 0,5). Guida il tratto del contorno e il
-         sottotitolo dell'etichetta. */
-      probOf: (comp) => {
-        const max = Math.max(...comp.map((c) => c.metric.value))
-        return max >= 0.5 ? 'alta' : max >= 0.2 ? 'media' : 'bassa'
-      },
+      /* Probabilità = accordo fra modelli (cell.prob, frazione 0..1), non più
+         SHIP × innesco di un run solo. Il massimo della zona decide il tratto. */
+      probOf: (comp) => probFromCells(comp),
       legendTitle: 'Diametro',
     }
   }
@@ -173,7 +176,7 @@ export function zoneSpecOf(hazard) {
     stepOf: (c) => c.severity,
     valueOf: (c) => c.metric.value,
     labels: null, // etichetta = valore massimo reale della zona
-    probOf: () => null, // per vento e pioggia la severità è già la grandezza stessa
+    probOf: (comp) => probFromCells(comp),
     legendTitle: 'Rischio',
   }
 }
