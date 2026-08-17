@@ -55,6 +55,7 @@ export const HAZARDS = [
       return {
         value: peak.value,
         at: peak.at,
+        ship,
         badge: hailSize(ship).label,
         detail: `SHIP ${nf(ship, 2)}`,
         note: hailSize(ship).note,
@@ -134,3 +135,40 @@ export function applyHazard(cells, hazardId) {
 
 /** Compatibilità: la severità grandine resta quella storica di riskBand. */
 export const hailSeverity = (risk) => riskBand(risk).step
+
+
+/* ------------------------------------------------------------
+   Zonazione per la mappa.
+   Per vento e pioggia la severità È la grandezza mostrata, quindi
+   zona ed etichetta coincidono per costruzione. Per la grandine no:
+   il colore seguiva il rischio d'innesco ma l'etichetta il diametro,
+   e una zona "rischio basso" grande quanto mezzo nord-ovest finiva
+   etichettata col diametro del suo punto peggiore. Qui la grandine
+   si zona PER FASCIA DI DIAMETRO (stesse soglie di hailSize), così
+   ogni zona contiene solo celle della sua fascia; la probabilità
+   d'innesco passa nel tratto del contorno (tratteggiato = incerto).
+   ------------------------------------------------------------ */
+
+const SHIP_ZONE_BANDS = [0.05, 0.35, 0.8, 1.5]
+
+export const hailZoneStep = (ship) => severityOf(ship, SHIP_ZONE_BANDS)
+
+export function zoneSpecOf(hazard) {
+  if (hazard.id === 'hail') {
+    return {
+      stepOf: (c) => hailZoneStep(c.metric.ship ?? 0),
+      valueOf: (c) => c.metric.ship ?? 0,
+      labels: ['< 1 cm', '1–2 cm', '2–4 cm', '> 4 cm'],
+      // innesco incerto in tutta la zona ⇒ contorno tratteggiato
+      dashed: (comp) => comp.every((c) => c.metric.value < 0.2),
+      legendTitle: 'Diametro',
+    }
+  }
+  return {
+    stepOf: (c) => c.severity,
+    valueOf: (c) => c.metric.value,
+    labels: null, // etichetta = valore massimo reale della zona
+    dashed: () => false,
+    legendTitle: 'Rischio',
+  }
+}

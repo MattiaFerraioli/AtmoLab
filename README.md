@@ -186,6 +186,13 @@ cambia col pericolo selezionato e lo dice.
 scura la rampa monocroma rendeva le celle indistinguibili. Il valore numerico è comunque stampato
 sulle celle significative, quindi il colore non porta mai da solo l'informazione.
 
+**Zone per fascia di diametro**: per la grandine le zone NON seguono il rischio ma la fascia di
+diametro (le stesse soglie di `hailSize`), così una zona etichettata "2–4 cm" contiene solo celle
+di quella fascia — prima il contorno seguiva il rischio e l'etichetta il diametro del punto
+peggiore, e una zona "rischio basso" grande mezzo nord-ovest sembrava tutta da 2–4 cm. La
+probabilità d'innesco passa nel tratto: contorno tratteggiato = innesco incerto (rischio sotto
+"moderato" in tutta la zona). Vento e pioggia zonano sulla severità, che lì coincide col valore.
+
 **Zone stile outlook** (`src/lib/zones.js`): le celle non si disegnano più come quadretti
 indipendenti — per ogni livello di severità le celle contigue vengono raggruppate in componenti
 connesse e se ne traccia il contorno, annidato come negli outlook SPC/ESTOFEX (il livello 2 sta

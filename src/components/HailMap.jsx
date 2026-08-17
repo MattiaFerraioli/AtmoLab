@@ -6,7 +6,7 @@ import { DragControl, LockOverlay } from './MapLock'
 import { TILE_ATTRIB } from '../lib/constants'
 import { fmtDayHour, nf, windDir } from '../lib/format'
 import { useIsTouch } from '../lib/hooks'
-import { SEVERITY_COLORS, SEVERITY_LABELS } from '../lib/hazards'
+import { SEVERITY_COLORS, SEVERITY_LABELS, zoneSpecOf } from '../lib/hazards'
 import { buildZones } from '../lib/zones'
 
 /**
@@ -61,7 +61,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
   }, [cells, half])
 
   /* Zone stile outlook: contorni per livello, un'etichetta per zona. */
-  const zones = useMemo(() => buildZones(cells, step), [cells, step])
+  const zones = useMemo(() => buildZones(cells, step, zoneSpecOf(hazard)), [cells, step, hazard])
 
   return (
     <div className="relative z-[1] h-[320px] overflow-hidden rounded-2xl border border-hair card-shadow sm:h-[440px]">
@@ -85,6 +85,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                 color: SEVERITY_COLORS[z.level],
                 weight: 2,
                 opacity: 0.9,
+                dashArray: z.dashed ? '7 7' : null,
                 fillColor: SEVERITY_COLORS[z.level],
                 fillOpacity: 0.07 + z.level * 0.05,
               }}

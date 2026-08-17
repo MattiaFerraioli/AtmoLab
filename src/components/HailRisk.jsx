@@ -3,7 +3,7 @@ import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer,
 import HailMap from './HailMap'
 import { Card, Message, Segmented, Skeleton } from './Ui'
 import { GRIDS, GRID_SIDE, HAIL_DAYS, buildNarrative, capeBand, hailSize, hailSizeTail, hasRotationPotential, peakOf, steeringOf } from '../lib/hail'
-import { HAZARDS, SEVERITY_COLORS, SEVERITY_LABELS, applyHazard, hazardById, severityOf } from '../lib/hazards'
+import { HAZARDS, SEVERITY_COLORS, SEVERITY_LABELS, applyHazard, hailZoneStep, hazardById, severityOf, zoneSpecOf } from '../lib/hazards'
 import { fmtDayHour, nf, relativePosition } from '../lib/format'
 import { useIsMobile } from '../lib/hooks'
 
@@ -266,16 +266,21 @@ export default function HailRisk({
             onSelectCell={setSelected}
           />
           <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-ink-sec">
-            <span className="text-ink-muted">Rischio:</span>
-            {SEVERITY_LABELS.map((label, i) => (
+            <span className="text-ink-muted">{zoneSpecOf(hazard).legendTitle}:</span>
+            {(zoneSpecOf(hazard).labels ?? SEVERITY_LABELS.slice(1)).map((label, i) => (
               <span key={label} className="inline-flex items-center gap-1.5">
-                <span
-                  className="h-3 w-3 rounded-sm"
-                  style={{ background: SEVERITY_COLORS[i], opacity: i === 0 ? 0.4 : 1 }}
-                />
+                <span className="h-3 w-3 rounded-sm" style={{ background: SEVERITY_COLORS[i + 1] }} />
                 {label}
               </span>
             ))}
+            {hazard.id === 'hail' && (
+              <span className="inline-flex items-center gap-1.5 text-ink-muted">
+                <svg viewBox="0 0 20 8" className="h-2 w-5">
+                  <line x1="0" y1="4" x2="20" y2="4" stroke="currentColor" strokeWidth="2" strokeDasharray="4 3" />
+                </svg>
+                innesco incerto
+              </span>
+            )}
           </div>
         </div>
 
@@ -289,7 +294,8 @@ export default function HailRisk({
           ) : (
             <ol className="flex flex-col gap-1.5">
               {ranked.slice(0, 8).map((c) => {
-                const color = SEVERITY_COLORS[c.severity]
+                const color =
+                  SEVERITY_COLORS[hazard.id === 'hail' ? hailZoneStep(c.metric.ship ?? 0) : c.severity]
                 const isFocus = focus && c.gridLat === focus.gridLat && c.gridLon === focus.gridLon
                 return (
                   <li key={`${c.gridLat},${c.gridLon}`}>

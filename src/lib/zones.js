@@ -14,9 +14,9 @@
 const keyOf = (r, c) => `${r},${c}`
 
 /** Componenti connesse (4-adiacenza) delle celle che passano il filtro. */
-function components(cells, minSeverity) {
+function components(cells, minStep, stepOf) {
   const pool = new Map()
-  for (const c of cells) if (c.severity >= minSeverity) pool.set(keyOf(c.row, c.col), c)
+  for (const c of cells) if (stepOf(c) >= minStep) pool.set(keyOf(c.row, c.col), c)
   const seen = new Set()
   const out = []
   for (const [k, start] of pool) {
@@ -87,8 +87,9 @@ function traceRings(comp) {
  * metric). Restituisce zone per livello crescente, ognuna con anelli in
  * coordinate [lat, lon] e l'etichetta posta sulla cella di valore massimo.
  */
-export function buildZones(cells, step) {
+export function buildZones(cells, step, spec) {
   if (!cells?.length) return []
+  const { stepOf, valueOf, labels, dashed } = spec
   const half = step / 2
   const latMin = Math.min(...cells.map((c) => c.gridLat))
   const lonMin = Math.min(...cells.map((c) => c.gridLon))
@@ -96,19 +97,35 @@ export function buildZones(cells, step) {
 
   const zones = []
   const labelledCells = new Set()
+  const placed = [] // posizioni [lat, lon] già occupate da un'etichetta
 
   // dal livello più alto: l'etichetta della zona più severa vince sulla stessa cella
   for (let level = 4; level >= 1; level -= 1) {
-    for (const comp of components(cells, level)) {
-      const max = comp.reduce((a, b) => (b.metric.value > a.metric.value ? b : a))
+    for (const comp of components(cells, level, stepOf)) {
+      // Con etichette per fascia (labels) la zona di livello N contiene anche
+      // le celle dei livelli superiori: l'anello esterno va etichettato con la
+      // SUA fascia solo se la zona ha davvero celle di quel livello esatto.
+      const own = labels ? comp.filter((c) => stepOf(c) === level) : comp
+      const pool = (own.length ? own : comp).slice().sort((a, b) => valueOf(b) - valueOf(a))
+      /* Il massimo assoluto può stare nella cella accanto all'etichetta di
+         un'altra fascia: si preferisce la migliore cella che non collide,
+         e solo in mancanza si accetta la collisione. */
+      const clear = (c) =>
+        placed.every((p) => Math.hypot(p[0] - c.gridLat, p[1] - c.gridLon) >= step * 1.05)
+      const max = pool.find(clear) ?? pool[0]
       const maxKey = keyOf(max.row, max.col)
+      const text = labels ? labels[level - 1] : max.metric.badge
       const label =
-        max.metric.badge !== '—' && !labelledCells.has(maxKey)
-          ? { at: [max.gridLat, max.gridLon], text: max.metric.badge, severity: max.severity }
+        text !== '—' && max.metric.badge !== '—' && !labelledCells.has(maxKey)
+          ? { at: [max.gridLat, max.gridLon], text, severity: level }
           : null
-      if (label) labelledCells.add(maxKey)
+      if (label) {
+        labelledCells.add(maxKey)
+        placed.push(label.at)
+      }
       zones.push({
         level,
+        dashed: dashed(comp),
         rings: traceRings(comp).map((ring) => ring.map(toLatLng)),
         label,
       })
