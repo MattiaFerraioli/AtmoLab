@@ -6,6 +6,12 @@ import { GRIDS, GRID_SIDE, HAIL_DAYS, buildNarrative, capeBand, hailSize, hasRot
 import { HAZARDS, SEVERITY_COLORS, SEVERITY_LABELS, applyHazard, hailZoneStep, hazardById, severityOf, zoneSpecOf } from '../lib/hazards'
 import { AGREEMENT_COUNT, cellFraction, fractionText } from '../lib/agreement'
 import { fmtDayHour, nf, relativePosition } from '../lib/format'
+
+/** "42 km a NE", ma per la cella della località il nome del posto: "qui" da solo non significa niente. */
+const placeLabel = (location, lat, lon) => {
+  const rp = relativePosition(location.latitude, location.longitude, lat, lon)
+  return rp === 'qui' ? location.name : rp
+}
 import { useCellName, useIsMobile } from '../lib/hooks'
 
 const CENTRE = (GRID_SIDE - 1) / 2
@@ -234,7 +240,7 @@ export default function HailRisk({
             che in testata sarebbero peggio delle coordinate che sostituiscono. */}
         <Tile k="Dove" sub={worstName ?? undefined}>
           <span className="text-[17px]">
-            {worst ? relativePosition(location.latitude, location.longitude, worst.gridLat, worst.gridLon) : '–'}
+            {worst ? placeLabel(location, worst.gridLat, worst.gridLon) : '–'}
           </span>
         </Tile>
 
@@ -345,7 +351,7 @@ export default function HailRisk({
                       <span className="h-7 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px] font-semibold">
-                          {relativePosition(location.latitude, location.longitude, c.gridLat, c.gridLon)}
+                          {placeLabel(location, c.gridLat, c.gridLon)}
                         </span>
                         <span className="block text-[11.5px] text-ink-muted">
                           {c.metric.at ? fmtDayHour(c.metric.at) : '–'} · {SEVERITY_LABELS[c.severity]}
@@ -376,11 +382,7 @@ export default function HailRisk({
       <div className="border-t border-hair p-4 pt-3">
         <div className="mb-1 ml-1 text-[13px] font-semibold text-ink-sec">
           {hazard.hourly.label} ora per ora ·{' '}
-          {focus
-            ? relativePosition(location.latitude, location.longitude, focus.gridLat, focus.gridLon) === 'qui'
-              ? location.name
-              : `${focus.gridLat.toFixed(2)}°, ${focus.gridLon.toFixed(2)}°`
-            : '–'}
+          {focus ? placeLabel(location, focus.gridLat, focus.gridLon) : '–'}
         </div>
         <ResponsiveContainer width="100%" height={170}>
           <BarChart data={focusSeries} margin={{ top: 6, right: 10, bottom: 4, left: isMobile ? 2 : -6 }}>
