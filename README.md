@@ -272,7 +272,7 @@ https://api.open-meteo.com/data/<modello>/static/meta.json
 
 Il pannello "Stato dei modelli" mostra **due grandezze diverse**, che è facile confondere:
 
-- **Dati fino a** — la fine dei dati utilizzabili in quella località, con l'ora. Se il modello si
+- **Validità** — la fine dei dati utilizzabili in quella località, con l'ora. Se il modello si
   ferma prima del proprio orizzonte globale il valore è in arancione: è la ragione per cui la linea
   sparisce dal grafico. Altrimenti vale l'orizzonte della corsa da `meta.json` — e le corse delle
   06Z e 18Z sono spesso molto più corte di quelle delle 00Z e 12Z (ICON globale: 120 h contro 180 h).

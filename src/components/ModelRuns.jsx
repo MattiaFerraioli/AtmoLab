@@ -99,7 +99,7 @@ export default function ModelRuns({ runs, coverage, horizons, slots, selected, p
                     del modello, è quella la fine che conta: si mostra quella, con
                     l'ora, evidenziata perché è la ragione per cui la linea sparisce
                     dal grafico. Altrimenti vale l'orizzonte globale della corsa. */}
-                <Row k="Dati fino a">
+                <Row k="Validità">
                   {cov?.end ? (
                     <span className={cov.truncated ? 'text-[#ec835a]' : undefined}>
                       {fmtDayHour(cov.end)}
