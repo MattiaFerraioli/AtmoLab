@@ -7,7 +7,7 @@ import { TILE_ATTRIB } from '../lib/constants'
 import { fmtDayHour, nf, windDir } from '../lib/format'
 import { useIsTouch } from '../lib/hooks'
 import { SEVERITY_COLORS, SEVERITY_LABELS, zoneSpecOf } from '../lib/hazards'
-import { fractionText } from '../lib/agreement'
+import { AGREEMENT_COUNT, fractionText } from '../lib/agreement'
 import { buildZones } from '../lib/zones'
 
 /**
@@ -33,7 +33,8 @@ function FitToCells({ bounds }) {
 
 /** Etichetta di zona: valore sopra, probabilità d'innesco sotto (se nota). */
 function valueIcon(text, color, prob) {
-  const text2 = prob === 'nessuna' ? 'solo ambiente' : prob ? `prob. ${prob}` : ''
+  const count = prob ? `${Math.round(prob.frac * AGREEMENT_COUNT)}/${AGREEMENT_COUNT}` : ''
+  const text2 = prob?.label === 'nessuna' ? `solo ambiente · ${count}` : prob ? `prob. ${prob.label} · ${count}` : ''
   const sub = text2 ? `<div style="font:500 9px/1.1 system-ui;opacity:.85;margin-top:1px">${text2}</div>` : ''
   return L.divIcon({
     className: '',
@@ -89,7 +90,13 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                 weight: 2,
                 opacity: 0.9,
                 dashArray:
-                  z.prob === 'nessuna' ? '2 10' : z.prob === 'bassa' ? '3 9' : z.prob === 'media' ? '10 7' : null,
+                  z.prob?.label === 'nessuna'
+                    ? '2 10'
+                    : z.prob?.label === 'bassa'
+                      ? '3 9'
+                      : z.prob?.label === 'media'
+                        ? '10 7'
+                        : null,
                 fillColor: SEVERITY_COLORS[z.level],
                 fillOpacity: 0.07 + z.level * 0.05,
               }}

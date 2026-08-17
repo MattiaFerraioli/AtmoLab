@@ -154,10 +154,12 @@ const SHIP_ZONE_BANDS = [0.05, 0.35, 0.8, 1.5]
 
 export const hailZoneStep = (ship) => severityOf(ship, SHIP_ZONE_BANDS)
 
-/** Massima frazione d'accordo nella zona → bassa/media/alta, o null senza dati. */
+/** Massima frazione d'accordo nella zona: etichetta + valore, o null senza dati. */
 function probFromCells(comp) {
   const fracs = comp.map((c) => c.prob).filter((x) => x != null)
-  return fracs.length ? fractionLabel(Math.max(...fracs)) : null
+  if (!fracs.length) return null
+  const frac = Math.max(...fracs)
+  return { label: fractionLabel(frac), frac }
 }
 
 export function zoneSpecOf(hazard) {
