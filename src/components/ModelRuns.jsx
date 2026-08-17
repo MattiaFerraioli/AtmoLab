@@ -95,25 +95,31 @@ export default function ModelRuns({ runs, coverage, horizons, slots, selected, p
                   {run ? `${whenLabel(run.available)} · ogni ${run.updateIntervalHours} h` : '–'}
                 </Row>
 
-                <Row k="Arriva a">
-                  {horizon
-                    ? `${new Date(horizon.end).toLocaleDateString('it-IT', {
-                        weekday: 'short',
-                        day: 'numeric',
-                        month: 'short',
-                      })} · ${nf(horizon.days, 1)} giorni da adesso`
-                    : '–'}
+                {/* Quando in questa località i dati finiscono prima dell'orizzonte
+                    del modello, è quella la fine che conta: si mostra quella, con
+                    l'ora, evidenziata perché è la ragione per cui la linea sparisce
+                    dal grafico. Altrimenti vale l'orizzonte globale della corsa. */}
+                <Row k="Dati fino a">
+                  {cov?.end ? (
+                    <span className={cov.truncated ? 'text-[#ec835a]' : undefined}>
+                      {fmtDayHour(cov.end)}
+                      {cov.days != null && ` · ${nf(cov.days, 1)} giorni da adesso`}
+                    </span>
+                  ) : horizon ? (
+                    `${new Date(horizon.end).toLocaleDateString('it-IT', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                    })} · ${nf(horizon.days, 1)} giorni da adesso`
+                  ) : (
+                    '–'
+                  )}
                 </Row>
               </dl>
 
               {/* Solo quando c'è davvero qualcosa da segnalare per questa località. */}
               {cov && !cov.end && (
                 <div className="mt-1.5 text-[12px] text-[#ec835a]">Non copre questa località</div>
-              )}
-              {cov?.end && cov.truncated && (
-                <div className="mt-1.5 text-[12px] text-[#ec835a]">
-                  Qui si ferma prima: {fmtDayHour(cov.end)}
-                </div>
               )}
             </div>
           )

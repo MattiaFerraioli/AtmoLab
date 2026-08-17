@@ -107,7 +107,16 @@ export default function ModelCompare({
           }
         }
       }
-      cov[m.id] = last < 0 ? { end: null, truncated: false } : { end: h.time[last], truncated: last < lastIdx }
+      cov[m.id] =
+        last < 0
+          ? { end: null, truncated: false, days: null }
+          : {
+              end: h.time[last],
+              truncated: last < lastIdx,
+              // le ore sono locali alla località: va riapplicato l'offset per
+              // ottenere l'istante vero e quindi la distanza da adesso
+              days: (Date.parse(`${h.time[last]}Z`) - offset * 1000 - Date.now()) / 86_400_000,
+            }
     }
 
     /* Finestra visibile: il giorno selezionato, oppure da adesso in poi. */

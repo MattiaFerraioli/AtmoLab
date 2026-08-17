@@ -272,10 +272,10 @@ https://api.open-meteo.com/data/<modello>/static/meta.json
 
 Il pannello "Stato dei modelli" mostra **due grandezze diverse**, che è facile confondere:
 
-- **Corsa fino a** — dove finisce *quella* corsa, da `meta.json`. Le corse delle 06Z e 18Z sono
-  spesso molto più corte di quelle delle 00Z e 12Z (ICON globale: 120 h contro 180 h).
-- **Dati qui** — cosa l'API serve davvero in quella località, letto dalla risposta. È il dato che
-  comanda nel grafico.
+- **Dati fino a** — la fine dei dati utilizzabili in quella località, con l'ora. Se il modello si
+  ferma prima del proprio orizzonte globale il valore è in arancione: è la ragione per cui la linea
+  sparisce dal grafico. Altrimenti vale l'orizzonte della corsa da `meta.json` — e le corse delle
+  06Z e 18Z sono spesso molto più corte di quelle delle 00Z e 12Z (ICON globale: 120 h contro 180 h).
 
 Le due possono divergere in entrambe le direzioni: i prodotti *seamless* completano la coda con la
 corsa lunga precedente (UKMO dichiara +2,2 g ma serve 168 ore), mentre i modelli regionali si
