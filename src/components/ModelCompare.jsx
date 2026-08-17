@@ -301,7 +301,7 @@ export default function ModelCompare({
                   dataKey="band"
                   stroke="none"
                   fill={palette.inkSec}
-                  fillOpacity={0.14}
+                  fillOpacity={0.22}
                   connectNulls={false}
                   isAnimationActive={false}
                   activeDot={false}
@@ -328,9 +328,9 @@ export default function ModelCompare({
                   dataKey={MEDIAN_KEY}
                   name="Consenso (mediana)"
                   stroke={palette.ink}
-                  strokeOpacity={0.55}
-                  strokeWidth={2.8}
-                  strokeDasharray="6 4"
+                  strokeOpacity={0.9}
+                  strokeWidth={3}
+                  strokeDasharray="9 5"
                   dot={false}
                   activeDot={false}
                   connectNulls={false}
@@ -351,13 +351,19 @@ export default function ModelCompare({
                   {s.label}
                 </span>
               ))}
-              <span className="inline-flex items-center gap-2">
-                <span className="h-[3px] w-3.5 rounded-full" style={{ background: palette.ink, opacity: 0.55 }} />
+              <span
+                className="inline-flex items-center gap-2"
+                title="Il valore centrale fra tutti i modelli, ora per ora: metà stanno sopra, metà sotto."
+              >
+                <span className="h-[3px] w-3.5 rounded-full" style={{ background: palette.ink, opacity: 0.9 }} />
                 Consenso (mediana)
               </span>
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2.5 w-3.5 rounded-sm" style={{ background: palette.inkSec, opacity: 0.25 }} />
-                Intervallo min–max fra i modelli
+              <span
+                className="inline-flex items-center gap-2"
+                title="La fascia grigia copre tutti i valori previsti in quell'ora: dal modello più basso al più alto."
+              >
+                <span className="h-2.5 w-3.5 rounded-sm" style={{ background: palette.inkSec, opacity: 0.22 }} />
+                Intervallo min–max
               </span>
             </div>
           </>
