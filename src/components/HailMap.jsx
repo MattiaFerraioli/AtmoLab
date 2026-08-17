@@ -30,17 +30,18 @@ function FitToCells({ bounds }) {
   return null
 }
 
-/** Etichetta col valore vero della cella: il colore da solo non basta a dire "2–3 cm". */
-function valueIcon(text, color) {
+/** Etichetta di zona: valore sopra, probabilità d'innesco sotto (se nota). */
+function valueIcon(text, color, prob) {
+  const sub = prob ? `<div style="font:500 9px/1.1 system-ui;opacity:.85;margin-top:1px">prob. ${prob}</div>` : ''
   return L.divIcon({
     className: '',
     iconSize: [0, 0],
     iconAnchor: [0, 0],
-    html: `<span style="
-      position:absolute; transform:translate(-50%,-50%); white-space:nowrap;
-      background:${color}; color:#fff; font:600 11px/1 system-ui,sans-serif;
+    html: `<div style="
+      position:absolute; transform:translate(-50%,-50%); white-space:nowrap; text-align:center;
+      background:${color}; color:#fff; font:600 11px/1.1 system-ui,sans-serif;
       padding:3px 6px; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,.45);
-    ">${text}</span>`,
+    ">${text}${sub}</div>`,
   })
 }
 
@@ -85,7 +86,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                 color: SEVERITY_COLORS[z.level],
                 weight: 2,
                 opacity: 0.9,
-                dashArray: z.dashed ? '7 7' : null,
+                dashArray: z.prob === 'bassa' ? '3 9' : z.prob === 'media' ? '10 7' : null,
                 fillColor: SEVERITY_COLORS[z.level],
                 fillOpacity: 0.07 + z.level * 0.05,
               }}
@@ -133,7 +134,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
               <Marker
                 key={`l${zi}`}
                 position={z.label.at}
-                icon={valueIcon(z.label.text, SEVERITY_COLORS[z.label.severity])}
+                icon={valueIcon(z.label.text, SEVERITY_COLORS[z.label.severity], z.label.prob)}
                 interactive={false}
               />
             ),

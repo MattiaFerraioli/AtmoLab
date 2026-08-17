@@ -159,8 +159,13 @@ export function zoneSpecOf(hazard) {
       stepOf: (c) => hailZoneStep(c.metric.ship ?? 0),
       valueOf: (c) => c.metric.ship ?? 0,
       labels: ['< 1 cm', '1–2 cm', '2–4 cm', '> 4 cm'],
-      // innesco incerto in tutta la zona ⇒ contorno tratteggiato
-      dashed: (comp) => comp.every((c) => c.metric.value < 0.2),
+      /* Probabilità d'innesco della zona, dal rischio massimo al suo interno:
+         soglie di riskBand (0,2 / 0,5). Guida il tratto del contorno e il
+         sottotitolo dell'etichetta. */
+      probOf: (comp) => {
+        const max = Math.max(...comp.map((c) => c.metric.value))
+        return max >= 0.5 ? 'alta' : max >= 0.2 ? 'media' : 'bassa'
+      },
       legendTitle: 'Diametro',
     }
   }
@@ -168,7 +173,7 @@ export function zoneSpecOf(hazard) {
     stepOf: (c) => c.severity,
     valueOf: (c) => c.metric.value,
     labels: null, // etichetta = valore massimo reale della zona
-    dashed: () => false,
+    probOf: () => null, // per vento e pioggia la severità è già la grandezza stessa
     legendTitle: 'Rischio',
   }
 }

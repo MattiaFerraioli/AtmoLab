@@ -274,11 +274,28 @@ export default function HailRisk({
               </span>
             ))}
             {hazard.id === 'hail' && (
-              <span className="inline-flex items-center gap-1.5 text-ink-muted">
-                <svg viewBox="0 0 20 8" className="h-2 w-5">
-                  <line x1="0" y1="4" x2="20" y2="4" stroke="currentColor" strokeWidth="2" strokeDasharray="4 3" />
-                </svg>
-                innesco incerto
+              <span className="inline-flex items-center gap-3 text-ink-muted">
+                <span className="text-ink-muted">· probabilità:</span>
+                {[
+                  ['bassa', '2 6'],
+                  ['media', '7 5'],
+                  ['alta', null],
+                ].map(([label, dash]) => (
+                  <span key={label} className="inline-flex items-center gap-1.5">
+                    <svg viewBox="0 0 24 8" className="h-2 w-6">
+                      <line
+                        x1="0"
+                        y1="4"
+                        x2="24"
+                        y2="4"
+                        stroke="currentColor"
+                        strokeWidth="2.4"
+                        strokeDasharray={dash ?? undefined}
+                      />
+                    </svg>
+                    {label}
+                  </span>
+                ))}
               </span>
             )}
           </div>

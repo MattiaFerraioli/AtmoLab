@@ -13,6 +13,26 @@
 
 const keyOf = (r, c) => `${r},${c}`
 
+/**
+ * Smussamento di Chaikin su anello chiuso: ogni lato viene sostituito dai
+ * punti a 1/4 e 3/4, due iterazioni. I contorni a scalini della griglia
+ * diventano curve morbide, restando dentro l'inviluppo delle celle.
+ */
+function chaikin(ring, iterations = 2) {
+  let pts = ring
+  for (let it = 0; it < iterations; it += 1) {
+    const out = []
+    for (let i = 0; i < pts.length; i += 1) {
+      const a = pts[i]
+      const b = pts[(i + 1) % pts.length]
+      out.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25])
+      out.push([a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75])
+    }
+    pts = out
+  }
+  return pts
+}
+
 /** Componenti connesse (4-adiacenza) delle celle che passano il filtro. */
 function components(cells, minStep, stepOf) {
   const pool = new Map()
@@ -89,7 +109,7 @@ function traceRings(comp) {
  */
 export function buildZones(cells, step, spec) {
   if (!cells?.length) return []
-  const { stepOf, valueOf, labels, dashed } = spec
+  const { stepOf, valueOf, labels, probOf } = spec
   const half = step / 2
   const latMin = Math.min(...cells.map((c) => c.gridLat))
   const lonMin = Math.min(...cells.map((c) => c.gridLon))
@@ -125,9 +145,9 @@ export function buildZones(cells, step, spec) {
       }
       zones.push({
         level,
-        dashed: dashed(comp),
-        rings: traceRings(comp).map((ring) => ring.map(toLatLng)),
-        label,
+        prob: probOf(comp),
+        rings: traceRings(comp).map((ring) => chaikin(ring.map(toLatLng))),
+        label: label && { ...label, prob: probOf(comp) },
       })
     }
   }

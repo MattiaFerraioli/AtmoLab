@@ -190,8 +190,14 @@ sulle celle significative, quindi il colore non porta mai da solo l'informazione
 diametro (le stesse soglie di `hailSize`), così una zona etichettata "2–4 cm" contiene solo celle
 di quella fascia — prima il contorno seguiva il rischio e l'etichetta il diametro del punto
 peggiore, e una zona "rischio basso" grande mezzo nord-ovest sembrava tutta da 2–4 cm. La
-probabilità d'innesco passa nel tratto: contorno tratteggiato = innesco incerto (rischio sotto
-"moderato" in tutta la zona). Vento e pioggia zonano sulla severità, che lì coincide col valore.
+probabilità d'innesco è a tre livelli, dalle soglie di rischio (0,2 / 0,5): **bassa** = contorno
+puntinato, **media** = tratteggiato, **alta** = continuo; il livello è scritto anche
+nell'etichetta della zona ("prob. bassa"). Vento e pioggia zonano sulla severità, che lì coincide
+col valore.
+
+**Contorni smussati**: i perimetri a scalini della griglia passano per due iterazioni di
+smussamento di Chaikin (ogni lato → punti a 1/4 e 3/4), che li trasforma in curve morbide stile
+outlook disegnato a mano, restando dentro l'inviluppo delle celle.
 
 **Zone stile outlook** (`src/lib/zones.js`): le celle non si disegnano più come quadretti
 indipendenti — per ogni livello di severità le celle contigue vengono raggruppate in componenti
