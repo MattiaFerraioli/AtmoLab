@@ -1,6 +1,6 @@
 export function Card({ className = '', children }) {
   return (
-    <div className={`bg-surface border border-hair rounded-[20px] card-shadow ${className}`}>{children}</div>
+    <div className={`glass rounded-[20px] ${className}`}>{children}</div>
   )
 }
 

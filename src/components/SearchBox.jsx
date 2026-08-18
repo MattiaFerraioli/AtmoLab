@@ -103,7 +103,7 @@ export default function SearchBox({ onPick }) {
         />
 
         {open && (
-          <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-[340px] overflow-auto rounded-[16px] border border-hair bg-surface card-shadow">
+          <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-[340px] overflow-auto glass rounded-[16px]">
             {error ? (
               <div className="p-3 text-[13.5px] text-[#d03b3b]">Errore ricerca: {error}</div>
             ) : results.length ? (

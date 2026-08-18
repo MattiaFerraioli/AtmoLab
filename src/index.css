@@ -23,6 +23,12 @@
   --hero-a: #4b9bf5;
   --hero-b: #1d63d8;
   --shadow: 0 1px 1px rgba(0, 0, 0, 0.03), 0 10px 30px rgba(0, 0, 0, 0.07);
+  --glass-bg: color-mix(in srgb, var(--surface-1) 62%, transparent);
+  --glass-edge: rgba(255, 255, 255, 0.6);
+  --glass-spec: rgba(255, 255, 255, 0.75);
+  --glow-a: rgba(10, 132, 255, 0.16);
+  --glow-b: rgba(255, 159, 10, 0.1);
+  --glow-c: rgba(94, 92, 230, 0.12);
 }
 
 [data-theme="dark"] {
@@ -41,6 +47,12 @@
   --hero-a: #12376b;
   --hero-b: #081a38;
   --shadow: 0 1px 1px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.45);
+  --glass-bg: color-mix(in srgb, var(--surface-1) 55%, transparent);
+  --glass-edge: rgba(255, 255, 255, 0.14);
+  --glass-spec: rgba(255, 255, 255, 0.1);
+  --glow-a: rgba(10, 132, 255, 0.3);
+  --glow-b: rgba(191, 90, 242, 0.2);
+  --glow-c: rgba(100, 210, 255, 0.16);
 }
 
 /* Espone i token come utility Tailwind: bg-surface, text-muted, border-hair… */
@@ -76,6 +88,51 @@ body {
 }
 
 /* Scrollbar discreta */
+/* Bagliori ambientali fissi: il vetro non esiste senza qualcosa da sfocare.
+   z-index negativo: sopra lo sfondo del body, sotto tutto il contenuto. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 34% at 10% 4%, var(--glow-a), transparent 70%),
+    radial-gradient(38% 30% at 90% 10%, var(--glow-b), transparent 70%),
+    radial-gradient(52% 42% at 55% 104%, var(--glow-c), transparent 72%);
+}
+
+/* Liquid glass: superficie traslucida che sfoca i bagliori sottostanti,
+   filo esterno chiaro e riflesso speculare sul bordo alto. */
+.glass {
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--shadow), inset 0 1px 0 var(--glass-spec);
+}
+/* Variante per la barra: niente bordo proprio (ha già la hairline sotto). */
+.glass-bar {
+  background: color-mix(in srgb, var(--plane) 55%, transparent);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  backdrop-filter: blur(28px) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--glass-spec);
+}
+/* Browser senza backdrop-filter o utenti con trasparenze ridotte: solido. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: var(--surface-1); }
+  .glass-bar { background: var(--plane); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  body::before { display: none; }
+  .glass,
+  .glass-bar {
+    background: var(--surface-1);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--axis) transparent;
