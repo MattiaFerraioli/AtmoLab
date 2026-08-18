@@ -42,7 +42,7 @@ export default function DailyStrip({ forecast, selectedDay, onSelectDay }) {
               isSelected ? 'togli il filtro' : 'filtra i dati su questo giorno'
             }`}
             onClick={() => onSelectDay(isSelected ? null : iso)}
-            className={`flex w-[128px] shrink-0 cursor-pointer snap-start flex-col rounded-2xl border bg-surface p-2.5 text-center transition hover:-translate-y-0.5 ${
+            className={`flex w-[128px] shrink-0 cursor-pointer snap-start flex-col rounded-[18px] border bg-surface p-2.5 text-center transition hover:-translate-y-0.5 ${
               isSelected
                 ? 'border-accent ring-2 ring-accent/35'
                 : isToday

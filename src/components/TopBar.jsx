@@ -22,9 +22,9 @@ export default function TopBar({
   onRefresh,
 }) {
   return (
-    <header className="safe-top safe-x sticky top-0 z-[900] border-b border-hair bg-plane/85 backdrop-blur-xl">
+    <header className="safe-top safe-x sticky top-0 z-[900] border-b border-hair bg-plane/70 backdrop-blur-2xl backdrop-saturate-150">
       <div className="mx-auto flex max-w-[1180px] flex-wrap items-center gap-2 px-4 py-2.5 sm:gap-3 sm:px-5 sm:py-3">
-        <div className="order-1 flex shrink-0 items-center gap-2 text-[16px] font-bold tracking-[-0.02em]">
+        <div className="order-1 flex shrink-0 items-center gap-2 text-[17px] font-semibold tracking-[-0.02em]">
           <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" className="h-6 w-6">
             <circle cx="8" cy="8" r="3.2" stroke="#eda100" />
             <path d="M8 2.4v1.3M8 12.3v1.3M2.4 8h1.3M12.3 8h1.3M4.1 4.1l.9.9M11 11l.9.9M11.9 4.1l-.9.9M5 11l-.9.9" stroke="#eda100" />

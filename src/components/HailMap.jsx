@@ -159,7 +159,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
 
       {steering?.towardsDeg != null && (
         <div
-          className="absolute right-2 top-2 z-[500] flex items-center gap-1.5 rounded-lg border border-hair bg-surface/90 px-2 py-1.5 text-[11.5px] font-semibold text-ink backdrop-blur-sm"
+          className="absolute right-2 top-2 z-[500] flex items-center gap-1.5 rounded-full border border-hair bg-surface/85 px-2.5 py-1.5 text-[11.5px] font-semibold text-ink backdrop-blur-md"
           title="Direzione media di spostamento dei temporali (vento a 500 hPa)"
         >
           <svg

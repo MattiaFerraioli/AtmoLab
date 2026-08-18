@@ -99,11 +99,11 @@ export default function SearchBox({ onPick }) {
           autoComplete="off"
           spellCheck={false}
           aria-label="Cerca località"
-          className="w-full rounded-xl border border-hair bg-surface py-2.5 pl-9 pr-3 text-ink outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/20"
+          className="w-full rounded-full bg-fill py-2.5 pl-9 pr-4 text-ink outline-none transition placeholder:text-ink-muted focus:bg-surface focus:shadow-md focus:ring-2 focus:ring-accent/50"
         />
 
         {open && (
-          <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-[340px] overflow-auto rounded-xl border border-hair bg-surface card-shadow">
+          <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-[340px] overflow-auto rounded-[16px] border border-hair bg-surface card-shadow">
             {error ? (
               <div className="p-3 text-[13.5px] text-[#d03b3b]">Errore ricerca: {error}</div>
             ) : results.length ? (

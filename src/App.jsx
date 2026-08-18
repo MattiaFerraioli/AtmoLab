@@ -358,7 +358,7 @@ export default function App() {
               </div>
               <button
                 onClick={() => setHailEnabled(true)}
-                className="cursor-pointer rounded-xl border border-accent bg-accent/10 px-4 py-2 text-[13px] font-semibold text-ink transition hover:bg-accent/20"
+                className="cursor-pointer rounded-full bg-accent px-5 py-2.5 text-[13.5px] font-semibold text-white transition hover:opacity-85"
               >
                 Calcola rischio temporali
               </button>

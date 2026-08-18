@@ -20,7 +20,7 @@ const U = ({ children }) => <span className="text-[11.5px] font-normal opacity-8
 
 export default function CurrentHero({ location, forecast, air, palette, isFavourite, onToggleFavourite }) {
   const shell =
-    'relative overflow-hidden rounded-2xl border border-hair card-shadow text-white ' +
+    'relative overflow-hidden rounded-[24px] card-shadow text-white ' +
     'bg-[linear-gradient(135deg,var(--hero-a),var(--hero-b))]'
 
   if (!forecast) {
@@ -52,7 +52,7 @@ export default function CurrentHero({ location, forecast, air, palette, isFavour
               onClick={onToggleFavourite}
               title={isFavourite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
               aria-pressed={isFavourite}
-              className={`inline-flex h-[34px] w-[34px] items-center justify-center rounded-[9px] border transition ${
+              className={`inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border transition ${
                 isFavourite
                   ? 'border-[#eda100] bg-[#eda100] text-[#1a1a19]'
                   : 'border-white/25 bg-white/15 text-white hover:bg-white/25'

@@ -32,7 +32,7 @@ export function useTheme() {
     // Anche la barra di sistema in PWA installata: con un theme-color fisso
     // resterebbe scura pure passando al tema chiaro.
     const meta = document.querySelector('meta[name="theme-color"]')
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0d0d0d' : '#f9f9f7')
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#000000' : '#f5f5f7')
   }, [theme])
   const toggle = useCallback(() => setTheme((t) => (t === 'dark' ? 'light' : 'dark')), [setTheme])
   return { theme, toggle, palette: PALETTE[theme] }
