@@ -6,7 +6,6 @@ import HourlyChart from './components/HourlyChart'
 import ModelCompare from './components/ModelCompare'
 import HailRisk from './components/HailRisk'
 import EnsemblePanel from './components/EnsemblePanel'
-import DpcAlerts from './components/DpcAlerts'
 import Favourites from './components/Favourites'
 import { Card, DayFilterBar, Message, Section } from './components/Ui'
 import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, fetchProbGrid, reverseGeocode } from './lib/api'
@@ -303,8 +302,6 @@ export default function App() {
             />
           )}
         </div>
-
-        <DpcAlerts location={location} />
 
         <Favourites
           items={favourites}

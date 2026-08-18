@@ -351,9 +351,11 @@ src/
 
 ## Allerte Protezione Civile
 
-Sotto il riepilogo compare il bollettino di criticità del Dipartimento della Protezione
-Civile (open data ufficiale su GitHub, CC-BY 4.0): oggi e domani, tre rischi — temporali,
-idrogeologico, idraulico — con i colori dell'allertamento nazionale. Regole e misure:
+Dentro il riepilogo compare una striscia di allerta (stile Apple Weather) quando il
+bollettino di criticità del Dipartimento della Protezione Civile (open data ufficiale su
+GitHub, CC-BY 4.0) prevede almeno un'allerta su oggi o domani: rischi temporali,
+idrogeologico e idraulico coi colori dell'allertamento nazionale. Senza allerte la
+striscia non esiste — niente stato "verde" decorativo. Regole e misure:
 
 - il match località → zona di allertamento è **per nome comune** (le zone elencano i loro
   Comuni): niente geometrie, ma frazioni o nomi non standard possono non trovare la zona,

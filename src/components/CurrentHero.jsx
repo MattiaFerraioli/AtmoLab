@@ -1,4 +1,5 @@
 import WeatherIcon from './WeatherIcon'
+import DpcAlertStrip from './DpcAlerts'
 import { Skeleton } from './Ui'
 import { wmoIcon, wmoIntensity, wmoText } from '../lib/wmo'
 import { aqiBand, flag, fmtTime, nf, windDir } from '../lib/format'
@@ -134,6 +135,8 @@ export default function CurrentHero({ location, forecast, air, palette, isFavour
           </Stat>
         </div>
       </div>
+
+      <DpcAlertStrip location={location} />
     </div>
   )
 }

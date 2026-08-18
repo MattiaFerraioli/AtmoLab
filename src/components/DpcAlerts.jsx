@@ -1,37 +1,19 @@
 import { useEffect, useState } from 'react'
-import { Card, Section } from './Ui'
 import { LEVEL_META, fetchDpcBulletin, zoneForComune } from '../lib/dpc'
 
 const RISKS = [
-  { key: 'temporali', label: 'Temporali' },
-  { key: 'idrogeologico', label: 'Idrogeologico' },
-  { key: 'idraulico', label: 'Idraulico' },
+  { key: 'temporali', label: 'temporali' },
+  { key: 'idrogeologico', label: 'idrogeologico' },
+  { key: 'idraulico', label: 'idraulico' },
 ]
 
-function RiskPill({ label, level }) {
-  const meta = LEVEL_META[level]
-  const quiet = level === 0
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] font-semibold"
-      style={{
-        background: `color-mix(in srgb, ${meta.color} ${quiet ? 10 : 16}%, transparent)`,
-        color: quiet ? 'var(--text-secondary)' : meta.color,
-      }}
-    >
-      <span className="h-2 w-2 rounded-full" style={{ background: meta.color }} />
-      {label}
-      {!quiet && <span className="font-normal opacity-90">· {meta.label.replace('allerta ', '')}</span>}
-    </span>
-  )
-}
-
 /**
- * Bollettino di criticità DPC per la località corrente. Compare solo per
- * comuni italiani presenti nelle zone di allertamento; fuori Italia o a
- * fetch fallito la sezione non esiste — è un di più, non deve rompere nulla.
+ * Striscia di allerta DPC dentro il riepilogo, stile Apple Weather: esiste
+ * solo se il bollettino prevede almeno un'allerta su oggi o domani per la
+ * zona del comune. Verde, fuori Italia, comune non trovato o fetch fallito:
+ * niente striscia, la hero resta com'è.
  */
-export default function DpcAlerts({ location }) {
+export default function DpcAlertStrip({ location }) {
   const [data, setData] = useState(null)
   const isItaly = location.country_code === 'IT'
 
@@ -44,7 +26,7 @@ export default function DpcAlerts({ location }) {
         if (!dead) setData(d)
       })
       .catch(() => {
-        /* GitHub giù o rate limit: sezione assente */
+        /* GitHub giù o rate limit: striscia assente */
       })
     return () => {
       dead = true
@@ -53,50 +35,44 @@ export default function DpcAlerts({ location }) {
 
   if (!isItaly || !data) return null
 
-  const days = data.days.map((day) => ({ ...day, zone: zoneForComune(day, location.name) }))
-  if (days.every((d) => !d.zone)) return null
+  const days = data.days
+    .map((day) => {
+      const zone = zoneForComune(day, location.name)
+      const risks = zone ? RISKS.filter((r) => zone[r.key] > 0).map((r) => ({ ...r, level: zone[r.key] })) : []
+      return { label: day.label.toLowerCase(), zone, risks }
+    })
+    .filter((d) => d.risks.length > 0)
+  if (!days.length) return null
 
-  const worst = Math.max(...days.map((d) => (d.zone ? Math.max(...RISKS.map((r) => d.zone[r.key])) : 0)))
-  const zoneName = days[0].zone?.zone ?? days[1].zone?.zone
+  const worst = Math.max(...days.flatMap((d) => d.risks.map((r) => r.level)))
+  const meta = LEVEL_META[worst]
+  const zoneName = days[0].zone.zone
 
   return (
-    <Section
-      title="Allerte meteo"
-      hint={`zona di allertamento ${zoneName} · ${data.name.toLowerCase()}`}
+    <div
+      className="relative z-[1] mx-4 mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1.5 rounded-2xl px-3.5 py-2.5 text-[13px] sm:mx-6 sm:mb-5"
+      style={{
+        background: `color-mix(in srgb, ${meta.color} 26%, rgba(8, 12, 24, 0.35))`,
+        border: `1px solid color-mix(in srgb, ${meta.color} 55%, transparent)`,
+      }}
     >
-      <Card className="p-4">
-        {worst === 0 ? (
-          <div className="flex items-center gap-2.5 text-[13.5px] text-ink-sec">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: '#30d158' }} />
-            Nessuna allerta per oggi e domani nella zona di {location.name}.
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {days.map((day) => (
-              <div key={day.label} className="flex flex-wrap items-center gap-2">
-                <span className="w-14 text-[13px] font-semibold">{day.label}</span>
-                {day.zone ? (
-                  RISKS.map((r) => <RiskPill key={r.key} label={r.label} level={day.zone[r.key]} />)
-                ) : (
-                  <span className="text-[13px] text-ink-muted">non disponibile</span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-        <div className="mt-3 text-[12px] text-ink-muted">
-          Fonte:{' '}
-          <a
-            href="https://github.com/pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica"
-            target="_blank"
-            rel="noreferrer"
-            className="underline decoration-hair underline-offset-2 hover:text-ink-sec"
-          >
-            Dipartimento della Protezione Civile
-          </a>{' '}
-          (CC-BY 4.0). L&apos;allerta vale per l&apos;intera zona di allertamento, non per il singolo comune.
-        </div>
-      </Card>
-    </Section>
+      <span className="flex items-center gap-1.5 font-bold">
+        <svg viewBox="0 0 24 24" fill={meta.color} className="h-4 w-4 shrink-0" aria-hidden="true">
+          <path d="M12 2.5 23 21H1L12 2.5Zm0 6a1.2 1.2 0 0 0-1.2 1.3l.35 4.4a.85.85 0 0 0 1.7 0l.35-4.4A1.2 1.2 0 0 0 12 8.5Zm0 8.1a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z" />
+        </svg>
+        Allerta {meta.label.replace('allerta ', '')}
+      </span>
+      {days.map((d) => (
+        <span key={d.label} className="opacity-95">
+          <span className="font-semibold">{d.label}</span>:{' '}
+          {d.risks
+            .map((r) => `${r.label}${r.level !== worst ? ` (${LEVEL_META[r.level].label.replace('allerta ', '')})` : ''}`)
+            .join(' · ')}
+        </span>
+      ))}
+      <span className="ml-auto basis-full text-right text-[10.5px] leading-snug opacity-70 sm:basis-auto">
+        Fonte: Dipartimento della Protezione Civile (CC-BY 4.0) · vale per la zona {zoneName}
+      </span>
+    </div>
   )
 }
