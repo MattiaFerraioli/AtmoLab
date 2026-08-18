@@ -29,7 +29,7 @@ export default function FreshnessLed({ updatedAt, loading, error, palette, onRef
       onClick={onRefresh}
       title={label}
       aria-label={label}
-      className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-fill px-3 py-2 text-[12.5px] transition duration-300 hover:bg-ink/15"
+      className="inline-flex cursor-pointer items-center gap-2 rounded-full bg-fill px-3 py-2 text-[12.5px] transition duration-300 hover:bg-fill-hover"
     >
       <span
         className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${bad ? 'led-blink' : ''}`}

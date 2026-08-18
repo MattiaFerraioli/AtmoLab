@@ -106,7 +106,7 @@ export function IconButton({ title, onClick, children, active = false }) {
       aria-label={title}
       onClick={onClick}
       className={`inline-flex h-[36px] w-[36px] cursor-pointer items-center justify-center rounded-full transition duration-300 ${
-        active ? 'bg-accent/15 text-accent' : 'bg-fill text-ink hover:bg-ink/15'
+        active ? 'bg-accent/15 text-accent' : 'bg-fill text-ink hover:bg-fill-hover'
       }`}
     >
       {children}

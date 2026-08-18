@@ -248,7 +248,7 @@ function EnsembleMap({ location, timezone, gridId, palette, theme }) {
         </div>
         <button
           onClick={() => setEnabled(true)}
-          className="cursor-pointer rounded-full bg-accent px-5 py-2.5 text-[13.5px] font-semibold text-white transition duration-300 hover:opacity-85"
+          className="cursor-pointer rounded-full bg-accent px-5 py-2.5 text-[13.5px] font-semibold text-white transition duration-300 hover:brightness-110 hover:shadow-[0_0_18px_rgba(10,132,255,0.45)]"
         >
           Carica mappa (~1,6 MB)
         </button>
@@ -356,7 +356,7 @@ export default function EnsemblePanel({ location, timezone, detSnapshot, gridId,
         </div>
         <button
           onClick={() => setEnabled(true)}
-          className="cursor-pointer rounded-full bg-accent px-5 py-2.5 text-[13.5px] font-semibold text-white transition duration-300 hover:opacity-85"
+          className="cursor-pointer rounded-full bg-accent px-5 py-2.5 text-[13.5px] font-semibold text-white transition duration-300 hover:brightness-110 hover:shadow-[0_0_18px_rgba(10,132,255,0.45)]"
         >
           Carica ensemble
         </button>
