@@ -62,7 +62,6 @@ function RiskChip({ label, level }) {
     >
       <span className="h-2 w-2 rounded-full" style={{ background: meta.color }} />
       {label}
-      <span className="font-normal opacity-90">· {meta.label.replace('allerta ', '')}</span>
     </span>
   )
 }
@@ -78,12 +77,13 @@ export function DpcAlertBand({ alert }) {
             .filter((d) => d.risks.length > 0)
             .map((d) => (
               <div key={d.label} className="flex flex-wrap items-center gap-2">
-                <span className="w-14 text-[13px] font-semibold">{d.label}</span>
+                <span className="text-[13px] font-semibold">Allerte {d.label.toLowerCase()}</span>
                 {d.risks.map((r) => (
                   <RiskChip key={r.key} label={r.label} level={r.level} />
                 ))}
               </div>
             ))}
+          <div className="text-[12px] opacity-75">Allerta valida per: {alert.zoneName}</div>
         </div>
       ) : (
         <div className="flex items-center gap-2.5">
@@ -112,7 +112,7 @@ export function DpcSource({ alert }) {
       >
         Dipartimento della Protezione Civile
       </a>{' '}
-      (CC-BY 4.0) · l&apos;allerta vale per l&apos;intera zona {alert.zoneName}, non per il singolo comune
+      (CC-BY 4.0) · l&apos;allerta vale per l&apos;intera zona di allertamento, non per il singolo comune
     </div>
   )
 }
