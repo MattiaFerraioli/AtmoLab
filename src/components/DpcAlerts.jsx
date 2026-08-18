@@ -70,7 +70,7 @@ function RiskChip({ label, level }) {
 export function DpcAlertBand({ alert }) {
   if (!alert) return null
   return (
-    <div className="relative z-[1] mx-4 mb-4 rounded-2xl border border-white/12 bg-black/20 px-3.5 py-2.5 text-[13px] sm:mx-6 sm:mb-5">
+    <div className="relative z-[1] mx-4 mb-4 w-fit max-w-full rounded-2xl border border-white/12 bg-black/20 px-3.5 py-2.5 text-[13px] sm:mx-6 sm:mb-5">
       {alert.hasAlerts ? (
         <div className="grid gap-2">
           {alert.days
@@ -83,7 +83,6 @@ export function DpcAlertBand({ alert }) {
                 ))}
               </div>
             ))}
-          <div className="text-[12px] opacity-75">Allerta valida per: {alert.zoneName}</div>
         </div>
       ) : (
         <div className="flex items-center gap-2.5">
@@ -103,7 +102,7 @@ export function DpcSource({ alert }) {
   if (!alert) return null
   return (
     <div className="mt-1.5 text-right text-[11px] leading-snug text-ink-muted">
-      Fonte:{' '}
+      Allerta valida per l&apos;intera zona {alert.zoneName}, non per il singolo comune · Fonte:{' '}
       <a
         href="https://github.com/pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica"
         target="_blank"
@@ -112,7 +111,7 @@ export function DpcSource({ alert }) {
       >
         Dipartimento della Protezione Civile
       </a>{' '}
-      (CC-BY 4.0) · l&apos;allerta vale per l&apos;intera zona di allertamento, non per il singolo comune
+      (CC-BY 4.0)
     </div>
   )
 }
