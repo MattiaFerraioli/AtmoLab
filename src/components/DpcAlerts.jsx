@@ -102,7 +102,7 @@ export function DpcSource({ alert }) {
   if (!alert) return null
   return (
     <div className="mt-1.5 text-right text-[11px] leading-snug text-ink-muted">
-      Allerta valida per l&apos;intera zona {alert.zoneName}, non per il singolo comune · Fonte:{' '}
+      Allerta valida per l&apos;intera zona {alert.zoneName} · Fonte:{' '}
       <a
         href="https://github.com/pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica"
         target="_blank"
