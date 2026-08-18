@@ -6,7 +6,7 @@ export default function ModelTable({ rows, series, meta }) {
   const sampled = rows.filter((_, i) => i % STEP === 0)
 
   return (
-    <div className="max-h-[420px] overflow-auto border-t border-hair">
+    <div data-lenis-prevent className="max-h-[420px] overflow-auto border-t border-hair">
       <table className="tnum w-full border-collapse text-[12.5px]">
         <thead>
           <tr>

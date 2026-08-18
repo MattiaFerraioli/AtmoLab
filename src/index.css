@@ -79,14 +79,17 @@ body,
   height: 100%;
 }
 
-/* Solo scroll programmatici e da ancora: la rotella non è addolcibile in CSS. */
-html {
-  scroll-behavior: smooth;
+/* Lenis governa lo scroll di pagina: scroll-behavior nativo va spento
+   per non sommare due animazioni. Nei riquadri esclusi la rotella resta
+   nativa e non deve trascinare la pagina a fine corsa. */
+html.lenis {
+  height: auto;
 }
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
+.lenis {
+  scroll-behavior: auto !important;
+}
+.lenis [data-lenis-prevent] {
+  overscroll-behavior: contain;
 }
 
 body {

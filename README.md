@@ -349,6 +349,18 @@ src/
     WeatherIcon / Ui       icone SVG e primitive
 ```
 
+## Scroll con inerzia
+
+Lo scorrimento di pagina passa da [Lenis](https://lenis.darkroom.engineering/): rotella e
+trackpad hanno un'inerzia da ~1,1 s, il touch resta nativo. Tre regole per non rompere il resto:
+
+- gli eventi a dominante orizzontale non vengono toccati (servono alla striscia dei giorni e
+  alle tabelle: la pagina tanto non scorre in orizzontale);
+- mappe Leaflet, tabella modelli e dropdown di ricerca hanno `data-lenis-prevent`: lì la
+  rotella è nativa (zoom mappa, scroll interno) e `overscroll-behavior: contain` evita che a
+  fine corsa trascinino la pagina;
+- con `prefers-reduced-motion` Lenis non parte proprio.
+
 ## Note tecniche
 
 - Una sola chiamata per il confronto: Open-Meteo restituisce tutti i modelli insieme

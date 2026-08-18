@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import Lenis from 'lenis'
 import { PALETTE } from './constants'
 import { fetchModelRuns } from './runs'
 import { reverseGeocode } from './api'
@@ -133,4 +134,29 @@ export function useCellName(lat, lon) {
   }, [key, lat, lon])
 
   return name
+}
+
+/**
+ * Scroll di pagina con inerzia (Lenis). Solo rotella/trackpad: il touch
+ * resta nativo. I contenitori con data-lenis-prevent (mappe, tabelle,
+ * dropdown) mantengono la rotella nativa.
+ */
+export function useSmoothScroll() {
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined
+    const lenis = new Lenis({
+      duration: 1.1,
+      // Eventi a dominante orizzontale restano nativi: servono alle strisce
+      // scrollabili (giorni, tabelle), la pagina non scorre in orizzontale.
+      virtualScroll: (e) => Math.abs(e.deltaY) >= Math.abs(e.deltaX),
+    })
+    let raf = requestAnimationFrame(function loop(t) {
+      lenis.raf(t)
+      raf = requestAnimationFrame(loop)
+    })
+    return () => {
+      cancelAnimationFrame(raf)
+      lenis.destroy()
+    }
+  }, [])
 }

@@ -13,7 +13,7 @@ import { DEFAULT_LOCATION, DEFAULT_MODELS, MAX_MODELS, MODELS } from './lib/cons
 import { GRIDS, GRID_SIDE, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, summariseCells } from './lib/hail'
 import { agreementCells } from './lib/agreement'
 import { fmtLong, fmtTime } from './lib/format'
-import { useLocalStorage, useModelRuns, useTheme } from './lib/hooks'
+import { useLocalStorage, useModelRuns, useSmoothScroll, useTheme } from './lib/hooks'
 
 const sameSpot = (a, b) => a && b && a.latitude === b.latitude && a.longitude === b.longitude
 
@@ -66,6 +66,7 @@ function useStableSlots(selected, max) {
 
 export default function App() {
   const { theme, toggle: toggleTheme, palette } = useTheme()
+  useSmoothScroll()
 
   const [location, setLocation] = useLocalStorage('location', DEFAULT_LOCATION)
   const [favourites, setFavourites] = useLocalStorage('favourites', [])

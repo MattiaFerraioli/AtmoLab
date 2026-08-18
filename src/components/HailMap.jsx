@@ -68,7 +68,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
   const zones = useMemo(() => buildZones(cells, step, zoneSpecOf(hazard)), [cells, step, hazard])
 
   return (
-    <div className="relative z-[1] h-[320px] overflow-hidden rounded-2xl border border-hair card-shadow sm:h-[440px]">
+    <div data-lenis-prevent className="relative z-[1] h-[320px] overflow-hidden rounded-2xl border border-hair card-shadow sm:h-[440px]">
       <MapContainer
         center={[origin.latitude, origin.longitude]}
         zoom={7}
