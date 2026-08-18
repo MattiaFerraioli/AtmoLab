@@ -7,7 +7,7 @@ export default function Favourites({ items, onSelect, onRemove }) {
       {items.map((f) => (
         <span
           key={`${f.latitude},${f.longitude}`}
-          className="inline-flex items-center gap-2 rounded-full border border-hair bg-surface py-1.5 pl-3 pr-1.5 text-[13px] font-semibold transition hover:border-axis"
+          className="inline-flex items-center gap-2 rounded-full border border-hair bg-surface/60 py-1.5 backdrop-blur-lg pl-3 pr-1.5 text-[13px] font-semibold transition hover:border-axis"
         >
           <button onClick={() => onSelect(f)} className="cursor-pointer">
             {flag(f.country_code)} {f.name}

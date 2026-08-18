@@ -18,7 +18,7 @@ const CENTRE = (GRID_SIDE - 1) / 2
 
 function Tile({ k, children, sub }) {
   return (
-    <div className="bg-surface p-4">
+    <div className="p-4">
       <div className="text-[11px] uppercase tracking-[0.06em] text-ink-muted">{k}</div>
       <div className="tnum mt-1 text-[22px] font-semibold tracking-[-0.02em]">{children}</div>
       {sub && <div className="mt-0.5 truncate text-[12.5px] text-ink-sec">{sub}</div>}
@@ -34,7 +34,7 @@ function RiskTooltip({ active, payload, label, palette, hazard }) {
   return (
     <div
       className="rounded-xl border p-2.5 text-[12.5px] card-shadow"
-      style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+      style={{ background: 'color-mix(in srgb, var(--surface-2) 80%, transparent)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
     >
       <div className="mb-1 font-semibold" style={{ color: palette.inkSec }}>
         {fmtDayHour(label)}
@@ -201,8 +201,8 @@ export default function HailRisk({
         </div>
       )}
 
-      <div className="grid gap-px border-b border-hair bg-hair sm:grid-cols-2 lg:grid-cols-5">
-        <div className="bg-surface p-4">
+      <div className="grid border-b border-hair sm:grid-cols-2 lg:grid-cols-5">
+        <div className="p-4">
           <div className="text-[11px] uppercase tracking-[0.06em] text-ink-muted">
             {hazard.label} · massimo nell&apos;area
           </div>

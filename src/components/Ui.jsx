@@ -95,7 +95,7 @@ export function Skeleton({ className = '' }) {
 
 export function Message({ children, tone = 'info' }) {
   const cls = tone === 'error' ? 'border-[#d03b3b] text-[#d03b3b]' : 'border-hair text-ink-sec'
-  return <div className={`rounded-2xl border bg-surface p-4 text-[13.5px] ${cls}`}>{children}</div>
+  return <div className={`rounded-2xl border bg-surface/60 p-4 text-[13.5px] backdrop-blur-lg ${cls}`}>{children}</div>
 }
 
 export function IconButton({ title, onClick, children, active = false }) {

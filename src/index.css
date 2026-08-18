@@ -23,7 +23,7 @@
   --hero-a: #4b9bf5;
   --hero-b: #1d63d8;
   --shadow: 0 1px 1px rgba(0, 0, 0, 0.03), 0 10px 30px rgba(0, 0, 0, 0.07);
-  --glass-bg: color-mix(in srgb, var(--surface-1) 62%, transparent);
+  --glass-bg: color-mix(in srgb, var(--surface-1) 46%, transparent);
   --glass-edge: rgba(255, 255, 255, 0.6);
   --glass-spec: rgba(255, 255, 255, 0.75);
   --glow-a: rgba(10, 132, 255, 0.16);
@@ -47,7 +47,7 @@
   --hero-a: #12376b;
   --hero-b: #081a38;
   --shadow: 0 1px 1px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.45);
-  --glass-bg: color-mix(in srgb, var(--surface-1) 55%, transparent);
+  --glass-bg: color-mix(in srgb, var(--surface-1) 38%, transparent);
   --glass-edge: rgba(255, 255, 255, 0.14);
   --glass-spec: rgba(255, 255, 255, 0.1);
   --glow-a: rgba(10, 132, 255, 0.3);
@@ -106,14 +106,14 @@ body::before {
    filo esterno chiaro e riflesso speculare sul bordo alto. */
 .glass {
   background: var(--glass-bg);
-  -webkit-backdrop-filter: blur(22px) saturate(180%);
-  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(26px) saturate(180%);
+  backdrop-filter: blur(26px) saturate(180%);
   border: 1px solid var(--glass-edge);
   box-shadow: var(--shadow), inset 0 1px 0 var(--glass-spec);
 }
 /* Variante per la barra: niente bordo proprio (ha già la hairline sotto). */
 .glass-bar {
-  background: color-mix(in srgb, var(--plane) 55%, transparent);
+  background: color-mix(in srgb, var(--plane) 40%, transparent);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   backdrop-filter: blur(28px) saturate(180%);
   box-shadow: inset 0 1px 0 var(--glass-spec);

@@ -33,7 +33,7 @@ function CompareTooltip({ active, payload, label, series, meta, palette }) {
   return (
     <div
       className="min-w-[190px] rounded-xl border p-2.5 text-[12.5px] card-shadow"
-      style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+      style={{ background: 'color-mix(in srgb, var(--surface-2) 80%, transparent)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
     >
       <div className="mb-1.5 font-semibold" style={{ color: palette.inkSec }}>
         {date.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'short' })} ·{' '}

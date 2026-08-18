@@ -61,7 +61,7 @@ export default function ModelRuns({ runs, coverage, horizons, slots, selected, p
         </span>
       </summary>
 
-      <div className="grid gap-px overflow-hidden rounded-xl border border-hair bg-hair md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid overflow-hidden rounded-xl border border-hair md:grid-cols-2 xl:grid-cols-3">
         {MODELS.map((m) => {
           const on = selected.includes(m.id)
           const slot = slots.get(m.id)
@@ -72,7 +72,7 @@ export default function ModelRuns({ runs, coverage, horizons, slots, selected, p
           const late = run && runAgeHours(run.initialised) > run.updateIntervalHours * 2.5
 
           return (
-            <div key={m.id} className={`bg-surface p-3 ${on ? '' : 'opacity-55'}`}>
+            <div key={m.id} className={`p-3 ${on ? '' : 'opacity-55'}`}>
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: color }} />
                 <span className="text-[13px] font-semibold">{m.name}</span>

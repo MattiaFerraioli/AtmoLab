@@ -19,7 +19,7 @@ function FracTooltip({ active, payload, label, metric, memberCount }) {
   return (
     <div
       className="rounded-xl border p-2.5 text-[12.5px] card-shadow"
-      style={{ background: 'var(--surface-2)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+      style={{ background: 'color-mix(in srgb, var(--surface-2) 80%, transparent)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
     >
       <div className="font-semibold">{fmtDayHour(label)}</div>
       <div className="tnum mt-1">
