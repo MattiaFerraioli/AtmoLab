@@ -20,7 +20,7 @@ export default function DailyStrip({ forecast, selectedDay, onSelectDay }) {
   const range = globalMax - globalMin || 1
 
   return (
-    <div className="flex snap-x snap-proximity gap-2.5 overflow-x-auto px-0.5 pb-2.5 pt-1">
+    <div className="flex snap-x snap-proximity gap-2.5 overflow-x-auto px-1.5 pb-2.5 pt-2">
       {d.time.map((iso, i) => {
         const date = new Date(`${iso}T12:00`)
         const lo = d.temperature_2m_min[i]
