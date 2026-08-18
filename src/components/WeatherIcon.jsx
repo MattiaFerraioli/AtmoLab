@@ -8,22 +8,7 @@ const BOLT = '#eda100'
 
 const RAYS = [0, 45, 90, 135, 180, 225, 270, 315]
 
-/**
- * Nuvola come UN SOLO contorno chiuso di soli archi circolari:
- *   spalle r7.5 centrate in (14.5, 26.5) e (33.5, 26.5) — tangenti alla base
- *   y=34 nel loro punto piu basso, quindi il fondo piatto entra nei fianchi
- *   senza spigoli;
- *   cupola r9.5 centrata in (24, 19.5), vertice a y=10;
- *   fra cupola e spalle due archi di raccordo CONCAVI r2.5, tangenti a
- *   entrambi: nelle giunzioni i centri sono allineati col punto di contatto,
- *   quindi le tangenti coincidono e il profilo non ha ne cuspidi ne bozzi.
- * La versione precedente sovrapponeva tre cerchi di raggi diversi piu un rect:
- * i cerchi si incrociavano formando cuspidi e la base mostrava due spigoli.
- */
-const CLOUD_PATH =
-  'M14.5 34A7.5 7.5 0 0 1 12.87 19.18A2.5 2.5 0 0 0 14.76 17.32A9.5 9.5 0 0 1 33.24 17.32A2.5 2.5 0 0 0 35.13 19.18A7.5 7.5 0 0 1 33.5 34Z'
-
-/** La base della nuvola va da 14.5 a 33.5: la precipitazione resta dentro. */
+/** La base della nuvola va da 9.5 a 39: la precipitazione resta dentro. */
 const SPREAD = { 1: [24], 2: [18.5, 29.5], 3: [15.5, 24, 32.5] }
 const BOLT_SCALE = { 1: 1.05, 2: 0.9, 3: 0.76 }
 
@@ -53,8 +38,18 @@ function SunDisc({ cx, cy, r, rayLen, rayW }) {
   )
 }
 
+/**
+ * Nuvola morbida: cupola grande, lobo laterale e base a pillola nella stessa
+ * tinta piena — l'unione visiva dà un profilo gonfio, solo curve convesse.
+ * La versione a contorno unico usava raccordi concavi fra cupola e spalle:
+ * il profilo risultava pizzicato, da qui il redesign.
+ */
 const Cloud = ({ fill, dx = 0, dy = 0, scale = 1 }) => (
-  <path d={CLOUD_PATH} fill={fill} transform={`translate(${dx} ${dy}) scale(${scale})`} />
+  <g fill={fill} transform={`translate(${dx} ${dy}) scale(${scale})`}>
+    <circle cx="20" cy="21" r="10.5" />
+    <circle cx="30.5" cy="24.5" r="8.5" />
+    <rect x="9.5" y="24" width="29.5" height="10" rx="5" />
+  </g>
 )
 
 const Drops = ({ level, scale = 1, y = 36.5, slant = 0 }) => (
