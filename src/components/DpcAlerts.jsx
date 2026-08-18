@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { LEVEL_META, fetchDpcBulletin, zoneForComune } from '../lib/dpc'
+import { LEVEL_META, fetchDpcBulletin, previewUrl, zoneForComune } from '../lib/dpc'
 
 const RISKS = [
   { key: 'temporali', label: 'Temporali' },
@@ -48,6 +48,7 @@ export function useDpcAlert(location) {
   return {
     zoneName: days[0].zone.zone,
     bulletinName: data.name,
+    stem: data.stem,
     days,
     hasAlerts: days.some((d) => d.risks.length > 0),
   }
@@ -68,6 +69,7 @@ function RiskChip({ label, level }) {
 
 /** Fascia allerte dentro il riepilogo: chip per rischio, o LED verde. */
 export function DpcAlertBand({ alert }) {
+  const [showMap, setShowMap] = useState(false)
   if (!alert) return null
   return (
     <div className="relative z-[1] mx-4 mb-4 w-fit max-w-full rounded-2xl border border-white/12 bg-black/20 px-3.5 py-2.5 text-[13px] sm:mx-6 sm:mb-5">
@@ -92,6 +94,32 @@ export function DpcAlertBand({ alert }) {
           />
           Nessuna allerta per la giornata odierna
         </div>
+      )}
+
+      {alert.stem && (
+        <details className="mt-2" onToggle={(e) => setShowMap(e.currentTarget.open)}>
+          <summary className="cursor-pointer text-[12px] font-semibold opacity-80 transition duration-300 hover:opacity-100">
+            Mappa nazionale
+          </summary>
+          {showMap && (
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              {[
+                ['oggi', 'Oggi'],
+                ['domani', 'Domani'],
+              ].map(([k, label]) => (
+                <figure key={k}>
+                  <img
+                    src={previewUrl(alert.stem, k)}
+                    alt={`Mappa nazionale delle allerte di ${label.toLowerCase()}`}
+                    loading="lazy"
+                    className="w-full max-w-[420px] rounded-xl bg-white"
+                  />
+                  <figcaption className="mt-1 text-[11px] opacity-75">{label}</figcaption>
+                </figure>
+              ))}
+            </div>
+          )}
+        </details>
       )}
     </div>
   )

@@ -79,12 +79,14 @@ function extractZones(topo) {
 export async function fetchDpcBulletin() {
   try {
     const cached = JSON.parse(localStorage.getItem(CACHE_KEY))
-    if (cached && Date.now() - cached.fetchedAt < MAX_AGE_MS) return cached
+    if (cached && cached.stem && Date.now() - cached.fetchedAt < MAX_AGE_MS) return cached
   } catch {
     /* cache illeggibile: si riscarica */
   }
 
-  const bulletin = await getJson(await latestBulletinUrl())
+  const bulletinUrl = await latestBulletinUrl()
+  const stem = /(\d{8}_\d{4})\.json$/.exec(bulletinUrl)[1]
+  const bulletin = await getJson(bulletinUrl)
   const [today, tomorrow] = await Promise.all([
     getJson(bulletin.today.topo_json),
     getJson(bulletin.tomorrow.topo_json),
@@ -92,6 +94,7 @@ export async function fetchDpcBulletin() {
   const data = {
     fetchedAt: Date.now(),
     name: bulletin.name,
+    stem,
     days: [
       { label: 'Oggi', zones: extractZones(today) },
       { label: 'Domani', zones: extractZones(tomorrow) },
@@ -119,3 +122,7 @@ export function zoneForComune(day, comune) {
   if (!c) return null
   return day.zones.find((z) => z.comuni.some((x) => norm(x) === c)) ?? null
 }
+
+/** Mappa nazionale ufficiale del bollettino (PNG pronto, ~160KB). */
+export const previewUrl = (stem, day) =>
+  `https://raw.githubusercontent.com/${REPO}/master/files/preview/${stem}_${day}.png`
