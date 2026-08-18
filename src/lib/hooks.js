@@ -160,3 +160,31 @@ export function useSmoothScroll() {
     }
   }, [])
 }
+
+/**
+ * Topbar a scomparsa: oltre il fondo dell'elemento in `limitRef` scendendo
+ * si nasconde, risalendo riappare subito. Isteresi di 6px contro il jitter
+ * dei micro-eventi di scroll (Lenis ne emette a raffica).
+ */
+export function useHideOnScroll(enabled, limitRef) {
+  const [hidden, setHidden] = useState(false)
+  useEffect(() => {
+    if (!enabled) {
+      setHidden(false)
+      return undefined
+    }
+    let last = window.scrollY
+    const onScroll = () => {
+      const y = window.scrollY
+      const delta = y - last
+      if (Math.abs(delta) < 6) return
+      last = y
+      const el = limitRef.current
+      const limit = el ? el.offsetTop + el.offsetHeight : 400
+      setHidden(delta > 0 && y > limit)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [enabled, limitRef])
+  return hidden
+}

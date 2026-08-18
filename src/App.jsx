@@ -13,7 +13,7 @@ import { DEFAULT_LOCATION, DEFAULT_MODELS, MAX_MODELS, MODELS } from './lib/cons
 import { GRIDS, GRID_SIDE, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, summariseCells } from './lib/hail'
 import { agreementCells } from './lib/agreement'
 import { fmtLong, fmtTime } from './lib/format'
-import { useLocalStorage, useModelRuns, useSmoothScroll, useTheme } from './lib/hooks'
+import { useHideOnScroll, useIsMobile, useLocalStorage, useModelRuns, useSmoothScroll, useTheme } from './lib/hooks'
 
 const sameSpot = (a, b) => a && b && a.latitude === b.latitude && a.longitude === b.longitude
 
@@ -67,6 +67,9 @@ function useStableSlots(selected, max) {
 export default function App() {
   const { theme, toggle: toggleTheme, palette } = useTheme()
   useSmoothScroll()
+  const heroRef = useRef(null)
+  const isMobile = useIsMobile()
+  const barHidden = useHideOnScroll(isMobile, heroRef)
 
   const [location, setLocation] = useLocalStorage('location', DEFAULT_LOCATION)
   const [favourites, setFavourites] = useLocalStorage('favourites', [])
@@ -270,6 +273,7 @@ export default function App() {
   return (
     <>
       <TopBar
+        hidden={barHidden}
         theme={theme}
         onToggleTheme={toggleTheme}
         onPick={setLocation}
@@ -284,7 +288,7 @@ export default function App() {
       />
 
       <main className="safe-x mx-auto max-w-[1180px] px-4 pb-16 sm:px-5">
-        <div className="pt-6">
+        <div ref={heroRef} className="pt-6">
           {forecastError ? (
             <Message tone="error">Impossibile caricare la previsione: {forecastError}</Message>
           ) : (
