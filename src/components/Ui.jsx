@@ -1,6 +1,6 @@
 export function Card({ className = '', children }) {
   return (
-    <div className={`glass rounded-[20px] ${className}`}>{children}</div>
+    <div className={`glass overflow-hidden rounded-[20px] ${className}`}>{children}</div>
   )
 }
 
