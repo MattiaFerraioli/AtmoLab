@@ -6,6 +6,7 @@ import HourlyChart from './components/HourlyChart'
 import ModelCompare from './components/ModelCompare'
 import HailRisk from './components/HailRisk'
 import EnsemblePanel from './components/EnsemblePanel'
+import DpcAlerts from './components/DpcAlerts'
 import Favourites from './components/Favourites'
 import { Card, DayFilterBar, Message, Section } from './components/Ui'
 import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, fetchProbGrid, reverseGeocode } from './lib/api'
@@ -303,6 +304,8 @@ export default function App() {
           )}
         </div>
 
+        <DpcAlerts location={location} />
+
         <Favourites
           items={favourites}
           onSelect={setLocation}
@@ -411,8 +414,8 @@ export default function App() {
             Open-Meteo
           </a>{' '}
           (gratuito, senza API key, CC-BY 4.0) — modelli ECMWF IFS, NOAA GFS, DWD ICON, Météo-France ARPEGE/AROME,
-          UK Met Office, ItaliaMeteo ARPAE ICON-2I. Geocoding Open-Meteo · qualità dell&apos;aria CAMS · mappa
-          © OpenStreetMap contributors, tiles © CARTO.
+          UK Met Office, ItaliaMeteo ARPAE ICON-2I. Geocoding Open-Meteo · qualità dell&apos;aria CAMS · allerte Dipartimento della Protezione
+          Civile (CC-BY 4.0) · mappa © OpenStreetMap contributors, tiles © CARTO.
         </footer>
       </main>
     </>

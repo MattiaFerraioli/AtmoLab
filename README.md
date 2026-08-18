@@ -349,6 +349,23 @@ src/
     WeatherIcon / Ui       icone SVG e primitive
 ```
 
+## Allerte Protezione Civile
+
+Sotto il riepilogo compare il bollettino di criticità del Dipartimento della Protezione
+Civile (open data ufficiale su GitHub, CC-BY 4.0): oggi e domani, tre rischi — temporali,
+idrogeologico, idraulico — con i colori dell'allertamento nazionale. Regole e misure:
+
+- il match località → zona di allertamento è **per nome comune** (le zone elencano i loro
+  Comuni): niente geometrie, ma frazioni o nomi non standard possono non trovare la zona,
+  e in quel caso la sezione semplicemente non compare;
+- il nome file del bollettino ha orario variabile: si scopre con la **git trees API**
+  (2 chiamate; la contents API tronca a 1000 voci e il repo ne ha migliaia);
+- pesi misurati: listing ~0,8MB + bollettino 5KB + 2 TopoJSON da 1,2MB. L'estratto
+  (livelli + comuni, ~300KB) va in localStorage e si riscarica al più ogni 6 ore: il
+  costo pieno è una tantum al giorno per dispositivo;
+- l'allerta vale per l'intera zona di allertamento, non per il singolo comune, e la UI
+  lo dice; fuori Italia o con GitHub irraggiungibile la sezione non esiste.
+
 ## Scroll con inerzia
 
 Lo scorrimento di pagina passa da [Lenis](https://lenis.darkroom.engineering/): rotella e
