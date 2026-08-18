@@ -241,7 +241,7 @@ export default function ModelCompare({
           onClick={() => setShowTable((s) => !s)}
           className="ml-auto shrink-0 cursor-pointer rounded-full bg-fill px-3.5 py-2 text-[13px] font-semibold text-ink-sec transition duration-300 hover:text-ink"
         >
-          {showTable ? 'Nascondi tabella' : 'Mostra tabella'}
+          {showTable ? 'Nascondi valori' : 'Mostra valori'}
         </button>
       </div>
 

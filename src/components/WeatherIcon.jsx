@@ -46,7 +46,7 @@ function SunDisc({ cx, cy, r, rayLen, rayW }) {
  */
 const Cloud = ({ fill, dx = 0, dy = 0, scale = 1 }) => (
   <g fill={fill} transform={`translate(${dx} ${dy}) scale(${scale})`}>
-    <circle cx="20" cy="21" r="10.5" />
+    <circle cx="20" cy="21.5" r="9.75" />
     <circle cx="30.5" cy="24.5" r="8.5" />
     <rect x="9.5" y="24" width="29.5" height="10" rx="5" />
   </g>
