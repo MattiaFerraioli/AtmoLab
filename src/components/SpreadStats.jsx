@@ -2,7 +2,7 @@ import { fmtDayHour, nf } from '../lib/format'
 
 function Tile({ k, value, sub }) {
   return (
-    <div className="bg-surface p-4">
+    <div className="p-4">
       <div className="text-[11px] uppercase tracking-[0.06em] text-ink-muted">{k}</div>
       <div className="tnum mt-1 text-[22px] font-semibold tracking-[-0.02em]">{value}</div>
       {sub && <div className="mt-0.5 text-[12.5px] leading-snug text-ink-sec">{sub}</div>}
@@ -38,8 +38,8 @@ export default function SpreadStats({ times, spread, meta, seriesNames, palette 
   }
 
   return (
-    <div className="grid gap-px border-t border-hair bg-hair sm:grid-cols-2 lg:grid-cols-3">
-      <div className="bg-surface p-4">
+    <div className="grid border-t border-hair sm:grid-cols-2 lg:grid-cols-3">
+      <div className="p-4">
         <div className="text-[11px] uppercase tracking-[0.06em] text-ink-muted">Quanto concordano</div>
         <div className="mt-1">
           <span
