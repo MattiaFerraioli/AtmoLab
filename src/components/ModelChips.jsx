@@ -17,7 +17,7 @@ export default function ModelChips({ selected, slots, palette, availability, onT
             onClick={() => onToggle(m.id)}
             aria-pressed={on}
             title={`${m.org} · ${m.res} · ${m.scope}${full ? ` — massimo ${MAX_MODELS} modelli sul grafico` : ''}`}
-            className={`inline-flex items-center gap-2 rounded-full border py-1.5 pl-2.5 pr-3 text-[13px] font-semibold transition ${
+            className={`inline-flex items-center gap-2 rounded-full border py-1.5 pl-2.5 pr-3 text-[13px] font-semibold transition duration-300 ${
               on ? 'text-ink' : 'border-hair text-ink-sec hover:border-axis'
             } ${unavailable ? 'opacity-45' : ''} ${full ? 'cursor-not-allowed opacity-50' : ''}`}
             style={on ? { borderColor: color } : undefined}

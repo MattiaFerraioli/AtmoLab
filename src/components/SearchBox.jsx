@@ -95,11 +95,11 @@ export default function SearchBox({ onPick }) {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length && setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder="Cerca città…  (Verona, Lisboa, Tokyo)"
+          placeholder="Cerca città"
           autoComplete="off"
           spellCheck={false}
           aria-label="Cerca località"
-          className="w-full rounded-full bg-fill py-2.5 pl-9 pr-4 text-ink outline-none transition placeholder:text-ink-muted focus:bg-surface focus:shadow-md focus:ring-2 focus:ring-accent/50"
+          className="w-full rounded-full bg-fill py-2.5 pl-9 pr-4 text-ink outline-none transition duration-300 placeholder:text-ink-muted hover:bg-ink/15 focus:bg-surface focus:shadow-md focus:ring-2 focus:ring-accent/50"
         />
 
         {open && (

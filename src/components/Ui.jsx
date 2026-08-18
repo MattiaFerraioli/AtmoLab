@@ -33,7 +33,7 @@ export function DayFilterBar({ label, onClear }) {
       </span>
       <button
         onClick={onClear}
-        className="ml-auto cursor-pointer rounded-full bg-fill px-3 py-1.5 text-[12.5px] font-semibold text-ink-sec transition hover:text-ink"
+        className="ml-auto cursor-pointer rounded-full bg-fill px-3 py-1.5 text-[12.5px] font-semibold text-ink-sec transition duration-300 hover:text-ink"
       >
         ✕ Torna ai 14 giorni
       </button>
@@ -76,7 +76,7 @@ export function Segmented({ options, value, onChange, ariaLabel }) {
               role="tab"
               aria-selected={on}
               onClick={() => onChange(o.value)}
-              className={`cursor-pointer rounded-[8px] px-3.5 py-1.5 text-[13px] font-semibold transition ${
+              className={`cursor-pointer rounded-[8px] px-3.5 py-1.5 text-[13px] font-semibold transition duration-300 ${
                 on ? 'bg-white text-[#1d1d1f] shadow-sm dark:bg-[#5f5f64] dark:text-white' : 'text-ink-sec hover:text-ink'
               }`}
             >
@@ -105,7 +105,7 @@ export function IconButton({ title, onClick, children, active = false }) {
       title={title}
       aria-label={title}
       onClick={onClick}
-      className={`inline-flex h-[36px] w-[36px] cursor-pointer items-center justify-center rounded-full transition ${
+      className={`inline-flex h-[36px] w-[36px] cursor-pointer items-center justify-center rounded-full transition duration-300 ${
         active ? 'bg-accent/15 text-accent' : 'bg-fill text-ink hover:bg-ink/15'
       }`}
     >
