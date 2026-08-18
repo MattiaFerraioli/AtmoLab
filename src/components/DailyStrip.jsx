@@ -42,7 +42,7 @@ export default function DailyStrip({ forecast, selectedDay, onSelectDay }) {
               isSelected ? 'togli il filtro' : 'filtra i dati su questo giorno'
             }`}
             onClick={() => onSelectDay(isSelected ? null : iso)}
-            className={`flex w-[128px] shrink-0 cursor-pointer snap-start flex-col rounded-[18px] border-2 bg-surface/55 p-2.5 backdrop-blur-xl text-center transition duration-300 ease-out will-change-transform hover:scale-[1.035] active:scale-[0.98] ${
+            className={`flex w-[128px] shrink-0 cursor-pointer snap-start flex-col rounded-[18px] border-2 bg-surface/55 p-2.5 backdrop-blur-xl text-center transition duration-400 ease-out will-change-transform hover:scale-[1.035] active:scale-[0.98] ${
               isSelected
                 ? 'border-accent ring-2 ring-accent/35'
                 : isToday
