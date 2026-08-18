@@ -2,18 +2,16 @@ import { useEffect, useState } from 'react'
 import { LEVEL_META, fetchDpcBulletin, zoneForComune } from '../lib/dpc'
 
 const RISKS = [
-  { key: 'temporali', label: 'temporali' },
-  { key: 'idrogeologico', label: 'idrogeologico' },
-  { key: 'idraulico', label: 'idraulico' },
+  { key: 'temporali', label: 'Temporali' },
+  { key: 'idrogeologico', label: 'Idrogeologico' },
+  { key: 'idraulico', label: 'Idraulico' },
 ]
 
 /**
- * Striscia di allerta DPC dentro il riepilogo, stile Apple Weather: esiste
- * solo se il bollettino prevede almeno un'allerta su oggi o domani per la
- * zona del comune. Verde, fuori Italia, comune non trovato o fetch fallito:
- * niente striscia, la hero resta com'è.
+ * Stato allerte DPC per la località: null fuori Italia, senza dati o con
+ * comune non riconosciuto — chi lo usa non renderizza niente in quel caso.
  */
-export default function DpcAlertStrip({ location }) {
+export function useDpcAlert(location) {
   const [data, setData] = useState(null)
   const isItaly = location.country_code === 'IT'
 
@@ -26,7 +24,7 @@ export default function DpcAlertStrip({ location }) {
         if (!dead) setData(d)
       })
       .catch(() => {
-        /* GitHub giù o rate limit: striscia assente */
+        /* GitHub giù o rate limit: nessuna sezione */
       })
     return () => {
       dead = true
@@ -38,41 +36,83 @@ export default function DpcAlertStrip({ location }) {
   const days = data.days
     .map((day) => {
       const zone = zoneForComune(day, location.name)
-      const risks = zone ? RISKS.filter((r) => zone[r.key] > 0).map((r) => ({ ...r, level: zone[r.key] })) : []
-      return { label: day.label.toLowerCase(), zone, risks }
+      return {
+        label: day.label,
+        zone,
+        risks: zone ? RISKS.filter((r) => zone[r.key] > 0).map((r) => ({ ...r, level: zone[r.key] })) : [],
+      }
     })
-    .filter((d) => d.risks.length > 0)
+    .filter((d) => d.zone)
   if (!days.length) return null
 
-  const worst = Math.max(...days.flatMap((d) => d.risks.map((r) => r.level)))
-  const meta = LEVEL_META[worst]
-  const zoneName = days[0].zone.zone
+  return {
+    zoneName: days[0].zone.zone,
+    bulletinName: data.name,
+    days,
+    hasAlerts: days.some((d) => d.risks.length > 0),
+  }
+}
 
+function RiskChip({ label, level }) {
+  const meta = LEVEL_META[level]
   return (
-    <div
-      className="relative z-[1] mx-4 mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1.5 rounded-2xl px-3.5 py-2.5 text-[13px] sm:mx-6 sm:mb-5"
-      style={{
-        background: `color-mix(in srgb, ${meta.color} 26%, rgba(8, 12, 24, 0.35))`,
-        border: `1px solid color-mix(in srgb, ${meta.color} 55%, transparent)`,
-      }}
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12.5px] font-semibold"
+      style={{ background: `color-mix(in srgb, ${meta.color} 22%, rgba(8, 12, 24, 0.3))`, color: meta.color }}
     >
-      <span className="flex items-center gap-1.5 font-bold">
-        <svg viewBox="0 0 24 24" fill={meta.color} className="h-4 w-4 shrink-0" aria-hidden="true">
-          <path d="M12 2.5 23 21H1L12 2.5Zm0 6a1.2 1.2 0 0 0-1.2 1.3l.35 4.4a.85.85 0 0 0 1.7 0l.35-4.4A1.2 1.2 0 0 0 12 8.5Zm0 8.1a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z" />
-        </svg>
-        Allerta {meta.label.replace('allerta ', '')}
-      </span>
-      {days.map((d) => (
-        <span key={d.label} className="opacity-95">
-          <span className="font-semibold">{d.label}</span>:{' '}
-          {d.risks
-            .map((r) => `${r.label}${r.level !== worst ? ` (${LEVEL_META[r.level].label.replace('allerta ', '')})` : ''}`)
-            .join(' · ')}
-        </span>
-      ))}
-      <span className="ml-auto basis-full text-right text-[10.5px] leading-snug opacity-70 sm:basis-auto">
-        Fonte: Dipartimento della Protezione Civile (CC-BY 4.0) · vale per la zona {zoneName}
-      </span>
+      <span className="h-2 w-2 rounded-full" style={{ background: meta.color }} />
+      {label}
+      <span className="font-normal opacity-90">· {meta.label.replace('allerta ', '')}</span>
+    </span>
+  )
+}
+
+/** Fascia allerte dentro il riepilogo: chip per rischio, o LED verde. */
+export function DpcAlertBand({ alert }) {
+  if (!alert) return null
+  return (
+    <div className="relative z-[1] mx-4 mb-4 rounded-2xl border border-white/12 bg-black/20 px-3.5 py-2.5 text-[13px] sm:mx-6 sm:mb-5">
+      {alert.hasAlerts ? (
+        <div className="grid gap-2">
+          {alert.days
+            .filter((d) => d.risks.length > 0)
+            .map((d) => (
+              <div key={d.label} className="flex flex-wrap items-center gap-2">
+                <span className="w-14 text-[13px] font-semibold">{d.label}</span>
+                {d.risks.map((r) => (
+                  <RiskChip key={r.key} label={r.label} level={r.level} />
+                ))}
+              </div>
+            ))}
+        </div>
+      ) : (
+        <div className="flex items-center gap-2.5">
+          <span
+            className="h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ background: '#30d158', boxShadow: '0 0 6px #30d158' }}
+          />
+          Nessuna allerta per la giornata odierna
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Attribuzione: fuori dalla card, piccola, allineata a destra. */
+export function DpcSource({ alert }) {
+  if (!alert) return null
+  return (
+    <div className="mt-1.5 text-right text-[11px] leading-snug text-ink-muted">
+      Fonte:{' '}
+      <a
+        href="https://github.com/pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica"
+        target="_blank"
+        rel="noreferrer"
+        className="underline decoration-hair underline-offset-2 hover:text-ink-sec"
+      >
+        Dipartimento della Protezione Civile
+      </a>{' '}
+      (CC-BY 4.0) · l&apos;allerta vale per l&apos;intera zona {alert.zoneName}, non per il singolo comune
     </div>
   )
 }

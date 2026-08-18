@@ -12,6 +12,7 @@ import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, fe
 import { DEFAULT_LOCATION, DEFAULT_MODELS, MAX_MODELS, MODELS } from './lib/constants'
 import { GRIDS, GRID_SIDE, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, summariseCells } from './lib/hail'
 import { agreementCells } from './lib/agreement'
+import { DpcSource, useDpcAlert } from './components/DpcAlerts'
 import { fmtLong, fmtTime } from './lib/format'
 import { useHideOnScroll, useIsMobile, useLocalStorage, useModelRuns, useSmoothScroll, useTheme } from './lib/hooks'
 
@@ -72,6 +73,7 @@ export default function App() {
   const barHidden = useHideOnScroll(isMobile, heroRef)
 
   const [location, setLocation] = useLocalStorage('location', DEFAULT_LOCATION)
+  const dpcAlert = useDpcAlert(location)
   const [favourites, setFavourites] = useLocalStorage('favourites', [])
   const [selected, setSelected] = useLocalStorage('models', DEFAULT_MODELS)
   const [varId, setVarId] = useLocalStorage('variable', 'temperature_2m')
@@ -299,8 +301,10 @@ export default function App() {
               palette={palette}
               isFavourite={isFavourite}
               onToggleFavourite={toggleFavourite}
+              dpcAlert={dpcAlert}
             />
           )}
+          <DpcSource alert={dpcAlert} />
         </div>
 
         <Favourites

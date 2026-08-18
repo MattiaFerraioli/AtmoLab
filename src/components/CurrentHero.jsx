@@ -1,5 +1,5 @@
 import WeatherIcon from './WeatherIcon'
-import DpcAlertStrip from './DpcAlerts'
+import { DpcAlertBand } from './DpcAlerts'
 import { Skeleton } from './Ui'
 import { wmoIcon, wmoIntensity, wmoText } from '../lib/wmo'
 import { aqiBand, flag, fmtTime, nf, windDir } from '../lib/format'
@@ -19,7 +19,7 @@ function Stat({ k, children }) {
 }
 const U = ({ children }) => <span className="text-[11.5px] font-normal opacity-80">{children}</span>
 
-export default function CurrentHero({ location, forecast, air, palette, isFavourite, onToggleFavourite }) {
+export default function CurrentHero({ location, forecast, air, palette, isFavourite, onToggleFavourite, dpcAlert }) {
   const shell =
     'relative overflow-hidden rounded-[24px] card-shadow text-white ' +
     'bg-[linear-gradient(135deg,var(--hero-a),var(--hero-b))]'
@@ -136,7 +136,7 @@ export default function CurrentHero({ location, forecast, air, palette, isFavour
         </div>
       </div>
 
-      <DpcAlertStrip location={location} />
+      <DpcAlertBand alert={dpcAlert} />
     </div>
   )
 }
