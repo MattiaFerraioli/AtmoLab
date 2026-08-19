@@ -19,11 +19,11 @@ export default function ModelTable({ rows, series, meta }) {
                 className="sticky top-0 z-[2] border-b border-grid bg-surface px-3 py-1.5 text-right font-semibold text-ink-sec whitespace-nowrap"
               >
                 <span className="mr-1.5 inline-block h-2 w-2 rounded-sm align-middle" style={{ background: s.color }} />
-                {s.label}
+                {s.label} <span className="font-normal text-ink-muted">{meta.unit}</span>
               </th>
             ))}
             <th className="sticky top-0 z-[2] border-b border-grid bg-surface px-3 py-1.5 text-right font-semibold text-ink-sec">
-              Mediana
+              Mediana <span className="font-normal text-ink-muted">{meta.unit}</span>
             </th>
           </tr>
         </thead>

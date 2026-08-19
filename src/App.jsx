@@ -377,8 +377,7 @@ export default function App() {
           {!hailEnabled ? (
             <Card className="flex flex-wrap items-center gap-3 p-4">
               <div className="min-w-[220px] flex-1 text-[13px] text-ink-sec">
-                Analisi convettiva su una griglia di {GRID_SIDE}×{GRID_SIDE} punti. È la richiesta più pesante dell&apos;app
-                — 49 località per 14 variabili — quindi non parte da sola.
+                Dove e quando l&apos;area attorno alla località rischia grandine, raffiche e nubifragi.
               </div>
               <button
                 onClick={() => setHailEnabled(true)}
