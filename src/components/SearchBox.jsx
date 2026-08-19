@@ -99,7 +99,7 @@ export default function SearchBox({ onPick }) {
           autoComplete="off"
           spellCheck={false}
           aria-label="Cerca località"
-          className="w-full rounded-full bg-fill py-2.5 pl-9 pr-11 text-ink outline-none transition duration-300 placeholder:text-ink-muted hover:bg-fill-hover focus:bg-surface focus:shadow-md focus:ring-2 focus:ring-accent/50"
+          className="w-full rounded-full bg-fill py-2.5 pl-9 pr-[74px] text-ink outline-none transition duration-300 placeholder:text-ink-muted hover:bg-fill-hover focus:bg-surface focus:shadow-md focus:ring-2 focus:ring-accent/50"
         />
 
         {open && (

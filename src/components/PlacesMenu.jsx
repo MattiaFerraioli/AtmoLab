@@ -53,7 +53,7 @@ export default function PlacesMenu({ favourites, recent, onPick, onRemoveFavouri
   }
 
   return (
-    <div ref={ref} className="absolute right-1.5 top-1/2 -translate-y-1/2">
+    <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}

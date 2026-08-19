@@ -44,13 +44,28 @@ export default function TopBar({
 
         <div className="relative order-3 flex w-full min-w-0 sm:order-2 sm:w-auto sm:max-w-[440px] sm:flex-1">
           <SearchBox onPick={onPick} />
-          <PlacesMenu
-            favourites={favourites}
-            recent={recent}
-            onPick={onPick}
-            onRemoveFavourite={onRemoveFavourite}
-            onClearRecent={onClearRecent}
-          />
+          <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
+            <button
+              type="button"
+              title="Usa la mia posizione"
+              aria-label="Usa la mia posizione"
+              onClick={onLocate}
+              className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-full text-ink-muted transition duration-300 hover:bg-fill-hover hover:text-ink"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" className="h-[16px] w-[16px]">
+                <circle cx="12" cy="12" r="3" />
+                <circle cx="12" cy="12" r="8" />
+                <path d="M12 1v3M12 20v3M1 12h3M20 12h3" />
+              </svg>
+            </button>
+            <PlacesMenu
+              favourites={favourites}
+              recent={recent}
+              onPick={onPick}
+              onRemoveFavourite={onRemoveFavourite}
+              onClearRecent={onClearRecent}
+            />
+          </div>
         </div>
 
         {/* order: su mobile le azioni restano accanto al brand e la ricerca
@@ -63,13 +78,6 @@ export default function TopBar({
             palette={palette}
             onRefresh={onRefresh}
           />
-          <IconButton title="Usa la mia posizione" onClick={onLocate}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" className="h-[18px] w-[18px]">
-              <circle cx="12" cy="12" r="3" />
-              <circle cx="12" cy="12" r="8" />
-              <path d="M12 1v3M12 20v3M1 12h3M20 12h3" />
-            </svg>
-          </IconButton>
           <IconButton title={theme === 'dark' ? 'Passa al tema chiaro' : 'Passa al tema scuro'} onClick={onToggleTheme}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" className="h-[18px] w-[18px]">
               {theme === 'dark' ? SunGlyph : MoonGlyph}
