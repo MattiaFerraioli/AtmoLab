@@ -358,15 +358,13 @@ export default function EnsemblePanel({ location, timezone, detSnapshot, detCell
     return (
       <Card className="flex flex-wrap items-center gap-3 p-4">
         <div className="min-w-[220px] flex-1 text-[13px] text-ink-sec">
-          31 versioni dello stesso modello con partenze leggermente diverse: quante prevedono grandine, raffiche o
-          pioggia qui? È la probabilità vera, ma pesa come ~30 richieste normali — quindi parte solo se la chiedi, e
-          solo sul punto della località.
+          31 versioni dello stesso modello con partenze diverse.
         </div>
         <button
           onClick={() => setEnabled(true)}
           className="cursor-pointer rounded-full bg-accent px-5 py-2.5 text-[13.5px] font-semibold text-white transition duration-300 hover:bg-[color-mix(in_srgb,var(--accent)_82%,white)]"
         >
-          Carica ensemble
+          Carica
         </button>
       </Card>
     )

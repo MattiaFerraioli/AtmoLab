@@ -175,9 +175,11 @@ body::before {
 .safe-top {
   padding-top: env(safe-area-inset-top, 0px);
 }
+/* Additivo, non sostitutivo: essendo CSS fuori dai layer vincerebbe sempre
+   sui padding utility Tailwind — il padding di design passa da --safe-pad. */
 .safe-x {
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
+  padding-left: calc(env(safe-area-inset-left, 0px) + var(--safe-pad, 0px));
+  padding-right: calc(env(safe-area-inset-right, 0px) + var(--safe-pad, 0px));
 }
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);

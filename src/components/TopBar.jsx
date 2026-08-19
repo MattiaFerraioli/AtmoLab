@@ -29,7 +29,7 @@ export default function TopBar({
 }) {
   return (
     <header className={`safe-top safe-x sticky top-0 z-[900] glass-bar border-b border-hair transition-transform duration-300 ease-out ${hidden ? "-translate-y-full" : "translate-y-0"}`}>
-      <div className="mx-auto flex max-w-[1180px] flex-wrap items-center gap-2 px-4 py-2.5 sm:gap-3 sm:px-5 sm:py-3">
+      <div className="mx-auto flex max-w-[1180px] flex-wrap items-center gap-2 px-5 py-2.5 sm:gap-3 sm:px-6 sm:py-3">
         <div className="order-1 flex shrink-0 items-center gap-2 text-[17px] font-semibold tracking-[-0.02em]">
           <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" className="h-6 w-6">
             <circle cx="8" cy="8" r="3.2" stroke="#eda100" />

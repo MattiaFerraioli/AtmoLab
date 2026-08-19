@@ -311,7 +311,7 @@ export default function App() {
         onRefresh={() => setReloadKey((k) => k + 1)}
       />
 
-      <main className="safe-x mx-auto max-w-[1180px] px-4 pb-16 sm:px-5">
+      <main className="safe-x mx-auto max-w-[1180px] pb-16 [--safe-pad:20px] sm:[--safe-pad:24px]">
         <div ref={heroRef} className="pt-6">
           {forecastError ? (
             <Message tone="error">Impossibile caricare la previsione: {forecastError}</Message>
@@ -382,7 +382,7 @@ export default function App() {
               <Segmented
                 ariaLabel="Vista della sezione temporali"
                 options={[
-                  { value: 'previsione', label: 'Previsione' },
+                  { value: 'previsione', label: 'Previsionale' },
                   { value: 'sperimentale', label: 'Sperimentale' },
                 ]}
                 value={stormTab}
