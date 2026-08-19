@@ -361,10 +361,10 @@ export default function HailRisk({
                           {c.rotation && (
                             <span
                               className="font-semibold text-[#8b3fb5]"
-                              title="Ambiente da temporale rotante: CAPE e shear 0–6 km oltre le soglie classiche da supercella, quindi rotazione possibile ma non certa."
+                              title="Ambiente da supercella: CAPE e shear 0–6 km oltre le soglie classiche, quindi rotazione possibile ma non certa."
                             >
                               {' '}
-                              · rotante?
+                              · possibile supercella
                             </span>
                           )}
                         </span>
