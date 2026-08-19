@@ -136,11 +136,10 @@ function DpcMapModal({ alert, onClose }) {
       aria-label="Mappa nazionale delle allerte"
     >
       <div
-        data-lenis-prevent
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[90dvh] w-full max-w-[860px] overflow-auto rounded-[20px] border border-hair bg-surface p-4 card-shadow"
+        className="flex max-h-[90dvh] w-full max-w-[860px] flex-col overflow-hidden rounded-[20px] border border-hair bg-surface card-shadow"
       >
-        <div className="mb-3 flex items-start gap-3">
+        <div className="flex items-start gap-3 border-b border-hair p-4 pb-3">
           <div>
             <div className="text-[15px] font-bold">Mappa nazionale delle allerte</div>
             <div className="mt-0.5 text-[12px] text-ink-muted">
@@ -156,7 +155,7 @@ function DpcMapModal({ alert, onClose }) {
             ×
           </button>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div data-lenis-prevent className="grid gap-3 overflow-auto p-4 sm:grid-cols-2">
           {[
             ['oggi', 'Oggi'],
             ['domani', 'Domani'],
