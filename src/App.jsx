@@ -442,7 +442,7 @@ export default function App() {
           <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="text-accent">
             Open-Meteo
           </a>{' '}
-          (gratuito, CC-BY 4.0) — modelli ECMWF IFS, NOAA GFS, DWD ICON, Météo-France ARPEGE/AROME,
+          (CC-BY 4.0) — modelli ECMWF IFS, NOAA GFS, DWD ICON, Météo-France ARPEGE/AROME,
           UK Met Office, ItaliaMeteo ARPAE ICON-2I. Geocoding Open-Meteo · qualità dell&apos;aria CAMS · allerte Dipartimento della Protezione
           Civile (CC-BY 4.0) · mappa © OpenStreetMap contributors, tiles © CARTO.
         </footer>
