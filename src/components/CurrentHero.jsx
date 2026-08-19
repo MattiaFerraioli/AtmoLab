@@ -94,7 +94,7 @@ export default function CurrentHero({ location, forecast, air, palette, isFavour
               </div>
               <div className="mt-1 text-[17px] font-semibold">{wmoText(c.weather_code)}</div>
               <div className="text-[13.5px] opacity-85">
-                Percepita {Math.round(c.apparent_temperature)}°C · aggiornato {fmtTime(c.time)}
+                Percepita {Math.round(c.apparent_temperature)}°C · Aggiornato {fmtTime(c.time)}
               </div>
             </div>
           </div>

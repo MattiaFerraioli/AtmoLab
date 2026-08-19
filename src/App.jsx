@@ -22,7 +22,7 @@ const sameSpot = (a, b) =>
 
 /** Ora dell'ultimo scaricamento di una sezione: da PWA installata è l'unico
  *  segnale che il service worker sta servendo una risposta dalla cache. */
-const Stamp = ({ at }) => <span className="tnum text-[12px] text-ink-muted">aggiornato {fmtTime(at)}</span>
+const Stamp = ({ at }) => <span className="tnum text-[12px] text-ink-muted">Aggiornato {fmtTime(at)}</span>
 
 const MAX_COMPARE_DAYS = 16 // limite Open-Meteo
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
@@ -330,7 +330,7 @@ export default function App() {
 
         <Section
           title="Previsione 14 giorni"
-          hint={selectedDay ? 'clicca di nuovo il giorno per togliere il filtro' : 'seleziona un giorno per filtrare'}
+          hint={selectedDay ? 'Clicca di nuovo il giorno per togliere il filtro' : 'Seleziona un giorno per filtrare'}
         >
           <DailyStrip forecast={forecast} selectedDay={selectedDay} onSelectDay={setSelectedDay} />
           {selectedDay && (
@@ -342,14 +342,14 @@ export default function App() {
 
         <Section
           title={selectedDay ? 'Andamento del giorno' : 'Prossime 48 ore'}
-          hint="temperatura e precipitazione ora per ora"
+          hint="Temperatura e precipitazione ora per ora"
         >
           <HourlyChart forecast={forecast} palette={palette} selectedDay={selectedDay} />
         </Section>
 
         <Section
           title="Confronto tra modelli"
-          hint="stessa località, previsioni diverse: differenze tra i modelli"
+          hint="Stessa località, previsioni diverse: differenze tra i modelli"
           action={comparisonUpdatedAt ? <Stamp at={comparisonUpdatedAt} /> : null}
         >
           <ModelCompare
@@ -373,8 +373,8 @@ export default function App() {
           title="Rischio temporali"
           hint={
             stormTab === 'previsione'
-              ? 'grandine, raffiche e accumuli: dove, quando, e con che intensità'
-              : 'sperimentale — probabilità dai 31 membri di GFS, incrociata con la previsione'
+              ? 'Grandine, raffiche e accumuli: dove, quando, e con che intensità'
+              : 'Sperimentale — probabilità dai 31 membri di GFS, incrociata con la previsione'
           }
           action={
             <div className="flex items-center gap-3">
@@ -442,9 +442,9 @@ export default function App() {
           <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="text-accent">
             Open-Meteo
           </a>{' '}
-          (CC-BY 4.0) · modelli ECMWF IFS, NOAA GFS, DWD ICON, Météo-France ARPEGE/AROME,
-          UK Met Office, ItaliaMeteo ARPAE ICON-2I. Geocoding Open-Meteo · qualità dell&apos;aria CAMS · allerte Dipartimento della Protezione
-          Civile (CC-BY 4.0) · mappa © OpenStreetMap contributors, tiles © CARTO.
+          (CC-BY 4.0) · Modelli ECMWF IFS, NOAA GFS, DWD ICON, Météo-France ARPEGE/AROME,
+          UK Met Office, ItaliaMeteo ARPAE ICON-2I. Geocoding Open-Meteo · Qualità dell&apos;aria CAMS · Allerte Dipartimento della Protezione
+          Civile (CC-BY 4.0) · Mappa © OpenStreetMap contributors, tiles © CARTO.
         </footer>
       </main>
     </>

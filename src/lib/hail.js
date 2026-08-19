@@ -159,11 +159,11 @@ export function riskBand(risk) {
  * Stima da parametri, non output di un modello di grandine.
  */
 export function hailSize(ship) {
-  if (ship >= 1.5) return { label: '> 4 cm', note: 'grandine grossa, distruttiva' }
-  if (ship >= 0.8) return { label: '2–4 cm', note: 'danni a colture, coperture e veicoli' }
-  if (ship >= 0.35) return { label: '1–2 cm', note: 'chicchi piccoli' }
-  if (ship > 0.05) return { label: '< 1 cm', note: 'graupel / chicchi minuti' }
-  return { label: '—', note: 'grandine non attesa' }
+  if (ship >= 1.5) return { label: '> 4 cm', note: 'Grandine grossa, distruttiva' }
+  if (ship >= 0.8) return { label: '2–4 cm', note: 'Danni a colture, coperture e veicoli' }
+  if (ship >= 0.35) return { label: '1–2 cm', note: 'Chicchi piccoli' }
+  if (ship > 0.05) return { label: '< 1 cm', note: 'Graupel / chicchi minuti' }
+  return { label: '—', note: 'Grandine non attesa' }
 }
 
 /**

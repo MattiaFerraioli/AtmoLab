@@ -61,7 +61,7 @@ export default function SpreadStats({ times, spread, meta, seriesNames, palette 
       <Tile
         k="Momento peggiore"
         value={`${nf(max, meta.dec)} ${meta.unit}`}
-        sub={iMax >= 0 ? `di distanza fra i modelli, ${fmtDayHour(times[iMax])}` : '–'}
+        sub={iMax >= 0 ? `Di distanza fra i modelli, ${fmtDayHour(times[iMax])}` : '–'}
       />
 
       <Tile k="Modelli a confronto" value={seriesNames.length} sub={seriesNames.join(', ')} />

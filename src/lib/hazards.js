@@ -62,7 +62,7 @@ export const HAZARDS = [
         note: hailSize(ship).note,
       }
     },
-    quietText: 'grandine non attesa',
+    quietText: 'Grandine non attesa',
     hourly: { pick: (p) => p.risk, bands: [0.05, 0.2, 0.5, 1], unit: '', dec: 2, label: 'Indice grandine' },
   },
   {
@@ -83,7 +83,7 @@ export const HAZARDS = [
         note: convective ? 'raffica da downburst' : 'raffica di gradiente, non da temporale',
       }
     },
-    quietText: 'nessuna raffica rilevante',
+    quietText: 'Nessuna raffica rilevante',
     hourly: { pick: (p) => p.gust, bands: [60, 75, 90, 105], unit: 'km/h', dec: 0, label: 'Raffica' },
   },
   {
@@ -113,7 +113,7 @@ export const HAZARDS = [
         note: peakRate >= 30 ? 'intensità da nubifragio' : peakRate >= 15 ? 'rovescio intenso' : 'pioggia ordinaria',
       }
     },
-    quietText: 'accumuli irrilevanti',
+    quietText: 'Accumuli irrilevanti',
     /* Soglie orarie, non giornaliere: 20 mm in un'ora è nubifragio, 20 mm in
        un giorno è pioggia normale. */
     hourly: { pick: (p) => p.precip, bands: [1, 4, 10, 20], unit: 'mm/h', dec: 1, label: 'Intensità' },

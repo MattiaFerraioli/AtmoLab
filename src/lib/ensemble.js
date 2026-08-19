@@ -38,11 +38,11 @@ const VARS = [
    deterministico dà 910 e il miglior membro 960. Una soglia assoluta presa
    dall'alta risoluzione qui non scatterebbe mai. */
 export const ENSEMBLE_METRICS = [
-  { id: 'ship08', label: 'SHIP > 0,8', hint: 'ambiente da grandine 2–4 cm' },
-  { id: 'ship15', label: 'SHIP > 1,5', hint: 'ambiente da grandine oltre 4 cm' },
-  { id: 'cape500', label: 'CAPE ≥ 500', hint: 'energia convettiva significativa, sul metro di GFS' },
-  { id: 'rain1', label: 'pioggia ≥ 1 mm/h', hint: 'precipitazione in atto' },
-  { id: 'gust60', label: 'raffiche ≥ 60 km/h', hint: 'vento da danni leggeri' },
+  { id: 'ship08', label: 'SHIP > 0,8', hint: 'Ambiente da grandine 2–4 cm' },
+  { id: 'ship15', label: 'SHIP > 1,5', hint: 'Ambiente da grandine oltre 4 cm' },
+  { id: 'cape500', label: 'CAPE ≥ 500', hint: 'Energia convettiva significativa, sul metro di GFS' },
+  { id: 'rain1', label: 'Pioggia ≥ 1 mm/h', hint: 'Precipitazione in atto' },
+  { id: 'gust60', label: 'Raffiche ≥ 60 km/h', hint: 'Vento da danni leggeri' },
 ]
 
 /** Elenco dei suffissi membro presenti nella risposta ('' = controllo). */
@@ -104,9 +104,9 @@ export function ensembleFractions(json) {
    ------------------------------------------------------------ */
 
 export const ENSEMBLE_MAP_METRICS = [
-  { id: 'storm', label: 'Temporali', hint: 'membri con convezione in atto' },
-  { id: 'wind', label: 'Raffiche ≥ 60', hint: 'membri con vento da danni' },
-  { id: 'rain', label: 'Pioggia ≥ 10 mm', hint: 'membri con accumulo giornaliero' },
+  { id: 'storm', label: 'Temporali', hint: 'Membri con convezione in atto' },
+  { id: 'wind', label: 'Raffiche ≥ 60', hint: 'Membri con vento da danni' },
+  { id: 'rain', label: 'Pioggia ≥ 10 mm', hint: 'Membri con accumulo giornaliero' },
 ]
 
 const STORM_CODES = new Set([95, 96, 99])
@@ -168,11 +168,11 @@ export const fractionStep = (f) => (f >= 0.9 ? 4 : f > 2 / 3 ? 3 : f >= 1 / 3 ? 
    ------------------------------------------------------------ */
 
 const VERDICTS = {
-  solid: { label: 'segnale solido', color: '#30d158', hint: 'dettaglio e membri concordano' },
-  lone: { label: 'solo il dettaglio', color: '#f97316', hint: 'i membri non lo vedono: possibile abbaglio della risoluzione' },
-  tepid: { label: 'membri tiepidi', color: '#eab308', hint: 'qualche membro concorda, la maggioranza no' },
-  spread: { label: 'scenario diffuso', color: '#3987e5', hint: 'membri caldi ma dettaglio quieto: minoritario ma da seguire' },
-  quiet: { label: 'concordano sul quieto', color: '#8e8e93', hint: 'nessuna delle due letture vede l\u2019evento' },
+  solid: { label: 'Segnale solido', color: '#30d158', hint: 'Dettaglio e membri concordano' },
+  lone: { label: 'Solo il dettaglio', color: '#f97316', hint: 'I membri non lo vedono: possibile abbaglio della risoluzione' },
+  tepid: { label: 'Membri tiepidi', color: '#eab308', hint: 'Qualche membro concorda, la maggioranza no' },
+  spread: { label: 'Scenario diffuso', color: '#3987e5', hint: 'Membri caldi ma dettaglio quieto: minoritario ma da seguire' },
+  quiet: { label: 'Concordano sul quieto', color: '#8e8e93', hint: 'Nessuna delle due letture vede l\u2019evento' },
 }
 
 const verdictOf = (strong, frac) => {

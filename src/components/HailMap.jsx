@@ -34,7 +34,7 @@ function FitToCells({ bounds }) {
 /** Etichetta di zona: valore sopra, probabilità d'innesco sotto (se nota). */
 function valueIcon(text, color, prob) {
   const count = prob ? `${Math.round(prob.frac * AGREEMENT_COUNT)}/${AGREEMENT_COUNT}` : ''
-  const text2 = prob?.label === 'nessuna' ? `solo ambiente · ${count}` : prob ? `prob. ${prob.label} · ${count}` : ''
+  const text2 = prob?.label === 'nessuna' ? `Solo ambiente · ${count}` : prob ? `Prob. ${prob.label} · ${count}` : ''
   const sub = text2 ? `<div style="font:500 9px/1.1 system-ui;opacity:.85;margin-top:1px">${text2}</div>` : ''
   return L.divIcon({
     className: '',
@@ -132,7 +132,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                 {c.prob != null && (
                   <>
                     <br />
-                    {hazard.id === 'hail' ? 'innesco previsto da' : 'previsto da'} {fractionText(c.prob)}
+                    {hazard.id === 'hail' ? 'Innesco previsto da' : 'Previsto da'} {fractionText(c.prob)}
                   </>
                 )}
                 <br />

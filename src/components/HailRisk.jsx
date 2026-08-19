@@ -224,8 +224,8 @@ export default function HailRisk({
           <div className="mt-1 truncate text-[12.5px] text-ink-sec">
             {worst?.prob != null
               ? worst.prob <= 0
-                ? 'nessun modello prevede l\u2019innesco: solo ambiente favorevole'
-                : `${hazard.id === 'hail' ? 'innesco previsto da' : 'previsto da'} ${fractionText(worst.prob)}`
+                ? 'Nessun modello prevede l\u2019innesco: solo ambiente favorevole'
+                : `${hazard.id === 'hail' ? 'Innesco previsto da' : 'Previsto da'} ${fractionText(worst.prob)}`
               : (worst?.metric.detail ?? '–')}
           </div>
         </div>
@@ -253,7 +253,7 @@ export default function HailRisk({
             quiet
               ? 'nessun picco significativo'
               : worst?.cape != null
-                ? `energia ${capeBand(worst.cape)} · CAPE ${nf(worst.cape, 0)} J/kg`
+                ? `Energia ${capeBand(worst.cape)} · CAPE ${nf(worst.cape, 0)} J/kg`
                 : `SHIP ambiente ${nf(worst?.ship ?? 0, 2)}`
           }
         >
@@ -262,7 +262,7 @@ export default function HailRisk({
 
         <Tile
           k="Raffiche nei temporali"
-          sub={gustMax ? 'previste dai modelli nelle ore convettive' : 'nessuna convezione prevista'}
+          sub={gustMax ? 'Previste dai modelli nelle ore convettive' : 'Nessuna convezione prevista'}
         >
           {gustMax ? (
             <>
@@ -302,13 +302,13 @@ export default function HailRisk({
                   className="text-ink-muted"
                   title={`Accordo fra ${AGREEMENT_COUNT} modelli (ECMWF, GFS, ICON): bassa = uno prevede l'evento, media = due, alta = tutti. "Solo ambiente" = nessuno lo prevede: restano le condizioni, manca l'innesco.`}
                 >
-                  · probabilità:
+                  · Probabilità:
                 </span>
                 {[
-                  ['solo ambiente', '1 7'],
-                  ['bassa', '2 6'],
-                  ['media', '7 5'],
-                  ['alta', null],
+                  ['Solo ambiente', '1 7'],
+                  ['Bassa', '2 6'],
+                  ['Media', '7 5'],
+                  ['Alta', null],
                 ].map(([label, dash]) => (
                   <span key={label} className="inline-flex items-center gap-1.5">
                     <svg viewBox="0 0 24 8" className="h-2 w-6">

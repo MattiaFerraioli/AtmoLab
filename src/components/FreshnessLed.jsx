@@ -36,7 +36,7 @@ export default function FreshnessLed({ updatedAt, loading, error, palette, onRef
         style={{ background: color, boxShadow: `0 0 6px ${color}` }}
       />
       <span className="tnum hidden text-ink-sec sm:inline" aria-live="polite">
-        {loading ? 'aggiorno…' : error ? 'offline' : updatedAt ? fmtTime(updatedAt) : '–'}
+        {loading ? 'Aggiorno…' : error ? 'Offline' : updatedAt ? fmtTime(updatedAt) : '–'}
       </span>
     </button>
   )

@@ -381,7 +381,7 @@ export default function EnsemblePanel({ location, timezone, detSnapshot, detCell
           GFS ensemble 0,5° · {data.memberCount} membri
         </span>
         <span className="text-[12px] text-ink-muted">
-          solo il punto di {location.name} · prossime 48 ore · SHIP calcolato membro per membro · il CAPE di GFS a
+          Solo il punto di {location.name} · prossime 48 ore · SHIP calcolato membro per membro · il CAPE di GFS a
           0,5° corre più basso dei modelli km-scale: confronta le frazioni nel tempo, non i valori assoluti con la
           sezione sopra
         </span>
@@ -398,7 +398,7 @@ export default function EnsemblePanel({ location, timezone, detSnapshot, detCell
               <div key={r.label} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
                 <span className="w-20 font-semibold">{r.label}</span>
                 <span className="tnum w-24 text-ink-sec">{r.detText}</span>
-                <span className="tnum w-24 text-ink-sec">membri {Math.round(r.frac * 100)}%</span>
+                <span className="tnum w-24 text-ink-sec">Membri {Math.round(r.frac * 100)}%</span>
                 <span
                   title={r.verdict.hint}
                   className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold"
