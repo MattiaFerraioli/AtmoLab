@@ -3,9 +3,9 @@ import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer,
 import HailMap from './HailMap'
 import { Card, Message, Segmented, Skeleton } from './Ui'
 import { fetchEnsembleGrid, fetchEnsemblePoint, fetchObserved } from '../lib/api'
-import { ENSEMBLE_MAP_METRICS, ENSEMBLE_METRICS, ensembleFractions, ensembleGridCells, fractionStep } from '../lib/ensemble'
+import { ENSEMBLE_MAP_METRICS, ENSEMBLE_METRICS, crossVerdicts, ensembleFractions, ensembleGridCells, fractionStep } from '../lib/ensemble'
 import { recordObserved, recordSnapshot, snapshotsFor } from '../lib/history'
-import { GRIDS, buildGrid } from '../lib/hail'
+import { GRID_SIDE, GRIDS, buildGrid } from '../lib/hail'
 import { SEVERITY_COLORS } from '../lib/hazards'
 import { fmtDayHour, nf } from '../lib/format'
 import { useIsMobile } from '../lib/hooks'
@@ -307,7 +307,7 @@ function EnsembleMap({ location, timezone, gridId, palette, theme }) {
   )
 }
 
-export default function EnsemblePanel({ location, timezone, detSnapshot, gridId, palette, theme }) {
+export default function EnsemblePanel({ location, timezone, detSnapshot, detCells, targetDay, gridId, palette, theme }) {
   const [enabled, setEnabled] = useState(false)
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
@@ -346,6 +346,14 @@ export default function EnsemblePanel({ location, timezone, detSnapshot, gridId,
 
   const chartData = useMemo(() => data?.fractions ?? [], [data])
 
+  /* Cella centrale della griglia deterministica = stessa località del punto
+     ensemble: è l'unico confronto omogeneo possibile. */
+  const cross = useMemo(() => {
+    const half = (GRID_SIDE - 1) / 2
+    const centre = detCells?.find((c) => c.row === half && c.col === half)
+    return crossVerdicts(data?.fractions, centre?.series, targetDay)
+  }, [data, detCells, targetDay])
+
   if (!enabled)
     return (
       <Card className="flex flex-wrap items-center gap-3 p-4">
@@ -378,6 +386,41 @@ export default function EnsemblePanel({ location, timezone, detSnapshot, gridId,
           sezione sopra
         </span>
       </div>
+
+      {cross ? (
+        <div className="mb-4 rounded-2xl border border-hair p-3">
+          <div className="mb-2 text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-muted">
+            Incrocio con la previsione ·{' '}
+            {new Date(`${targetDay}T12:00`).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </div>
+          <div className="grid gap-1.5">
+            {cross.map((r) => (
+              <div key={r.label} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+                <span className="w-20 font-semibold">{r.label}</span>
+                <span className="tnum w-24 text-ink-sec">{r.detText}</span>
+                <span className="tnum w-24 text-ink-sec">membri {Math.round(r.frac * 100)}%</span>
+                <span
+                  title={r.verdict.hint}
+                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[12px] font-semibold"
+                  style={{ background: `color-mix(in srgb, ${r.verdict.color} 15%, transparent)`, color: r.verdict.color }}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: r.verdict.color }} />
+                  {r.verdict.label}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-[11.5px] text-ink-muted">
+            Nessuna fusione: il valore resta del modello di dettaglio, la percentuale è la frazione dei {data.memberCount}{' '}
+            membri. Il verdetto dice solo se le due letture concordano.
+          </p>
+        </div>
+      ) : (
+        <p className="mb-4 text-[12.5px] text-ink-muted">
+          Per l&apos;incrocio con la previsione serve la griglia della tab Previsione (e un giorno entro le 48 ore
+          dell&apos;ensemble).
+        </p>
+      )}
 
       <div className="flex flex-col gap-3">
         {ENSEMBLE_METRICS.map((m) => (

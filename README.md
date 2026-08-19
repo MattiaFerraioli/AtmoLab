@@ -247,6 +247,16 @@ cancella proprio le code che si cercano. Costo: +4 variabili × 3 modelli sulla 
 
 ## Ensemble (sperimentale)
 
+Da agosto 2026 l'ensemble non è più una sezione a sé: vive nella tab **Sperimentale** della
+sezione temporali (tab "Previsione" = tutto il deterministico di prima). In cima alla tab c'è
+l'**incrocio con la previsione**: per grandine/raffiche/pioggia si affiancano il massimo del
+giorno della cella centrale (modello di dettaglio) e la frazione dei 31 membri oltre la soglia
+omologa (SHIP > 0,8 / raffiche ≥ 60 / pioggia ≥ 1 mm/h), con un verdetto qualitativo
+(segnale solido / solo il dettaglio / membri tiepidi / scenario diffuso / concordano sul
+quieto). **Nessuna fusione numerica**: metri diversi (ICON-2I 2,2 km vs GFS 0,5°) non si
+mediano — il verdetto dice solo se le due letture concordano.
+
+
 Sezione separata, on-demand, **solo sul punto della località**: una chiamata ensemble pesa come
 ~31 normali (misurato: 149 KB per 31 membri × 15 variabili × 2 giorni), la griglia 7×7 sarebbe
 fuori scala. Modello: **GFS 0,5° (31 membri)** — l'unico su ensemble-api con i livelli in quota

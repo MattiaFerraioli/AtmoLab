@@ -160,3 +160,49 @@ export function ensembleGridCells(results, points) {
 
 /** Severità 0–4 di una frazione: soglie 10% / un terzo / due terzi / 90%. */
 export const fractionStep = (f) => (f >= 0.9 ? 4 : f > 2 / 3 ? 3 : f >= 1 / 3 ? 2 : f >= 0.1 ? 1 : 0)
+
+/* ------------------------------------------------------------
+   Incrocio deterministico × ensemble: NESSUNA fusione numerica
+   (metri diversi: ICON-2I 2,2 km vs GFS 0,5°). Si affiancano le
+   due letture e si giudica solo se concordano.
+   ------------------------------------------------------------ */
+
+const VERDICTS = {
+  solid: { label: 'segnale solido', color: '#30d158', hint: 'dettaglio e membri concordano' },
+  lone: { label: 'solo il dettaglio', color: '#f97316', hint: 'i membri non lo vedono: possibile abbaglio della risoluzione' },
+  tepid: { label: 'membri tiepidi', color: '#eab308', hint: 'qualche membro concorda, la maggioranza no' },
+  spread: { label: 'scenario diffuso', color: '#3987e5', hint: 'membri caldi ma dettaglio quieto: minoritario ma da seguire' },
+  quiet: { label: 'concordano sul quieto', color: '#8e8e93', hint: 'nessuna delle due letture vede l\u2019evento' },
+}
+
+const verdictOf = (strong, frac) => {
+  if (strong && frac >= 1 / 3) return VERDICTS.solid
+  if (strong && frac >= 0.1) return VERDICTS.tepid
+  if (strong) return VERDICTS.lone
+  if (frac >= 1 / 3) return VERDICTS.spread
+  return VERDICTS.quiet
+}
+
+/**
+ * Righe di confronto per il giorno: [{label, detText, frac, verdict}] o null
+ * se manca uno dei due lati. detSeries = serie oraria della cella centrale
+ * della griglia (stessa località del punto ensemble). Soglie deterministiche
+ * allineate a quelle delle frazioni, così il confronto è omogeneo.
+ */
+export function crossVerdicts(fractions, detSeries, targetDay) {
+  if (!fractions?.length || !detSeries?.length || !targetDay) return null
+  const fr = fractions.filter((f) => f.t.startsWith(targetDay))
+  const det = detSeries.filter((p) => p.t.startsWith(targetDay))
+  if (!fr.length || !det.length) return null
+  const maxFr = (k) => Math.max(...fr.map((f) => f[k]), 0)
+  const maxDet = (k) => Math.max(...det.map((p) => p[k] ?? 0), 0)
+
+  const ship = maxDet('ship')
+  const gust = maxDet('gust')
+  const rain = maxDet('precip')
+  return [
+    { label: 'Grandine', detText: `SHIP ${ship.toFixed(2)}`, frac: maxFr('ship08'), verdict: verdictOf(ship >= 0.8, maxFr('ship08')) },
+    { label: 'Raffiche', detText: `${Math.round(gust)} km/h`, frac: maxFr('gust60'), verdict: verdictOf(gust >= 60, maxFr('gust60')) },
+    { label: 'Pioggia', detText: `${rain.toFixed(1)} mm/h max`, frac: maxFr('rain1'), verdict: verdictOf(rain >= 1, maxFr('rain1')) },
+  ]
+}

@@ -343,7 +343,10 @@ export function buildNarrative(cells, centre) {
           : `nelle aree a ${joinList(sectors)}`
     const size = hailSize(partMaxShip)
     const strength = partMaxRisk >= 0.5 ? 'temporali forti' : 'temporali'
-    const hailTxt = sizeRank[size.label] >= 2 ? `, possibile grandine fino a ${size.label}` : ''
+    const hailTxt =
+      sizeRank[size.label] >= 2
+        ? `, possibile grandine ${size.label === '> 4 cm' ? 'superiore a 4 cm' : `fino a ${size.label}`}`
+        : ''
     sentences.push(`${part.label[0].toUpperCase()}${part.label.slice(1)} ${strength} ${where}${hailTxt}.`)
   }
 

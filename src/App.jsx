@@ -6,7 +6,7 @@ import HourlyChart from './components/HourlyChart'
 import ModelCompare from './components/ModelCompare'
 import HailRisk from './components/HailRisk'
 import EnsemblePanel from './components/EnsemblePanel'
-import { Card, DayFilterBar, Message, Section } from './components/Ui'
+import { Card, DayFilterBar, Message, Section, Segmented } from './components/Ui'
 import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, fetchProbGrid, reverseGeocode } from './lib/api'
 import { DEFAULT_LOCATION, DEFAULT_MODELS, MAX_MODELS, MODELS } from './lib/constants'
 import { GRIDS, GRID_SIDE, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, summariseCells } from './lib/hail'
@@ -115,6 +115,7 @@ export default function App() {
      di gran lunga la richiesta più pesante sulla quota Open-Meteo. Su un sito
      pubblico caricarla a ogni visita brucia il piano free in fretta. */
   const [hailEnabled, setHailEnabled] = useState(false)
+  const [stormTab, setStormTab] = useState('previsione')
 
   const [updatedAt, setUpdatedAt] = useState(null)
   const [comparisonUpdatedAt, setComparisonUpdatedAt] = useState(null)
@@ -371,10 +372,38 @@ export default function App() {
 
         <Section
           title="Rischio temporali"
-          hint="grandine, raffiche e accumuli: dove, quando, e con che intensità"
-          action={hailEnabled && hailUpdatedAt ? <Stamp at={hailUpdatedAt} /> : null}
+          hint={
+            stormTab === 'previsione'
+              ? 'grandine, raffiche e accumuli: dove, quando, e con che intensità'
+              : 'sperimentale — probabilità dai 31 membri di GFS, incrociata con la previsione'
+          }
+          action={
+            <div className="flex items-center gap-3">
+              {stormTab === 'previsione' && hailEnabled && hailUpdatedAt ? <Stamp at={hailUpdatedAt} /> : null}
+              <Segmented
+                ariaLabel="Vista della sezione temporali"
+                options={[
+                  { value: 'previsione', label: 'Previsione' },
+                  { value: 'sperimentale', label: 'Sperimentale' },
+                ]}
+                value={stormTab}
+                onChange={setStormTab}
+              />
+            </div>
+          }
         >
-          {!hailEnabled ? (
+          {stormTab === 'sperimentale' ? (
+            <EnsemblePanel
+              location={location}
+              timezone={forecast?.timezone ?? location.timezone}
+              detSnapshot={detSnapshot}
+              detCells={hailCells}
+              targetDay={hailTargetDay}
+              gridId={hailGrid}
+              palette={palette}
+              theme={theme}
+            />
+          ) : !hailEnabled ? (
             <Card className="flex flex-wrap items-center gap-3 p-4">
               <div className="min-w-[220px] flex-1 text-[13px] text-ink-sec">
                 Dove e quando l&apos;area attorno alla località rischia grandine, raffiche e nubifragi.
@@ -407,20 +436,6 @@ export default function App() {
               theme={theme}
             />
           )}
-        </Section>
-
-        <Section
-          title="Ensemble"
-          hint="sperimentale — probabilità dai 31 membri di GFS, da confrontare nel tempo con la sezione sopra"
-        >
-          <EnsemblePanel
-            location={location}
-            timezone={forecast?.timezone ?? location.timezone}
-            detSnapshot={detSnapshot}
-            gridId={hailGrid}
-            palette={palette}
-            theme={theme}
-          />
         </Section>
 
         <footer className="safe-bottom mt-9 border-t border-hair pt-4 text-[12.5px] text-ink-muted">
