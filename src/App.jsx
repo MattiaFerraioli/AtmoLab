@@ -11,7 +11,7 @@ import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, fe
 import { DEFAULT_LOCATION, DEFAULT_MODELS, MAX_MODELS, MODELS } from './lib/constants'
 import { GRIDS, GRID_SIDE, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, summariseCells } from './lib/hail'
 import { agreementCells } from './lib/agreement'
-import { DpcSource, useDpcAlert } from './components/DpcAlerts'
+import { useDpcAlert } from './components/DpcAlerts'
 import { fmtLong, fmtTime } from './lib/format'
 import { useHideOnScroll, useIsMobile, useLocalStorage, useModelRuns, useSmoothScroll, useTheme } from './lib/hooks'
 
@@ -326,7 +326,6 @@ export default function App() {
               dpcAlert={dpcAlert}
             />
           )}
-          <DpcSource alert={dpcAlert} />
         </div>
 
         <Section
@@ -443,7 +442,7 @@ export default function App() {
           <a href="https://open-meteo.com/" target="_blank" rel="noreferrer" className="text-accent">
             Open-Meteo
           </a>{' '}
-          (gratuito, senza API key, CC-BY 4.0) — modelli ECMWF IFS, NOAA GFS, DWD ICON, Météo-France ARPEGE/AROME,
+          (gratuito, CC-BY 4.0) — modelli ECMWF IFS, NOAA GFS, DWD ICON, Météo-France ARPEGE/AROME,
           UK Met Office, ItaliaMeteo ARPAE ICON-2I. Geocoding Open-Meteo · qualità dell&apos;aria CAMS · allerte Dipartimento della Protezione
           Civile (CC-BY 4.0) · mappa © OpenStreetMap contributors, tiles © CARTO.
         </footer>

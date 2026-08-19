@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { LEVEL_META, fetchDpcBulletin, previewUrl, zoneForComune } from '../lib/dpc'
 
 const RISKS = [
@@ -72,9 +73,12 @@ export function DpcAlertBand({ alert }) {
   const [showMap, setShowMap] = useState(false)
   if (!alert) return null
   return (
-    <div className="relative z-[1] mx-4 mb-4 w-fit max-w-full rounded-2xl border border-white/12 bg-black/20 px-3.5 py-2.5 text-[13px] sm:mx-6 sm:mb-5">
+    <div
+      title={`Allerta valida per l'intera zona ${alert.zoneName}`}
+      className="relative z-[1] mx-4 mb-4 flex w-fit max-w-full items-start gap-2 rounded-2xl border border-white/12 bg-black/20 px-3.5 py-2.5 pr-2 text-[13px] sm:mx-6 sm:mb-5"
+    >
       {alert.hasAlerts ? (
-        <div className="grid gap-2">
+        <div className="grid gap-2 py-0.5">
           {alert.days
             .filter((d) => d.risks.length > 0)
             .map((d) => (
@@ -87,7 +91,7 @@ export function DpcAlertBand({ alert }) {
             ))}
         </div>
       ) : (
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 py-0.5">
           <span
             className="h-2.5 w-2.5 shrink-0 rounded-full"
             style={{ background: '#30d158', boxShadow: '0 0 6px #30d158' }}
@@ -97,49 +101,78 @@ export function DpcAlertBand({ alert }) {
       )}
 
       {alert.stem && (
-        <details className="mt-2" onToggle={(e) => setShowMap(e.currentTarget.open)}>
-          <summary className="cursor-pointer text-[12px] font-semibold opacity-80 transition duration-300 hover:opacity-100">
-            Mappa nazionale
-          </summary>
-          {showMap && (
-            <div className="mt-2 grid gap-2 sm:grid-cols-2">
-              {[
-                ['oggi', 'Oggi'],
-                ['domani', 'Domani'],
-              ].map(([k, label]) => (
-                <figure key={k}>
-                  <img
-                    src={previewUrl(alert.stem, k)}
-                    alt={`Mappa nazionale delle allerte di ${label.toLowerCase()}`}
-                    loading="lazy"
-                    className="w-full max-w-[420px] rounded-xl bg-white"
-                  />
-                  <figcaption className="mt-1 text-[11px] opacity-75">{label}</figcaption>
-                </figure>
-              ))}
-            </div>
-          )}
-        </details>
+        <button
+          type="button"
+          title="Mappa nazionale delle allerte"
+          aria-label="Apri la mappa nazionale delle allerte"
+          onClick={() => setShowMap(true)}
+          className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/70 transition duration-300 hover:bg-white/15 hover:text-white"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className="h-[16px] w-[16px]">
+            <path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z" />
+            <path d="M9 4v14M15 6v14" />
+          </svg>
+        </button>
       )}
+      {showMap && <DpcMapModal alert={alert} onClose={() => setShowMap(false)} />}
     </div>
   )
 }
 
-/** Attribuzione: fuori dalla card, piccola, allineata a destra. */
-export function DpcSource({ alert }) {
-  if (!alert) return null
-  return (
-    <div className="mt-1.5 text-right text-[11px] leading-snug text-ink-muted">
-      Allerta valida per l&apos;intera zona {alert.zoneName} · Fonte:{' '}
-      <a
-        href="https://github.com/pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica"
-        target="_blank"
-        rel="noreferrer"
-        className="underline decoration-hair underline-offset-2 hover:text-ink-sec"
+/** Popup con la mappa nazionale ufficiale: nessuna espansione della hero. */
+function DpcMapModal({ alert, onClose }) {
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Mappa nazionale delle allerte"
+    >
+      <div
+        data-lenis-prevent
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[90dvh] w-full max-w-[860px] overflow-auto rounded-[20px] border border-hair bg-surface p-4 card-shadow"
       >
-        Dipartimento della Protezione Civile
-      </a>{' '}
-      (CC-BY 4.0)
-    </div>
+        <div className="mb-3 flex items-start gap-3">
+          <div>
+            <div className="text-[15px] font-bold">Mappa nazionale delle allerte</div>
+            <div className="mt-0.5 text-[12px] text-ink-muted">
+              {alert.bulletinName} · allerta valida per l&apos;intera zona {alert.zoneName}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Chiudi"
+            className="ml-auto flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-fill text-[17px] leading-none text-ink transition duration-300 hover:bg-fill-hover"
+          >
+            ×
+          </button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[
+            ['oggi', 'Oggi'],
+            ['domani', 'Domani'],
+          ].map(([k, label]) => (
+            <figure key={k}>
+              <img
+                src={previewUrl(alert.stem, k)}
+                alt={`Mappa nazionale delle allerte di ${label.toLowerCase()}`}
+                className="w-full rounded-xl bg-white"
+              />
+              <figcaption className="mt-1 text-[12px] text-ink-muted">{label}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </div>,
+    document.body,
   )
 }
