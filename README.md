@@ -41,6 +41,14 @@ sola**: si carica con un click, e la scelta non viene ricordata fra visite. Le a
 
 `vite-plugin-pwa` in `generateSW`, con `registerType: 'autoUpdate'`.
 
+**Aggiornamenti dell'app**: `registerType: 'autoUpdate'` da solo copre solo metà del problema — il
+service worker generato ha `skipWaiting()` + `clientsClaim()`, ma lo script che Vite inietta in
+`index.html` si limita a registrarlo una volta, senza mai ricontrollare se ne è uscito uno nuovo.
+Una PWA installata e ripresa dallo sfondo (non una vera navigazione di rete) può restare ferma
+alla build vecchia per giorni. `main.jsx` chiama `registerSW()` da `virtual:pwa-register` con un
+controllo ogni ora più uno al ritorno in primo piano (`visibilitychange`); trovata una build nuova,
+`autoUpdate` la attiva e ricarica la pagina da sola, senza prompt.
+
 - **Previsioni** (`api|air-quality-api|geocoding-api.open-meteo.com`): `NetworkFirst`, timeout 6 s,
   scadenza 30 minuti. La rete vince sempre, la cache è solo rete di sicurezza.
 - **Tile mappa** (CARTO): `CacheFirst`, 7 giorni.
