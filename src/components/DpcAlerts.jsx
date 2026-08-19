@@ -125,6 +125,28 @@ export function DpcAlertBand({ alert }) {
 
 /** Popup con la mappa nazionale ufficiale: nessuna espansione della hero. */
 function DpcMapModal({ alert, onClose }) {
+  /* Gli aggiornamenti pomeridiani pubblicano per "oggi" un PNG segnaposto
+     quasi vuoto (~4KB contro i ~160KB di una mappa vera): il peso, letto con
+     una HEAD, distingue la mappa vera dalla tavola bianca. */
+  const [available, setAvailable] = useState(null)
+  useEffect(() => {
+    let dead = false
+    Promise.all(
+      ['oggi', 'domani'].map(async (k) => {
+        try {
+          const res = await fetch(previewUrl(alert.stem, k), { method: 'HEAD' })
+          const len = Number(res.headers.get('content-length')) || 0
+          return [k, res.ok && len > 30000]
+        } catch {
+          return [k, true] /* dubbio: meglio mostrare */
+        }
+      }),
+    ).then((entries) => !dead && setAvailable(Object.fromEntries(entries)))
+    return () => {
+      dead = true
+    }
+  }, [alert.stem])
+
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', onKey)
@@ -165,11 +187,17 @@ function DpcMapModal({ alert, onClose }) {
             ['domani', 'Domani'],
           ].map(([k, label]) => (
             <figure key={k}>
-              <img
-                src={previewUrl(alert.stem, k)}
-                alt={`Mappa nazionale delle allerte di ${label.toLowerCase()}`}
-                className="w-full rounded-xl bg-white"
-              />
+              {available?.[k] === false ? (
+                <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-hair p-6 text-center text-[12.5px] text-ink-muted">
+                  Mappa di {label.toLowerCase()} non pubblicata in questo aggiornamento del bollettino.
+                </div>
+              ) : (
+                <img
+                  src={previewUrl(alert.stem, k)}
+                  alt={`Mappa nazionale delle allerte di ${label.toLowerCase()}`}
+                  className="w-full rounded-xl bg-white"
+                />
+              )}
               <figcaption className="mt-1 text-[12px] text-ink-muted">{label}</figcaption>
             </figure>
           ))}
