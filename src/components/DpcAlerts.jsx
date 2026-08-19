@@ -34,11 +34,15 @@ export function useDpcAlert(location) {
 
   if (!isItaly || !data) return null
 
+  /* Il bollettino porta date fisse: dopo mezzanotte il suo "domani" È oggi.
+     Etichetta dalla data reale, e i giorni già passati si buttano. */
+  const today = new Date().toLocaleDateString('sv')
   const days = data.days
+    .filter((day) => day.date >= today)
     .map((day) => {
       const zone = zoneForComune(day, location.name)
       return {
-        label: day.label,
+        label: day.date === today ? 'Oggi' : 'Domani',
         zone,
         risks: zone ? RISKS.filter((r) => zone[r.key] > 0).map((r) => ({ ...r, level: zone[r.key] })) : [],
       }

@@ -72,14 +72,23 @@ function extractZones(topo) {
   })
 }
 
+const localDate = (d = new Date()) => d.toLocaleDateString('sv') // YYYY-MM-DD locale
+
 /**
- * Bollettino corrente: { fetchedAt, name, days: [{label, zones}] }.
- * Dal localStorage se scoperto da meno di 6 ore, altrimenti riscaricato.
+ * Bollettino corrente: { fetchedAt, name, stem, days: [{date, zones}] }.
+ * I giorni portano la DATA REALE (dal nome file): "oggi/domani" del bollettino
+ * sono date fisse, dopo mezzanotte slittano — l'etichetta la decide chi legge.
+ * Cache: 6 ore, ma se il bollettino in cache è di ieri si riprova ogni 30
+ * minuti — quello nuovo esce ~14:30 e non va aspettato fino a scadenza piena.
  */
 export async function fetchDpcBulletin() {
   try {
     const cached = JSON.parse(localStorage.getItem(CACHE_KEY))
-    if (cached && cached.stem && Date.now() - cached.fetchedAt < MAX_AGE_MS) return cached
+    const bulletinDate = cached?.days?.[0]?.date
+    if (bulletinDate) {
+      const maxAge = bulletinDate < localDate() ? 30 * 60 * 1000 : MAX_AGE_MS
+      if (Date.now() - cached.fetchedAt < maxAge) return cached
+    }
   } catch {
     /* cache illeggibile: si riscarica */
   }
@@ -91,13 +100,15 @@ export async function fetchDpcBulletin() {
     getJson(bulletin.today.topo_json),
     getJson(bulletin.tomorrow.topo_json),
   ])
+  const issueDate = new Date(`${stem.slice(0, 4)}-${stem.slice(4, 6)}-${stem.slice(6, 8)}T12:00`)
+  const nextDate = new Date(issueDate.getTime() + 24 * 3600 * 1000)
   const data = {
     fetchedAt: Date.now(),
     name: bulletin.name,
     stem,
     days: [
-      { label: 'Oggi', zones: extractZones(today) },
-      { label: 'Domani', zones: extractZones(tomorrow) },
+      { date: localDate(issueDate), zones: extractZones(today) },
+      { date: localDate(nextDate), zones: extractZones(tomorrow) },
     ],
   }
   try {
