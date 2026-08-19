@@ -432,38 +432,18 @@ export default function HailRisk({
         </div>
         {hazard.id === 'hail' ? (
           <>
-            <strong className="text-ink-sec">Come si legge.</strong> Open-Meteo non pubblica un diametro di grandine
-            previsto, quindi l&apos;indice è ricostruito dai parametri d&apos;ambiente con la formula{' '}
-            <strong>SHIP</strong> (Significant Hail Parameter, Storm Prediction Center): CAPE, rapporto di mescolanza,
-            gradiente termico 700–500 hPa, temperatura a 500 hPa, shear del vento 0–6 km e quota dello zero termico.
-            SHIP &gt; 1 indica ambiente favorevole a grandine oltre i 4 cm. Poiché SHIP descrive il potenziale e non
-            l&apos;innesco, l&apos;indice orario pesa SHIP con la convezione prevista. La <strong>probabilità</strong>{' '}
-            delle zone è invece l&apos;accordo fra tre modelli indipendenti (ECMWF, GFS, ICON): bassa = uno prevede
-            l&apos;innesco, media = due, alta = tutti e tre; &quot;solo ambiente&quot; = nessuno lo prevede — le
-            condizioni per la grandine ci sarebbero, manca il temporale che la produce. Questo valore va interpretato con maggiore cautela
-            rispetto a raffiche e accumuli. La sua funzione è indicativa solo per localizzazione e tempistica, meno per
-            l&apos;entità della grandine.
+            Il diametro è stimato dall&apos;indice <strong>SHIP</strong>, non un dato diretto del modello: va
+            interpretato con cautela, soprattutto sull&apos;entità del chicco. La probabilità è l&apos;accordo fra tre
+            modelli sull&apos;innesco.
           </>
         ) : hazard.id === 'wind' ? (
           <>
-            <strong className="text-ink-sec">Come si legge.</strong> A differenza della grandine, qui non si ricostruisce
-            niente: la raffica è <strong>output diretto del modello</strong> (`wind_gusts_10m`), quindi più affidabile.
-            Il valore è il massimo previsto nella giornata per ogni cella, dal modello a più alta risoluzione; la
-            probabilità è l&apos;accordo fra tre modelli su raffiche ≥ 60 km/h. La riga sotto distingue i due casi che
-            contano: raffica <em>nel temporale</em> — è un downburst, breve e localizzato — oppure vento di gradiente,
-            più costante e prevedibile. Sopra i 90 km/h si entra nel campo dei danni.
+            La raffica è <strong>output diretto del modello</strong>. Sopra i 90 km/h si entra nel campo dei danni.
           </>
         ) : (
           <>
-            <strong className="text-ink-sec">Come si legge.</strong> Anche qui il dato è{' '}
-            <strong>output diretto del modello</strong>, non una stima. Il numero grande è l&apos;accumulo totale sulla
-            finestra vista: è quello che allaga. La punta oraria accanto dice se arriva tutto insieme o distribuito —
-            30 mm in un&apos;ora sono un nubifragio, gli stessi 30 mm in dodici ore sono pioggia normale. La
-            probabilità delle zone è l&apos;accordo fra tre modelli su un accumulo giornaliero ≥ 10 mm. Le soglie del
-            colore sono sull&apos;accumulo, quelle del grafico orario sull&apos;intensità. Attenzione ai confronti: questi
-            mm sono <strong>medie d&apos;area</strong> della cella di griglia; nel cuore di un temporale il massimo
-            puntuale vale tipicamente 2–3 volte tanto. Un prodotto che mostra &quot;70 mm&quot; sulla traccia di una
-            cella e questa mappa che dice 30 stanno descrivendo lo stesso evento.
+            L&apos;accumulo è <strong>output diretto del modello</strong>, media sulla cella di griglia: il massimo
+            puntuale nel cuore di un temporale può valere 2–3 volte tanto.
           </>
         )}
       </div>
