@@ -6,7 +6,6 @@ import HourlyChart from './components/HourlyChart'
 import ModelCompare from './components/ModelCompare'
 import HailRisk from './components/HailRisk'
 import EnsemblePanel from './components/EnsemblePanel'
-import Favourites from './components/Favourites'
 import { Card, DayFilterBar, Message, Section } from './components/Ui'
 import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, fetchProbGrid, reverseGeocode } from './lib/api'
 import { DEFAULT_LOCATION, DEFAULT_MODELS, MAX_MODELS, MODELS } from './lib/constants'
@@ -16,7 +15,10 @@ import { DpcSource, useDpcAlert } from './components/DpcAlerts'
 import { fmtLong, fmtTime } from './lib/format'
 import { useHideOnScroll, useIsMobile, useLocalStorage, useModelRuns, useSmoothScroll, useTheme } from './lib/hooks'
 
-const sameSpot = (a, b) => a && b && a.latitude === b.latitude && a.longitude === b.longitude
+/* Vicinanza, non uguaglianza: la stessa città arriva con coordinate diverse
+   a seconda della strada (geocoding vs GPS) — 0,03° ≈ 3 km. */
+const sameSpot = (a, b) =>
+  a && b && Math.abs(a.latitude - b.latitude) < 0.03 && Math.abs(a.longitude - b.longitude) < 0.03
 
 /** Ora dell'ultimo scaricamento di una sezione: da PWA installata è l'unico
  *  segnale che il service worker sta servendo una risposta dalla cache. */
@@ -75,6 +77,16 @@ export default function App() {
   const [location, setLocation] = useLocalStorage('location', DEFAULT_LOCATION)
   const dpcAlert = useDpcAlert(location)
   const [favourites, setFavourites] = useLocalStorage('favourites', [])
+  const [recent, setRecent] = useLocalStorage('recent', [])
+
+  // Cronologia: ogni località visitata, ultima in testa, senza doppioni vicini.
+  useEffect(() => {
+    setRecent((prev) => {
+      const { name, latitude, longitude, admin1, country, country_code } = location
+      const entry = { name, latitude, longitude, admin1, country, country_code }
+      return [entry, ...prev.filter((r) => !sameSpot(r, entry))].slice(0, 8)
+    })
+  }, [location, setRecent])
   const [selected, setSelected] = useLocalStorage('models', DEFAULT_MODELS)
   const [varId, setVarId] = useLocalStorage('variable', 'temperature_2m')
   const [span, setSpan] = useLocalStorage('span', 7)
@@ -280,6 +292,10 @@ export default function App() {
         onToggleTheme={toggleTheme}
         onPick={setLocation}
         onLocate={locate}
+        favourites={favourites}
+        recent={recent}
+        onRemoveFavourite={(f) => setFavourites((prev) => prev.filter((x) => !sameSpot(x, f)))}
+        onClearRecent={() => setRecent([])}
         updatedAt={updatedAt}
         dataLoading={!forecast || comparisonLoading}
         /* hailError escluso di proposito: la sezione grandine ha già il suo
@@ -306,12 +322,6 @@ export default function App() {
           )}
           <DpcSource alert={dpcAlert} />
         </div>
-
-        <Favourites
-          items={favourites}
-          onSelect={setLocation}
-          onRemove={(f) => setFavourites((prev) => prev.filter((x) => !sameSpot(x, f)))}
-        />
 
         <Section
           title="Previsione 14 giorni"

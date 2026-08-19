@@ -1,4 +1,5 @@
 import SearchBox from './SearchBox'
+import PlacesMenu from './PlacesMenu'
 import FreshnessLed from './FreshnessLed'
 import { IconButton } from './Ui'
 
@@ -16,6 +17,10 @@ export default function TopBar({
   onToggleTheme,
   onPick,
   onLocate,
+  favourites,
+  recent,
+  onRemoveFavourite,
+  onClearRecent,
   updatedAt,
   dataLoading,
   dataError,
@@ -37,8 +42,15 @@ export default function TopBar({
           <span className="hidden sm:inline">AtmoLab</span>
         </div>
 
-        <div className="order-3 flex w-full min-w-0 sm:order-2 sm:w-auto sm:flex-1">
+        <div className="relative order-3 flex w-full min-w-0 sm:order-2 sm:w-auto sm:max-w-[440px] sm:flex-1">
           <SearchBox onPick={onPick} />
+          <PlacesMenu
+            favourites={favourites}
+            recent={recent}
+            onPick={onPick}
+            onRemoveFavourite={onRemoveFavourite}
+            onClearRecent={onClearRecent}
+          />
         </div>
 
         {/* order: su mobile le azioni restano accanto al brand e la ricerca
