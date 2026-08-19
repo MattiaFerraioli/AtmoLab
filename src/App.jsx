@@ -103,7 +103,7 @@ export default function App() {
   const [selectedDay, setSelectedDay] = useState(null)
   const runs = useModelRuns()
 
-  const [hailGrid, setHailGrid] = useLocalStorage('hailGrid', 'region')
+  const [hailGrid, setHailGrid] = useLocalStorage('hailGrid', 'local')
   const [hailDayOffset, setHailDayOffset] = useLocalStorage('hailDayOffset', 0)
   const [hazardId, setHazardId] = useLocalStorage('hazard', 'hail')
   const [hailCells, setHailCells] = useState(null)

@@ -157,6 +157,14 @@ modello mantiene il proprio colore anche quando gli altri vengono tolti.
 Un selettore commuta fra **Grandine**, **Vento** e **Pioggia**: cambia il numero che si guarda,
 non i dati scaricati — gli stessi 15 parametri per 49 celle servono tutti e tre.
 
+**Griglie** (7×7 punti, valori letti da `GRIDS` in `hail.js` — non andare a memoria):
+- **Locale**: passo 0,35° (~39 km fra punti), lato ≈ 230 km — default al primo avvio, è il
+  riferimento per i numeri;
+- **Regionale**: passo 0,7°, lato ≈ 460 km;
+- **Ampia**: passo 1,4°, lato ≈ 930 km — da gran parte del Nord Italia sborda dal bbox ICON-2I
+  (verificato da Verona: lat max 49,64 > 48,8) e quindi cade quasi sempre nel blend, anche per
+  "Oggi": la UI lo dice con una nota accanto al selettore.
+
 | Pericolo | Metrica di colore | Valore mostrato | Soglie |
 | --- | --- | --- | --- |
 | Grandine | rischio combinato ambiente × innesco | diametro (<1 / 1–2 / 2–4 / >4 cm) + coda "fino a" | 0,05 / 0,2 / 0,5 / 1 |

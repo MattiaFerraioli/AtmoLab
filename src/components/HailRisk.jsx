@@ -174,6 +174,9 @@ export default function HailRisk({
           value={grid}
           onChange={onGridChange}
         />
+        {!hiRes && grid !== 'local' && (
+          <span className="text-[11.5px] text-ink-muted">griglia {grid === 'wide' ? 'ampia' : 'regionale'}: modello meno dettagliato</span>
+        )}
         {dayLocked ? (
           <span className="rounded-xl border border-accent/45 bg-accent/10 px-3 py-2 text-[13px] font-semibold text-ink">
             {new Date(`${targetDay}T12:00`).toLocaleDateString('it-IT', {
@@ -425,7 +428,7 @@ export default function HailRisk({
       <div className="border-t border-hair p-4 text-[12.5px] leading-relaxed text-ink-muted">
         <div className="mb-2">
           Griglia {GRID_SIDE}×{GRID_SIDE} · lato {GRIDS.find((g) => g.id === grid)?.span} ·{' '}
-          {hiRes ? 'modello ICON-2I a 2,2 km' : 'blend multi-modello'}
+          {hiRes ? 'modello ICON-2I a 2,2 km' : 'blend multi-modello, più liscio: i picchi si attenuano'}
         </div>
         {hazard.id === 'hail' ? (
           <>
