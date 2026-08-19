@@ -6,13 +6,40 @@ const GEOCODE = 'https://geocoding-api.open-meteo.com/v1/search'
 const AIRQUALITY = 'https://air-quality-api.open-meteo.com/v1/air-quality'
 const REVERSE = 'https://api.bigdatacloud.net/data/reverse-geocode-client'
 
+const sleep = (ms, signal) =>
+  new Promise((resolve, reject) => {
+    const t = setTimeout(resolve, ms)
+    signal?.addEventListener(
+      'abort',
+      () => {
+        clearTimeout(t)
+        reject(new DOMException('Aborted', 'AbortError'))
+      },
+      { once: true },
+    )
+  })
+
+/* La quota di Open-Meteo è anche AL MINUTO: la griglia 49 punti × 15
+   variabili la può esaurire da sola. Il limite si azzera al minuto dopo,
+   quindi si riprova da soli invece di mostrare subito l'errore. */
+const RETRY_DELAYS = [20_000, 45_000]
+
 async function getJSON(url, signal) {
-  const res = await fetch(url, { signal })
-  const json = await res.json()
-  // Open-Meteo restituisce 400 con {error:true, reason:"…"} — il reason è l'informazione utile.
-  if (json && json.error) throw new Error(json.reason || 'Errore API')
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return json
+  for (let attempt = 0; ; attempt += 1) {
+    const res = await fetch(url, { signal })
+    const json = await res.json()
+    // Open-Meteo restituisce 400 con {error:true, reason:"…"} — il reason è l'informazione utile.
+    if (json && json.error) {
+      const reason = json.reason || 'Errore API'
+      if (/minutely api request limit/i.test(reason) && attempt < RETRY_DELAYS.length) {
+        await sleep(RETRY_DELAYS[attempt], signal)
+        continue
+      }
+      throw new Error(reason)
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return json
+  }
 }
 
 /** Dashboard classica: condizioni attuali, 48h orarie, 14 giorni. */

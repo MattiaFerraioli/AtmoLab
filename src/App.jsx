@@ -215,24 +215,29 @@ export default function App() {
     setHailLoading(true)
     setHailError(null)
     const tz = forecast?.timezone ?? location.timezone
+    setHailAgreement(null)
     fetchHailGrid(points, hailDays, tz, hiRes ? ICON2I_MODEL : null, ctrl.signal)
       .then((results) => {
         setHailCells(summariseCells(results, points))
         setHailUpdatedAt(Date.now())
         setHailLoading(false)
+        /* Accordo fra modelli DOPO i valori, non insieme: due griglie in
+           parallelo esauriscono la quota al minuto. Se fallisce si perde
+           solo la probabilità, i valori restano — errore non fatale. */
+        return fetchProbGrid(points, hailDays, tz, ctrl.signal)
+          .then((agg) => setHailAgreement(agreementCells(agg)))
+          .catch(() => setHailAgreement(null))
       })
       .catch((e) => {
         if (e.name === 'AbortError') return
         setHailCells(null)
-        setHailError(e.message)
+        setHailError(
+          /minutely api request limit/i.test(e.message)
+            ? 'quota API al minuto esaurita — riprova fra un minuto'
+            : e.message,
+        )
         setHailLoading(false)
       })
-    /* Accordo fra modelli, in parallelo: se fallisce si perde solo la
-       probabilità, i valori restano — quindi errore non fatale. */
-    setHailAgreement(null)
-    fetchProbGrid(points, hailDays, tz, ctrl.signal)
-      .then((results) => setHailAgreement(agreementCells(results)))
-      .catch(() => setHailAgreement(null))
     return () => ctrl.abort()
   }, [location, hailGrid, hailDays, hailDayOutOfRange, hailEnabled, forecast?.timezone, reloadKey])
 
