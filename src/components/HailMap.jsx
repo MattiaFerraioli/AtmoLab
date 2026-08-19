@@ -117,7 +117,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
             <Tooltip sticky>
               <div className="text-[12px] leading-snug">
                 <strong>
-                  {hazard.label} · {SEVERITY_LABELS[c.severity]}
+                  {hazard.label} · rischio {SEVERITY_LABELS[c.severity].toLowerCase()}
                 </strong>
                 <br />
                 {c.metric.badge} · {c.metric.detail}
