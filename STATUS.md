@@ -1,6 +1,6 @@
 # AtmoLab — stato del progetto
 
-Aggiornato: 19 agosto 2026
+Aggiornato: 26 agosto 2026
 
 PWA meteo che confronta i modelli previsionali (ECMWF, GFS, ICON, ARPEGE/AROME, ICON-2I),
 con una sezione dedicata al rischio grandine/vento/pioggia a livello di cella, un ramo
@@ -15,7 +15,7 @@ backend: tutto gira nel browser, dati da API pubbliche gratuite (Open-Meteo + op
 - **Dashboard classica**: condizioni attuali, 48 ore orarie, 14 giorni, qualità dell'aria.
 - **Confronto modelli**: stessa località, curve sovrapposte per 6 modelli, mediana + banda
   min–max, tabella oraria, stato di aggiornamento/validità di ogni corsa.
-- **Rischio temporali**: griglia 7×7 attorno alla località (locale/regionale/ampia), tre
+- **Rischio temporali**: griglia 7×7 attorno alla località (lato ≈ 230 km), tre
   pericoli (grandine con diametro stimato via indice SHIP, raffiche, accumuli), zone colorate
   su mappa con contorni smussati, probabilità come accordo fra tre modelli deterministici.
   Tab **Previsionale** (i dati sopra) / **Sperimentale** (31 membri ensemble GFS + incrocio
@@ -49,7 +49,13 @@ Documentazione tecnica completa, con ogni scelta motivata e ogni misura annotata
   ora per vicinanza, non uguaglianza esatta delle coordinate).
 - Scroll con inerzia (Lenis), rispettando mappe e strisce orizzontali.
 - Sweep di copywriting: maiuscole a inizio frase ovunque, spiegoni tecnici ridotti a una riga.
-- **Bug corretto ieri**: gli aggiornamenti della PWA installata non arrivavano mai da soli.
+- **Griglia unica (26 ago)**: rimosse le estensioni regionale (0,7°) e ampia (1,4°), resta
+  solo la locale (0,35°). A quei passi i punti stavano a ~78 e ~155 km mentre una cella
+  temporalesca è larga 5–30 km: un sondaggio spalmato su un'area molte volte più grande del
+  fenomeno, sempre fuori dal dominio ICON-2I quindi sul blend che attenua i picchi, e ogni
+  cambio di passo era un altro fetch da 49 punti sulla quota. La locale era già il default,
+  quindi per la maggior parte degli utenti cambia solo che sparisce il selettore.
+- **Bug corretto il 19 ago**: gli aggiornamenti della PWA installata non arrivavano mai da soli.
   Il service worker era configurato bene, ma nessuno lo ricontrollava mai dopo la prima
   registrazione — una PWA ripresa dallo sfondo (non una vera navigazione di rete) restava
   bloccata sulla build vecchia anche per giorni. Ora c'è un controllo orario + uno al ritorno
@@ -61,9 +67,10 @@ Documentazione tecnica completa, con ogni scelta motivata e ogni misura annotata
   (non più in parallelo) per la griglia, ma sotto uso intenso può ancora capitare un errore.
 - **Grandine è una stima**, non un dato diretto: indice SHIP da parametri d'ambiente, non un
   diametro pubblicato dal modello. Dichiarato in UI.
-- **Griglia ampia** esce quasi sempre dal dominio ad alta risoluzione ICON-2I (bbox fisso,
-  mai da estendere: fuori dominio l'API risponde `latitude: nan`, JSON non valido) → usa il
-  blend multi-modello, più liscio. La UI lo segnala.
+- **Anche la griglia locale può uscire** dal dominio ad alta risoluzione ICON-2I (bbox fisso,
+  mai da estendere: fuori dominio l'API risponde `latitude: nan`, JSON non valido): succede
+  su Sicilia meridionale e bordo alpino, e allora si passa al blend multi-modello, più liscio.
+  La riga di piè di sezione dice quale modello sta rispondendo.
 - **Allerte DPC**: match per nome Comune, non per geometria — frazioni o nomi non standard
   possono non trovare la zona (la sezione allora non compare, niente dato inventato).
 - **Ensemble limitato a GFS 0,5°**: unico modello con livelli in quota per membro. Bias di

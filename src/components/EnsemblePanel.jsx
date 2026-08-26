@@ -5,7 +5,7 @@ import { Card, Message, Segmented, Skeleton } from './Ui'
 import { fetchEnsembleGrid, fetchEnsemblePoint, fetchObserved } from '../lib/api'
 import { ENSEMBLE_MAP_METRICS, ENSEMBLE_METRICS, crossVerdicts, ensembleFractions, ensembleGridCells, fractionStep } from '../lib/ensemble'
 import { recordObserved, recordSnapshot, snapshotsFor } from '../lib/history'
-import { GRID_SIDE, GRIDS, buildGrid } from '../lib/hail'
+import { GRID_SIDE, HAIL_GRID, buildGrid } from '../lib/hail'
 import { SEVERITY_COLORS } from '../lib/hazards'
 import { fmtDayHour, nf } from '../lib/format'
 import { useIsMobile } from '../lib/hooks'
@@ -166,7 +166,7 @@ const FRACTION_LEGEND = [
  * deterministica (buildZones via HailMap): cambia solo la grandezza — qui il
  * valore È già una probabilità, quindi niente tratto/etichetta "prob.".
  */
-function EnsembleMap({ location, timezone, gridId, palette, theme }) {
+function EnsembleMap({ location, timezone, palette, theme }) {
   const [enabled, setEnabled] = useState(false)
   const [cells, setCells] = useState(null)
   const [error, setError] = useState(null)
@@ -182,15 +182,14 @@ function EnsembleMap({ location, timezone, gridId, palette, theme }) {
   useEffect(() => {
     if (!enabled) return undefined
     const ctrl = new AbortController()
-    const step = GRIDS.find((g) => g.id === gridId)?.step ?? 0.7
-    const points = buildGrid(location, step)
+    const points = buildGrid(location, HAIL_GRID.step)
     fetchEnsembleGrid(points, 2, timezone, ctrl.signal)
       .then((results) => setCells(ensembleGridCells(results, points)))
       .catch((e) => {
         if (e.name !== 'AbortError') setError(e.message)
       })
     return () => ctrl.abort()
-  }, [enabled, location, timezone, gridId])
+  }, [enabled, location, timezone])
 
   const metric = ENSEMBLE_MAP_METRICS.find((m) => m.id === metricId) ?? ENSEMBLE_MAP_METRICS[0]
 
@@ -237,7 +236,7 @@ function EnsembleMap({ location, timezone, gridId, palette, theme }) {
     })
   }, [cells, metricId, dayOffset])
 
-  const step = GRIDS.find((g) => g.id === gridId)?.step ?? 0.7
+  const step = HAIL_GRID.step
 
   if (!enabled)
     return (
@@ -307,7 +306,7 @@ function EnsembleMap({ location, timezone, gridId, palette, theme }) {
   )
 }
 
-export default function EnsemblePanel({ location, timezone, detSnapshot, detCells, targetDay, gridId, palette, theme }) {
+export default function EnsemblePanel({ location, timezone, detSnapshot, detCells, targetDay, palette, theme }) {
   const [enabled, setEnabled] = useState(false)
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
@@ -426,7 +425,7 @@ export default function EnsemblePanel({ location, timezone, detSnapshot, detCell
         ))}
       </div>
 
-      <EnsembleMap location={location} timezone={timezone} gridId={gridId} palette={palette} theme={theme} />
+      <EnsembleMap location={location} timezone={timezone} palette={palette} theme={theme} />
 
       <div className="mt-4 border-t border-hair pt-3">
         <div className="mb-1.5 text-[12px] font-semibold uppercase tracking-[0.06em] text-ink-muted">

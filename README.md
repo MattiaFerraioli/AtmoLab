@@ -87,8 +87,8 @@ Cose da sapere:
 - **Stato dei modelli** — per ciascun modello: corsa in uso, quando è stata pubblicata, ogni quanto
   si aggiorna, fin dove arriva e cosa serve davvero in quella località. I modelli che non
   raggiungono il giorno visualizzato compaiono spenti e senza linea, invece di sparire in silenzio.
-- **Rischio grandine** — griglia 7×7 di punti attorno alla località (passo selezionabile:
-  ≈230 / 460 / 930 km di lato), con mappa a celle colorate, classifica delle zone più a rischio
+- **Rischio grandine** — griglia 7×7 di punti attorno alla località (lato ≈ 230 km), con mappa
+  a celle colorate, classifica delle zone più a rischio
   espresse come distanza e direzione dalla località, diametro stimato dei chicchi e andamento
   orario della cella scelta. Si guarda **un giorno alla volta** — oggi, domani o dopodomani, oppure
   il giorno scelto nella striscia dei 14 giorni. Su oggi le ore già passate sono escluse.
@@ -165,13 +165,18 @@ modello mantiene il proprio colore anche quando gli altri vengono tolti.
 Un selettore commuta fra **Grandine**, **Vento** e **Pioggia**: cambia il numero che si guarda,
 non i dati scaricati — gli stessi 15 parametri per 49 celle servono tutti e tre.
 
-**Griglie** (7×7 punti, valori letti da `GRIDS` in `hail.js` — non andare a memoria):
-- **Locale**: passo 0,35° (~39 km fra punti), lato ≈ 230 km — default al primo avvio, è il
-  riferimento per i numeri;
-- **Regionale**: passo 0,7°, lato ≈ 460 km;
-- **Ampia**: passo 1,4°, lato ≈ 930 km — da gran parte del Nord Italia sborda dal bbox ICON-2I
-  (verificato da Verona: lat max 49,64 > 48,8) e quindi cade quasi sempre nel blend, anche per
-  "Oggi": la UI lo dice con una nota accanto al selettore.
+**Griglia** — una sola, 7×7 punti, valori letti da `HAIL_GRID` in `hail.js` (non andare a
+memoria): passo 0,35°, ~39 km fra un punto e l'altro, lato ≈ 230 km.
+
+Il selettore locale/regionale/ampia è stato rimosso, e non è un taglio di comodo. Una cella
+temporalesca è larga 5–30 km: a passo 0,7° i punti stanno a ~78 km, a 1,4° a ~155 km, quindi
+ogni box colorato era un singolo sondaggio esteso a un'area molte volte più grande del fenomeno
+— la cella la mancavi quasi sempre, e quando la prendevi la spalmavi su mezza regione. In più
+entrambe sbordavano dal bbox ICON-2I (verificato da Verona sulla griglia ampia: lat max 49,64 >
+48,8), quindi cadevano sul blend che attenua i picchi: la vista che promette più copertura era
+quella col dato peggiore. E ogni cambio di passo era un altro fetch da 49 punti × 14 variabili
+sulla quota, cioè il limite vero del progetto. I 230 km di lato bastano come contesto: a
+40 km/h sono oltre 5 ore di anticipo sul sistema che arriva.
 
 | Pericolo | Metrica di colore | Valore mostrato | Soglie |
 | --- | --- | --- | --- |
@@ -181,8 +186,9 @@ non i dati scaricati — gli stessi 15 parametri per 49 celle servono tutti e tr
 
 **Sorgente della griglia**: dentro il dominio ICON-2I (bbox conservativo lat 35–48,8 / lon
 4,5–20,5) ed entro 48 ore, la griglia usa il modello a 2,2 km — CAPE, raffiche e pioggia risolti
-alla scala della cella. Fuori, o oltre, si torna al blend best-match. L'etichetta nei controlli
-dice quale dei due sta rispondendo. Attenzione a estendere il bbox: un punto fuori dominio fa
+alla scala della cella. Fuori, o oltre, si torna al blend best-match — la griglia locale ci sta
+dentro quasi sempre, ma non per forza (Sicilia meridionale, bordo alpino). La riga di piè di
+sezione dice quale dei due sta rispondendo. Attenzione a estendere il bbox: un punto fuori dominio fa
 rispondere all'API `latitude: nan`, che non è JSON valido e rompe il parse.
 
 **Rotazione**: badge "rotaz." (viola) quando una cella ha CAPE ≥ 1000 J/kg e shear 0–6 km

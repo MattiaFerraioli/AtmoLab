@@ -37,12 +37,17 @@ export const HAIL_VARS = [
   'wind_gusts_10m',
 ]
 
-/** Griglie: sempre 7×7 = 49 punti, cambia solo il passo (costo API costante). */
-export const GRIDS = [
-  { id: 'local', label: 'Locale', step: 0.35, span: '≈ 230 km' },
-  { id: 'region', label: 'Regionale', step: 0.7, span: '≈ 460 km' },
-  { id: 'wide', label: 'Ampia', step: 1.4, span: '≈ 930 km' },
-]
+/**
+ * Griglia unica: 7×7 = 49 punti, passo 0,35° (~39 km fra un punto e l'altro).
+ * Le vecchie griglie regionale (0,7°) e ampia (1,4°) distanziavano i punti di
+ * ~78 e ~155 km, mentre una cella temporalesca è larga 5–30 km: un singolo
+ * sondaggio veniva esteso a un'area molte volte più grande del fenomeno, e
+ * sempre fuori dal dominio ICON-2I, quindi sul blend che attenua i picchi.
+ * Più area, meno informazione — e ogni cambio di passo era un altro fetch da
+ * 49 punti sulla quota. Resta il passo che campiona la convezione alla sua
+ * scala, ed è anche l'unico che sta dentro l'alta risoluzione.
+ */
+export const HAIL_GRID = { step: 0.35, span: '≈ 230 km' }
 export const GRID_SIDE = 7
 
 /**

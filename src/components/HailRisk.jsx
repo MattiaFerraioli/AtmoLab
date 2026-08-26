@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import HailMap from './HailMap'
 import { Card, Message, Segmented, Skeleton } from './Ui'
-import { GRIDS, GRID_SIDE, HAIL_DAYS, buildNarrative, capeBand, hailSize, hasRotationPotential, peakOf, steeringOf } from '../lib/hail'
+import { GRID_SIDE, HAIL_DAYS, HAIL_GRID, buildNarrative, capeBand, hailSize, hasRotationPotential, peakOf, steeringOf } from '../lib/hail'
 import { HAZARDS, SEVERITY_COLORS, SEVERITY_LABELS, applyHazard, hailZoneStep, hazardById, severityOf, zoneSpecOf } from '../lib/hazards'
 import { AGREEMENT_COUNT, cellFraction, fractionText } from '../lib/agreement'
 import { fmtDayHour, nf, relativePosition } from '../lib/format'
@@ -61,8 +61,6 @@ export default function HailRisk({
   cells: rawCells,
   loading,
   error,
-  grid,
-  onGridChange,
   targetDay,
   dayOffset,
   onDayOffsetChange,
@@ -77,10 +75,10 @@ export default function HailRisk({
 }) {
   const [selected, setSelected] = useState(null)
   const isMobile = useIsMobile()
-  const step = GRIDS.find((g) => g.id === grid)?.step ?? 0.7
+  const step = HAIL_GRID.step
 
-  // Cambiando località, griglia o giorno, il dettaglio torna sulla cella centrale.
-  useEffect(() => setSelected(null), [location, grid, targetDay])
+  // Cambiando località o giorno, il dettaglio torna sulla cella centrale.
+  useEffect(() => setSelected(null), [location, targetDay])
 
   /* La sezione guarda sempre un giorno solo, e su oggi scarta le ore già
      passate: un picco alle 04:00 di stamattina non è una previsione. */
@@ -168,15 +166,6 @@ export default function HailRisk({
           value={hazardId}
           onChange={onHazardChange}
         />
-        <Segmented
-          ariaLabel="Estensione dell'area analizzata"
-          options={GRIDS.map((g) => ({ value: g.id, label: g.label }))}
-          value={grid}
-          onChange={onGridChange}
-        />
-        {!hiRes && grid !== 'local' && (
-          <span className="text-[11.5px] text-ink-muted">griglia {grid === 'wide' ? 'ampia' : 'regionale'}: modello meno dettagliato</span>
-        )}
         {dayLocked ? (
           <span className="rounded-xl border border-accent/45 bg-accent/10 px-3 py-2 text-[13px] font-semibold text-ink">
             {new Date(`${targetDay}T12:00`).toLocaleDateString('it-IT', {
@@ -427,7 +416,7 @@ export default function HailRisk({
 
       <div className="border-t border-hair p-4 text-[12.5px] leading-relaxed text-ink-muted">
         <div className="mb-2">
-          Griglia {GRID_SIDE}×{GRID_SIDE} · lato {GRIDS.find((g) => g.id === grid)?.span} ·{' '}
+          Griglia {GRID_SIDE}×{GRID_SIDE} · lato {HAIL_GRID.span} ·{' '}
           {hiRes ? 'modello ICON-2I a 2,2 km' : 'blend multi-modello, più liscio: i picchi si attenuano'}
         </div>
         {hazard.id === 'hail' ? (

@@ -9,7 +9,7 @@ import EnsemblePanel from './components/EnsemblePanel'
 import { Card, DayFilterBar, Message, Section, Segmented } from './components/Ui'
 import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, fetchProbGrid, reverseGeocode } from './lib/api'
 import { DEFAULT_LOCATION, DEFAULT_MODELS, MAX_MODELS, MODELS } from './lib/constants'
-import { GRIDS, GRID_SIDE, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, summariseCells } from './lib/hail'
+import { HAIL_GRID, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, summariseCells } from './lib/hail'
 import { agreementCells } from './lib/agreement'
 import { useDpcAlert } from './components/DpcAlerts'
 import { fmtLong, fmtTime } from './lib/format'
@@ -103,7 +103,6 @@ export default function App() {
   const [selectedDay, setSelectedDay] = useState(null)
   const runs = useModelRuns()
 
-  const [hailGrid, setHailGrid] = useLocalStorage('hailGrid', 'local')
   const [hailDayOffset, setHailDayOffset] = useLocalStorage('hailDayOffset', 0)
   const [hazardId, setHazardId] = useLocalStorage('hazard', 'hail')
   const [hailCells, setHailCells] = useState(null)
@@ -206,8 +205,7 @@ export default function App() {
   useEffect(() => {
     if (!hailEnabled || hailDayOutOfRange) return undefined
     const ctrl = new AbortController()
-    const step = GRIDS.find((g) => g.id === hailGrid)?.step ?? 0.7
-    const points = buildGrid(location, step)
+    const points = buildGrid(location, HAIL_GRID.step)
     /* Dentro il dominio ICON-2I ed entro 48 h la griglia usa il modello a
        2,2 km: CAPE, raffiche e pioggia risolti alla scala della cella invece
        che lisciati dal blend globale. Fuori, o oltre, si torna al best-match. */
@@ -240,7 +238,7 @@ export default function App() {
         setHailLoading(false)
       })
     return () => ctrl.abort()
-  }, [location, hailGrid, hailDays, hailDayOutOfRange, hailEnabled, forecast?.timezone, reloadKey])
+  }, [location, hailDays, hailDayOutOfRange, hailEnabled, forecast?.timezone, reloadKey])
 
   // Cambiare località azzera il filtro giorno: le date restano valide ma il
   // contesto no, e un filtro invisibile in cima alla pagina confonde.
@@ -398,7 +396,6 @@ export default function App() {
               detSnapshot={detSnapshot}
               detCells={hailCells}
               targetDay={hailTargetDay}
-              gridId={hailGrid}
               palette={palette}
               theme={theme}
             />
@@ -420,8 +417,6 @@ export default function App() {
               cells={hailCells}
               loading={hailLoading}
               error={hailError}
-              grid={hailGrid}
-              onGridChange={setHailGrid}
               targetDay={hailTargetDay}
               dayOffset={hailOffset}
               onDayOffsetChange={setHailDayOffset}
