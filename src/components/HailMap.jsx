@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import L from 'leaflet'
 import { MapContainer, Marker, Polygon, Polyline, Rectangle, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -15,6 +15,8 @@ import { fmtDayHour, nf, windDir } from '../lib/format'
 import { SEVERITY_COLORS, SEVERITY_LABELS, zoneSpecOf } from '../lib/hazards'
 import { AGREEMENT_COUNT, fractionText } from '../lib/agreement'
 import { FIELD_PAD, buildZones } from '../lib/zones'
+import { DragControl, LockOverlay } from './MapLock'
+import { useIsTouch } from '../lib/hooks'
 
 /**
  * Sfondo della mappa. OpenFreeMap serve tile VETTORIALI, non raster: il
@@ -80,19 +82,33 @@ function VectorBase({ styleUrl }) {
 }
 
 /**
- * La griglia cambia estensione con il preset: la vista deve seguirla.
- * invalidateSize() prima del fit, altrimenti al primo montaggio il container
- * ha ancora dimensione zero e fitBounds calcola uno zoom sbagliato.
+ * Inquadra l'area analizzata e ci costruisce attorno un recinto.
+ *
+ * `invalidateSize()` prima del fit, altrimenti al primo montaggio il
+ * contenitore ha ancora dimensione zero e `fitBounds` calcola uno zoom
+ * sbagliato.
+ *
+ * Poi due limiti: lo zoom di partenza diventa il MINIMO, così non si può
+ * allargare oltre l'area calcolata, e `maxBounds` impedisce di trascinare
+ * fuori. Si ingrandisce e si gira dentro il quadrato, non se ne esce: là
+ * fuori non ci sono dati, e prenderne costerebbe ~130 chiamate pesate a tile.
+ *
+ * Il minimo va azzerato PRIMA di ogni nuovo fit: al ridimensionamento del
+ * riquadro serve uno zoom diverso, e col vecchio minimo ancora in vigore
+ * `fitBounds` non potrebbe scendere.
  */
-function FitToCells({ bounds }) {
+function FitAndFence({ bounds }) {
   const map = useMap()
   useEffect(() => {
     if (!bounds) return
     const fit = () => {
       map.invalidateSize({ animate: false })
+      map.setMinZoom(0)
       /* Nessun margine: il contenitore ha ormai la forma esatta dell'area, e
          un padding rimetterebbe le fasce vuote che si volevano togliere. */
       map.fitBounds(bounds, { padding: [0, 0], animate: false })
+      map.setMinZoom(map.getZoom())
+      map.setMaxBounds(bounds)
     }
     fit()
     const observer = new ResizeObserver(fit)
@@ -120,6 +136,11 @@ function valueIcon(text, color, prob) {
 }
 
 export default function HailMap({ cells, step, origin, palette, theme, steering, hazard, onSelectCell }) {
+  const isTouch = useIsTouch()
+  const [unlocked, setUnlocked] = useState(false)
+  /* Su touch il trascinamento di Leaflet cattura lo scorrimento della pagina:
+     la mappa nasce ferma e si attiva con un tocco. Su mouse non serve. */
+  const locked = isTouch && !unlocked
   const half = step / 2
 
   const bounds = useMemo(() => {
@@ -188,24 +209,19 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
         /* Zoom continuo: con lo scatto agli interi il fitBounds inquadrava
            fino al doppio dell'area dei dati, lasciando margini vuoti larghi. */
         zoomSnap={0}
-        /* Mappa FERMA, di proposito. Ha esattamente l'estensione dei dati —
-           230 km di lato — e fuori di lì non c'è niente da mostrare: lasciar
-           trascinare invitava a guardare aree non analizzate, e caricarle
-           costa ~130 chiamate pesate l'una sulla quota. Chi vuole un'altra
-           zona la cerca, ed è anche più chiaro. Niente trascinamento, niente
-           zoom, nessun controllo: sparisce pure lo sblocco al tocco, che
-           serviva solo a non rubare lo scorrimento della pagina. */
-        dragging={false}
+        /* Si può guardare più da vicino, non più da lontano: il minimo è lo
+           zoom che inquadra l'area e `maxBounds` tiene il trascinamento dentro
+           il quadrato (li imposta FitAndFence). La viscosità piena rende il
+           bordo un muro invece che un elastico. La rotellina resta esclusa:
+           sopra una mappa alta mezzo schermo ruberebbe lo scorrimento. */
+        maxBoundsViscosity={1}
         scrollWheelZoom={false}
-        doubleClickZoom={false}
-        touchZoom={false}
         boxZoom={false}
-        keyboard={false}
-        zoomControl={false}
         style={{ height: '100%', width: '100%' }}
       >
         <VectorBase key={theme} styleUrl={palette.mapStyle} />
-        <FitToCells bounds={bounds} />
+        <FitAndFence bounds={bounds} />
+        <DragControl enabled={!locked} />
 
         {/* Riempimento e contorno viaggiano separati: il poligono porta solo
             il colore, il tratto lo portano le spezzate, che saltano i pezzi
@@ -307,6 +323,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
         )}
       </MapContainer>
 
+      {locked && <LockOverlay onUnlock={() => setUnlocked(true)} />}
       {steering?.towardsDeg != null && (
         <div
           className="absolute right-2 top-2 z-[500] flex items-center gap-1.5 rounded-full border border-hair bg-surface/70 px-2.5 py-1.5 text-[11.5px] font-semibold text-ink backdrop-blur-md"

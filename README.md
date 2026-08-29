@@ -162,11 +162,13 @@ Verificato a 390 px. Le scelte che il CSS da solo non copriva:
   più alto che largo (1,41 a 45°), quindi con un riquadro di forma diversa `fitBounds` lasciava
   due fasce vuote ai lati, piene di territorio non analizzato. Ora i due combaciano e il
   `fitBounds` va senza padding.
-- La mappa dei temporali è **ferma**: niente trascinamento, niente zoom, nessun controllo.
-  Inquadra esattamente l'area analizzata e fuori di lì non ci sono dati — lasciar trascinare
-  invitava a guardare aree vuote, e caricarle costerebbe ~130 chiamate pesate l'una. Chi vuole
-  un'altra zona la cerca. Come effetto collaterale sparisce anche il problema del dito sulla
-  mappa che blocca lo scorrimento della pagina, che prima richiedeva uno sblocco al tocco.
+- La mappa dei temporali sta **dentro un recinto**: si può ingrandire e girare nell'area
+  analizzata, non allargare oltre né uscirne. Lo zoom di partenza diventa il minimo
+  (`setMinZoom`) e `maxBounds` con viscosità piena fa da muro (`FitAndFence` in `HailMap.jsx`).
+  Fuori da lì non ci sono dati, e prenderne costerebbe ~130 chiamate pesate a tile: chi vuole
+  un'altra zona la cerca. La rotellina resta esclusa, sopra una mappa alta mezzo schermo
+  ruberebbe lo scorrimento della pagina; su touch vale lo stesso discorso, quindi la mappa nasce
+  ferma e si attiva con un tocco (`MapLock`).
 - Assi Recharts più stretti e `minTickGap` al posto di un `interval` fisso, che sotto i 420 px
   sovrapponeva le etichette.
 - **Safe area**: il viewport è `viewport-fit=cover`, quindi da PWA installata il contenuto passa
