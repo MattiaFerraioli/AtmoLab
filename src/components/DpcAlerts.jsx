@@ -88,47 +88,52 @@ export function DpcAlertBand({ alert }) {
   const [showMap, setShowMap] = useState(false)
   if (!alert) return null
   return (
-    <div
-      title={`Allerta valida per l'intera zona ${alert.zoneName}`}
-      className="relative z-[1] mx-4 mb-4 flex w-fit max-w-full items-start gap-2 rounded-2xl border border-white/12 bg-black/20 px-3.5 py-2.5 pr-2 text-[13px] sm:mx-6 sm:mb-5"
-    >
-      {alert.hasAlerts ? (
+    <div className="relative z-[1] mx-4 mb-4 w-fit max-w-full rounded-2xl border border-white/12 bg-black/20 px-3.5 py-2.5 pr-2 text-[13px] sm:mx-6 sm:mb-5">
+      <div className="flex items-start gap-2">
         <div className="grid gap-2 py-0.5">
-          {alert.days
-            .filter((d) => d.risks.length > 0)
-            .map((d) => (
-              <div key={d.label} className="flex flex-wrap items-center gap-2">
-                <span className="text-[13px] font-semibold">Allerte {d.label.toLowerCase()}</span>
-                {d.risks.map((r) => (
-                  <RiskChip key={r.key} label={r.label} level={r.level} />
-                ))}
-              </div>
-            ))}
+          {alert.hasAlerts ? (
+            alert.days
+              .filter((d) => d.risks.length > 0)
+              .map((d) => (
+                <div key={d.label} className="flex flex-wrap items-center gap-2">
+                  <span className="text-[13px] font-semibold">Allerte {d.label.toLowerCase()}</span>
+                  {d.risks.map((r) => (
+                    <RiskChip key={r.key} label={r.label} level={r.level} />
+                  ))}
+                </div>
+              ))
+          ) : (
+            <div className="flex items-center gap-2.5">
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ background: '#30d158', boxShadow: '0 0 6px #30d158' }}
+              />
+              {quietPhrase(alert.days)}
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="flex items-center gap-2.5 py-0.5">
-          <span
-            className="h-2.5 w-2.5 shrink-0 rounded-full"
-            style={{ background: '#30d158', boxShadow: '0 0 6px #30d158' }}
-          />
-          {quietPhrase(alert.days)}
-        </div>
-      )}
 
-      {alert.stem && (
-        <button
-          type="button"
-          title="Mappa nazionale delle allerte"
-          aria-label="Apri la mappa nazionale delle allerte"
-          onClick={() => setShowMap(true)}
-          className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/70 transition duration-300 hover:bg-white/15 hover:text-white"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className="h-[16px] w-[16px]">
-            <path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z" />
-            <path d="M9 4v14M15 6v14" />
-          </svg>
-        </button>
-      )}
+        {alert.stem && (
+          <button
+            type="button"
+            title="Mappa nazionale delle allerte"
+            aria-label="Apri la mappa nazionale delle allerte"
+            onClick={() => setShowMap(true)}
+            className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/70 transition duration-300 hover:bg-white/15 hover:text-white"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" className="h-[16px] w-[16px]">
+              <path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z" />
+              <path d="M9 4v14M15 6v14" />
+            </svg>
+          </button>
+        )}
+      </div>
+
+      {/* Il DPC non allerta il singolo comune: il livello vale per tutta la
+          zona. Va detto, ma sottovoce: è la didascalia della fascia. */}
+      <div className="mt-0.5 pr-1.5 text-right text-[10.5px] leading-tight opacity-75">
+        {alert.zoneName}
+      </div>
       {showMap && <DpcMapModal alert={alert} onClose={() => setShowMap(false)} />}
     </div>
   )
@@ -158,7 +163,7 @@ function DpcMapModal({ alert, onClose }) {
           <div>
             <div className="text-[15px] font-bold">Mappa nazionale delle allerte</div>
             <div className="mt-0.5 text-[12px] text-ink-muted">
-              {alert.bulletinName} · allerta valida per l&apos;intera zona {alert.zoneName}
+              {alert.bulletinName}
             </div>
           </div>
           <button

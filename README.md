@@ -157,8 +157,11 @@ Verificato a 390 px. Le scelte che il CSS da solo non copriva:
   affiancati si spezzavano su tre righe.
 - Topbar su due righe — brand, LED e pulsanti sopra, ricerca sotto.
 - "Stato dei modelli" è un `<details>`, chiuso di default su mobile e aperto su desktop.
-- Le mappe Leaflet nascono con il drag disabilitato su touch e si sbloccano con un tocco:
-  altrimenti il dito sulla mappa blocca lo scroll della pagina.
+- La mappa dei temporali è **ferma**: niente trascinamento, niente zoom, nessun controllo.
+  Inquadra esattamente l'area analizzata e fuori di lì non ci sono dati — lasciar trascinare
+  invitava a guardare aree vuote, e caricarle costerebbe ~130 chiamate pesate l'una. Chi vuole
+  un'altra zona la cerca. Come effetto collaterale sparisce anche il problema del dito sulla
+  mappa che blocca lo scorrimento della pagina, che prima richiedeva uno sblocco al tocco.
 - Assi Recharts più stretti e `minTickGap` al posto di un `interval` fisso, che sotto i 420 px
   sovrapponeva le etichette.
 - **Safe area**: il viewport è `viewport-fit=cover`, quindi da PWA installata il contenuto passa
@@ -213,7 +216,14 @@ Un selettore commuta fra **Grandine**, **Vento** e **Pioggia**: cambia il numero
 non i dati scaricati — gli stessi 15 parametri per 49 celle servono tutti e tre.
 
 **Griglia** — una sola, 7×7 punti, valori letti da `HAIL_GRID` in `hail.js` (non andare a
-memoria): passo 0,35°, ~39 km fra un punto e l'altro, lato ≈ 230 km.
+memoria): passo 0,35°, ~39 km fra un punto e l'altro, lato ≈ 230 km. È anche l'inquadratura
+della mappa, che è ferma: quello che si vede è esattamente quello che è stato calcolato.
+
+Il motore sa già fondere più tile adiacenti del reticolo in un campo unico (`mergeTiles` in
+`hail.js`, righe e colonne indipendenti in `zones.js`), e per un po' la mappa offriva di
+estendersi trascinandola. È stato tolto: 230 km di lato bastano a valutare il rischio della
+propria zona, ogni tile in più vale ~130 chiamate pesate, e una mappa ferma tiene lo sguardo
+sulla cosa che conta. Il codice per fonderle resta, provato, se un giorno servisse.
 
 Il selettore locale/regionale/ampia è stato rimosso, e non è un taglio di comodo. Una cella
 temporalesca è larga 5–30 km: a passo 0,7° i punti stanno a ~78 km, a 1,4° a ~155 km, quindi

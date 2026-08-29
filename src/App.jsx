@@ -152,10 +152,10 @@ export default function App() {
 
   const [hailDayOffset, setHailDayOffset] = useLocalStorage('hailDayOffset', 0)
   const [hazardId, setHazardId] = useLocalStorage('hazard', 'hail')
-  /* Le tile caricate, in ordine di arrivo: la prima è quella della località,
-     le altre arrivano solo se l'utente chiede di estendere l'analisi. Celle e
-     accordo restano allineati per indice perché si concatenano nello stesso
-     ordine. */
+  /* Una tile sola, quella della località: la mappa è ferma e mostra esattamente
+     l'area analizzata. Resta una lista perché il motore sa già fondere più tile
+     del reticolo — se un giorno servisse un'area più larga, il disegno è pronto
+     e cambia solo chi decide quante caricarne. */
   const [hailTiles, setHailTiles] = useState([])
   const hailCells = useMemo(
     () => (hailTiles.length ? mergeTiles(hailTiles.map((t) => t.cells), HAIL_GRID.step) : null),
@@ -167,7 +167,6 @@ export default function App() {
   )
   const [hailHiRes, setHailHiRes] = useState(false)
   const [hailLoading, setHailLoading] = useState(true)
-  const [hailExtending, setHailExtending] = useState(false)
   const [hailError, setHailError] = useState(null)
   /* Non persistito e spento all'avvio: la griglia è 49 località × 14 variabili,
      di gran lunga la richiesta più pesante sulla quota Open-Meteo. Su un sito
@@ -340,46 +339,6 @@ export default function App() {
        riscaricare la griglia. Se non sono ancora arrivati si usa la finestra di
        3 ore, che scade da sé. */
   }, [location, hailDays, hailDayOutOfRange, hailEnabled, forecast?.timezone, reloadKey, runsSettled, runKeyFor])
-
-  /**
-   * Carica le tile chieste dalla mappa, in serie.
-   *
-   * In serie e non in parallelo perché ognuna vale ~130 chiamate pesate: due
-   * insieme rischiano la quota al minuto. E si scartano le tile che NON usano
-   * lo stesso modello di quella centrale: fondere ICON-2I a 2,2 km con il
-   * blend, che attenua i picchi, farebbe comparire un gradino artificiale
-   * lungo la giunzione, e il contorno ci correrebbe sopra.
-   */
-  const extendHail = useCallback(
-    async (centres) => {
-      const tz = forecast?.timezone ?? location.timezone
-      if (!tz || hailExtending) return
-      setHailExtending(true)
-      try {
-        for (const centre of centres) {
-          const points = buildGrid(centre, HAIL_GRID.step)
-          if (gridFitsIcon2i(points, hailDays) !== hailHiRes) continue
-          const { cells, agreement } = await fetchTile({
-            centre,
-            days: hailDays,
-            tz,
-            hiRes: hailHiRes,
-            run: runKeyFor(hailHiRes),
-          })
-          setHailTiles((prev) =>
-            prev.some((t) => t.centre.latitude === centre.latitude && t.centre.longitude === centre.longitude)
-              ? prev
-              : [...prev, { centre, cells, agreement }],
-          )
-        }
-      } catch {
-        /* una tile in meno non invalida quelle già caricate */
-      } finally {
-        setHailExtending(false)
-      }
-    },
-    [forecast?.timezone, location.timezone, hailDays, hailHiRes, hailExtending, runKeyFor],
-  )
 
   // Cambiare località azzera il filtro giorno: le date restano valide ma il
   // contesto no, e un filtro invisibile in cima alla pagina confonde.
@@ -567,9 +526,6 @@ export default function App() {
               onHazardChange={setHazardId}
               agreement={hailAgreement}
               hiRes={hailHiRes}
-              tiles={hailTiles.map((t) => t.centre)}
-              extending={hailExtending}
-              onExtend={extendHail}
               dayLocked={Boolean(selectedDay)}
               dayOutOfRange={hailDayOutOfRange}
               palette={palette}

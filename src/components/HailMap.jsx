@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import L from 'leaflet'
 import { MapContainer, Marker, Polygon, Polyline, Rectangle, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -10,14 +10,11 @@ import 'leaflet/dist/leaflet.css'
    console. `?worker&url` fa impacchettare a Vite il worker con tutte le sue
    dipendenze e ci restituisce l'URL vero, da passare a setWorkerUrl(). */
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
-import { DragControl, LockOverlay } from './MapLock'
 import { TILE_ATTRIB } from '../lib/constants'
 import { fmtDayHour, nf, windDir } from '../lib/format'
-import { useIsTouch } from '../lib/hooks'
 import { SEVERITY_COLORS, SEVERITY_LABELS, zoneSpecOf } from '../lib/hazards'
 import { AGREEMENT_COUNT, fractionText } from '../lib/agreement'
 import { FIELD_PAD, buildZones } from '../lib/zones'
-import { neighbourTiles } from '../lib/hail'
 
 /**
  * Sfondo della mappa. OpenFreeMap serve tile VETTORIALI, non raster: il
@@ -120,39 +117,7 @@ function valueIcon(text, color, prob) {
   })
 }
 
-/** Riporta al genitore i confini della vista, a ogni spostamento e zoom. */
-function ViewportWatch({ onView }) {
-  const map = useMap()
-  useEffect(() => {
-    const fire = () => onView(map.getBounds())
-    map.on('moveend', fire)
-    map.on('zoomend', fire)
-    fire()
-    return () => {
-      map.off('moveend', fire)
-      map.off('zoomend', fire)
-    }
-  }, [map, onView])
-  return null
-}
-
-export default function HailMap({
-  cells,
-  tiles,
-  extending,
-  onExtend,
-  step,
-  origin,
-  palette,
-  theme,
-  steering,
-  hazard,
-  onSelectCell,
-}) {
-  const isTouch = useIsTouch()
-  const [unlocked, setUnlocked] = useState(false)
-  const [view, setView] = useState(null)
-  const locked = isTouch && !unlocked
+export default function HailMap({ cells, step, origin, palette, theme, steering, hazard, onSelectCell }) {
   const half = step / 2
 
   const bounds = useMemo(() => {
@@ -164,43 +129,6 @@ export default function HailMap({
       [Math.max(...lats) + half, Math.max(...lons) + half],
     ]
   }, [cells, half])
-
-  /**
-   * Le tile del reticolo che la vista attuale scopre e che non abbiamo.
-   *
-   * Non si caricano da sole: ognuna vale ~130 chiamate pesate sulla quota, e
-   * un paio di trascinamenti distratti la brucerebbero. Se ce ne sono, compare
-   * un pulsante e decide chi guarda.
-   */
-  const missing = useMemo(() => {
-    if (!view || !tiles?.length || !onExtend) return []
-    const loaded = new Set(tiles.map((t) => `${t.latitude},${t.longitude}`))
-    const seen = new Set()
-    const out = []
-    for (const t of tiles) {
-      for (const n of neighbourTiles(t, step)) {
-        const key = `${n.latitude},${n.longitude}`
-        if (loaded.has(key) || seen.has(key)) continue
-        seen.add(key)
-        /* Criterio: il CENTRO della tile deve essere inquadrato. Contare la
-           sovrapposizione non funzionava — Leaflet scatta a zoom interi e al
-           primo caricamento inquadra fino al doppio dell'area dei dati, così
-           le vicine risultavano già "in vista" senza che nessuno avesse mosso
-           niente. Il centro dentro lo schermo invece vuol dire che quell'area
-           la stai guardando davvero. */
-        if (view.contains([n.latitude, n.longitude])) {
-          const dLat = n.latitude - view.getCenter().lat
-          const dLon = n.longitude - view.getCenter().lng
-          out.push({ ...n, far: Math.hypot(dLat, dLon) })
-        }
-      }
-    }
-    /* Le più vicine al centro dello schermo per prime, e non più di due per
-       volta: ogni tile vale ~130 chiamate pesate, e proporne cinque con un
-       pulsante solo significa bruciare mezza giornata di quota per un click
-       distratto. */
-    return out.sort((a, b) => a.far - b.far).slice(0, 2)
-  }, [view, tiles, step, onExtend])
 
   /* Zone stile outlook: contorni per livello, un'etichetta per zona. */
   const zones = useMemo(() => buildZones(cells, step, zoneSpecOf(hazard)), [cells, step, hazard])
@@ -238,13 +166,24 @@ export default function HailMap({
         /* Zoom continuo: con lo scatto agli interi il fitBounds inquadrava
            fino al doppio dell'area dei dati, lasciando margini vuoti larghi. */
         zoomSnap={0}
+        /* Mappa FERMA, di proposito. Ha esattamente l'estensione dei dati —
+           230 km di lato — e fuori di lì non c'è niente da mostrare: lasciar
+           trascinare invitava a guardare aree non analizzate, e caricarle
+           costa ~130 chiamate pesate l'una sulla quota. Chi vuole un'altra
+           zona la cerca, ed è anche più chiaro. Niente trascinamento, niente
+           zoom, nessun controllo: sparisce pure lo sblocco al tocco, che
+           serviva solo a non rubare lo scorrimento della pagina. */
+        dragging={false}
         scrollWheelZoom={false}
+        doubleClickZoom={false}
+        touchZoom={false}
+        boxZoom={false}
+        keyboard={false}
+        zoomControl={false}
         style={{ height: '100%', width: '100%' }}
       >
         <VectorBase key={theme} styleUrl={palette.mapStyle} />
         <FitToCells bounds={bounds} />
-        <ViewportWatch onView={setView} />
-        <DragControl enabled={!locked} />
 
         {/* Riempimento e contorno viaggiano separati: il poligono porta solo
             il colore, il tratto lo portano le spezzate, che saltano i pezzi
@@ -366,19 +305,6 @@ export default function HailMap({
           {windDir(steering.towardsDeg)} · {nf(steering.speed, 0)} km/h
         </div>
       )}
-      {missing.length > 0 && !locked && (
-        <button
-          type="button"
-          onClick={() => onExtend(missing)}
-          disabled={extending}
-          className="absolute bottom-8 left-1/2 z-[500] -translate-x-1/2 cursor-pointer rounded-full border border-hair bg-surface/85 px-3.5 py-2 text-[12.5px] font-semibold text-ink backdrop-blur-md transition duration-300 hover:bg-surface disabled:cursor-default disabled:opacity-70"
-        >
-          {extending
-            ? 'Carico…'
-            : `Estendi l'analisi ${missing.length > 1 ? `(${missing.length} aree)` : 'qui'}`}
-        </button>
-      )}
-      {locked && <LockOverlay onUnlock={() => setUnlocked(true)} />}
     </div>
   )
 }
