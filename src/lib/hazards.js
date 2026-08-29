@@ -180,6 +180,8 @@ export function zoneSpecOf(hazard) {
     return {
       stepOf: (c) => hailZoneStep(c.metric.ship ?? 0),
       valueOf: (c) => c.metric.ship ?? 0,
+      // Soglie delle fasce: sono anche i livelli su cui si tracciano le isolinee.
+      bands: SHIP_ZONE_BANDS,
       labels: ['< 1 cm', '1–2 cm', '2–4 cm', '> 4 cm'],
       /* Probabilità = accordo fra modelli (cell.prob, frazione 0..1), non più
          SHIP × innesco di un run solo. Il massimo della zona decide il tratto. */
@@ -190,6 +192,7 @@ export function zoneSpecOf(hazard) {
   return {
     stepOf: (c) => c.severity,
     valueOf: (c) => c.metric.value,
+    bands: hazard.bands,
     labels: null, // etichetta = valore massimo reale della zona
     probOf: (comp) => probFromCells(comp),
     legendTitle: 'Rischio',

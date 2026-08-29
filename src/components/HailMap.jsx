@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import L from 'leaflet'
-import { MapContainer, Marker, Polygon, Rectangle, Tooltip, useMap } from 'react-leaflet'
+import { MapContainer, Marker, Polygon, Polyline, Rectangle, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 /* MapLibre calcola l'URL del suo worker a runtime (`new URL('./' + nome,
    import.meta.url)`): essendo costruito da una template string, nessun
@@ -16,7 +16,7 @@ import { fmtDayHour, nf, windDir } from '../lib/format'
 import { useIsTouch } from '../lib/hooks'
 import { SEVERITY_COLORS, SEVERITY_LABELS, zoneSpecOf } from '../lib/hazards'
 import { AGREEMENT_COUNT, fractionText } from '../lib/agreement'
-import { buildZones } from '../lib/zones'
+import { FIELD_PAD, buildZones } from '../lib/zones'
 
 /**
  * Sfondo della mappa. OpenFreeMap serve tile VETTORIALI, non raster: il
@@ -121,6 +121,31 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
   /* Zone stile outlook: contorni per livello, un'etichetta per zona. */
   const zones = useMemo(() => buildZones(cells, step, zoneSpecOf(hazard)), [cells, step, hazard])
 
+  /* Cornice dell'area analizzata: il rettangolo dei NODI (non delle celle,
+     che sporgono di mezzo passo), con gli angoli arrotondati. Serve a dare un
+     limite dichiarato alle macchie che arrivano fino in fondo: senza, il
+     taglio sembra un difetto di disegno invece che la fine dei dati. */
+  const frame = useMemo(() => {
+    if (!cells.length) return []
+    const lats = cells.map((c) => c.gridLat)
+    const lons = cells.map((c) => c.gridLon)
+    const pad = step * FIELD_PAD
+    const [s0, n0] = [Math.min(...lats) - pad, Math.max(...lats) + pad]
+    const [w0, e0] = [Math.min(...lons) - pad, Math.max(...lons) + pad]
+    const r = Math.min(step * 0.6, (n0 - s0) / 2, (e0 - w0) / 2)
+    const arc = (clat, clon, from) =>
+      Array.from({ length: 7 }, (_, i) => {
+        const a = from + (i / 6) * (Math.PI / 2)
+        return [clat + r * Math.sin(a), clon + r * Math.cos(a)]
+      })
+    return [
+      ...arc(s0 + r, e0 - r, -Math.PI / 2), // angolo sud-est
+      ...arc(n0 - r, e0 - r, 0), // nord-est
+      ...arc(n0 - r, w0 + r, Math.PI / 2), // nord-ovest
+      ...arc(s0 + r, w0 + r, Math.PI), // sud-ovest
+    ]
+  }, [cells, step])
+
   return (
     <div data-lenis-prevent className="relative z-[1] h-[320px] overflow-hidden rounded-2xl border border-hair card-shadow sm:h-[440px]">
       <MapContainer
@@ -133,11 +158,28 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
         <FitToCells bounds={bounds} />
         <DragControl enabled={!locked} />
 
+        {/* Riempimento e contorno viaggiano separati: il poligono porta solo
+            il colore, il tratto lo portano le spezzate, che saltano i pezzi
+            appoggiati al bordo della griglia. Là il contorno non esiste, c'è
+            solo la fine dei dati — e la dice la cornice qui sotto. */}
+        {zones.map((z, zi) => (
+          <Polygon
+            key={`z${zi}`}
+            positions={z.polygon}
+            interactive={false}
+            pathOptions={{
+              stroke: false,
+              fillColor: SEVERITY_COLORS[z.level],
+              fillOpacity: 0.07 + z.level * 0.05,
+            }}
+          />
+        ))}
+
         {zones.map((z, zi) =>
-          z.rings.map((ring, ri) => (
-            <Polygon
-              key={`z${zi}-${ri}`}
-              positions={ring}
+          z.outlines.map((line, li) => (
+            <Polyline
+              key={`o${zi}-${li}`}
+              positions={line}
               interactive={false}
               pathOptions={{
                 color: SEVERITY_COLORS[z.level],
@@ -145,12 +187,17 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                 opacity: 0.9,
                 dashArray:
                   z.prob?.label === 'bassa' ? '3 9' : z.prob?.label === 'media' ? '10 7' : null,
-                fillColor: SEVERITY_COLORS[z.level],
-                fillOpacity: 0.07 + z.level * 0.05,
+                fill: false,
               }}
             />
           )),
         )}
+
+        <Polygon
+          positions={frame}
+          interactive={false}
+          pathOptions={{ color: palette.axis, weight: 1, opacity: 0.55, fill: false }}
+        />
 
         {cells.map((c) => (
           <Rectangle
