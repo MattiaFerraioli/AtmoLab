@@ -10,7 +10,7 @@ import { Card, DayFilterBar, Message, Section, Segmented } from './components/Ui
 import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, fetchProbGrid, reverseGeocode } from './lib/api'
 import { DEFAULT_LOCATION, DEFAULT_MODELS, MAX_MODELS, MODELS } from './lib/constants'
 import { HAIL_GRID, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, mergeTiles, snapToLattice, summariseCells } from './lib/hail'
-import { withCache } from './lib/cache'
+import { cacheGet, withCache } from './lib/cache'
 import { agreementCells } from './lib/agreement'
 import { useDpcAlert } from './components/DpcAlerts'
 import { fmtLong, fmtTime } from './lib/format'
@@ -277,12 +277,58 @@ export default function App() {
     return run ?? `~${Math.floor(Date.now() / (3 * 3600 * 1000))}`
   }, [])
 
+  /**
+   * Tutto ciò che identifica la griglia da mostrare: dove, quando, con che
+   * modello, di quale corsa. Sta qui e non dentro l'effetto perché serve a
+   * due cose — scaricare, e sbirciare se ce l'abbiamo già.
+   *
+   * Senza fuso non si costruisce: entrerebbe nella chiave e cambierebbe
+   * all'arrivo della previsione, facendo scaricare la griglia due volte.
+   */
+  const hailKey = useMemo(() => {
+    const tz = forecast?.timezone ?? location.timezone
+    if (!tz || !runsSettled || hailDayOutOfRange) return null
+    /* Griglia agganciata al reticolo fisso, non centrata sulla località: è
+       quello che rende la richiesta identica per tutti quelli della stessa
+       zona, e quindi riusabile dalla cache. */
+    const centre = snapToLattice(location, HAIL_GRID.step)
+    const points = buildGrid(centre, HAIL_GRID.step)
+    /* Dentro il dominio ICON-2I ed entro 48 h la griglia usa il modello a
+       2,2 km: CAPE, raffiche e pioggia risolti alla scala della cella invece
+       che lisciati dal blend globale. Fuori, o oltre, si torna al best-match. */
+    const hiRes = gridFitsIcon2i(points, hailDays)
+    const run = runKeyFor(hiRes)
+    return {
+      centre,
+      hiRes,
+      tz,
+      base: `${centre.latitude},${centre.longitude}:${hailDays}:${hiRes ? 'icon2i' : 'blend'}:${tz}:${run}`,
+    }
+  }, [location, hailDays, hailDayOutOfRange, forecast?.timezone, runsSettled, runKeyFor])
+
+  /**
+   * Se la griglia è già in cache, la sezione si apre da sola.
+   *
+   * Nasceva sempre spenta perché scaricarla è la richiesta più pesante
+   * dell'app, e chiedere un click era il modo di non spenderla per chi non la
+   * guarda. Ma con il dato già in casa quel click non protegge più niente:
+   * chiude il temporale dietro un bottone e basta. Se manca, il bottone resta.
+   */
+  useEffect(() => {
+    if (hailEnabled || !hailKey) return undefined
+    let dead = false
+    cacheGet(`hail:v1:${hailKey.base}`).then((hit) => {
+      if (hit && !dead) setHailEnabled(true)
+    })
+    return () => {
+      dead = true
+    }
+  }, [hailEnabled, hailKey])
+
   /* --- rischio grandine su griglia --- */
   useEffect(() => {
-    const tz = forecast?.timezone ?? location.timezone
-    /* Senza fuso non si parte: entrerebbe nella chiave di cache e cambierebbe
-       all'arrivo della previsione, facendo scaricare la griglia due volte. */
-    if (!hailEnabled || hailDayOutOfRange || !tz || !runsSettled) return undefined
+    if (!hailEnabled || !hailKey) return undefined
+    const { centre, hiRes, tz } = hailKey
     /* Niente AbortController su queste richieste, ed è una scelta.
        `withCache` restituisce a chi arriva dopo LA STESSA promessa di chi era
        già in volo: annullandola per conto proprio, il primo che se ne va la fa
@@ -294,17 +340,9 @@ export default function App() {
     /* Griglia agganciata al reticolo fisso, non centrata sulla località: è
        quello che rende la richiesta identica per tutti quelli della stessa
        zona, e quindi riusabile dalla cache. */
-    const centre = snapToLattice(location, HAIL_GRID.step)
-    const points = buildGrid(centre, HAIL_GRID.step)
-    /* Dentro il dominio ICON-2I ed entro 48 h la griglia usa il modello a
-       2,2 km: CAPE, raffiche e pioggia risolti alla scala della cella invece
-       che lisciati dal blend globale. Fuori, o oltre, si torna al best-match. */
-    const hiRes = gridFitsIcon2i(points, hailDays)
     setHailHiRes(hiRes)
     setHailLoading(true)
     setHailError(null)
-
-    const run = runKeyFor(hiRes)
     /* Il pulsante di ricarica manuale deve scavalcare la cache, altrimenti non
        ricarica niente — ma solo il giro innescato da lui: senza il confronto
        col valore precedente, dopo una ricarica manuale la cache resterebbe
@@ -314,7 +352,7 @@ export default function App() {
 
     /* Cambiando località o giorno si riparte dalla sola tile centrale: le
        estensioni chieste per la vista precedente non c'entrano più. */
-    fetchTile({ centre, days: hailDays, tz, hiRes, run, force })
+    fetchTile({ centre, days: hailDays, tz, hiRes, run: runKeyFor(hiRes), force })
       .then(({ cells, agreement, at }) => {
         if (dead) return
         setHailTiles([{ centre, cells, agreement }])
@@ -338,7 +376,7 @@ export default function App() {
        Fosse una dipendenza, l'arrivo dei meta farebbe ripartire l'effetto e
        riscaricare la griglia. Se non sono ancora arrivati si usa la finestra di
        3 ore, che scade da sé. */
-  }, [location, hailDays, hailDayOutOfRange, hailEnabled, forecast?.timezone, reloadKey, runsSettled, runKeyFor])
+  }, [hailKey, hailEnabled, hailDays, reloadKey, runKeyFor])
 
   // Cambiare località azzera il filtro giorno: le date restano valide ma il
   // contesto no, e un filtro invisibile in cima alla pagina confonde.

@@ -33,9 +33,11 @@ chiave da nascondere, le chiamate a Open-Meteo partono dal browser.
 
 **Il vincolo vero non è Vercel, è la quota Open-Meteo.** Il piano free è 10.000 chiamate al
 giorno, ma il conteggio è *pesato* per località × variabili × giorni: la griglia della grandine
-(49 località × 14 variabili) vale molto più di "1". Per questo la sezione grandine **non parte da
-sola**: si carica con un click, e la scelta non viene ricordata fra visite. Le altre tre richieste
-(previsione, qualità aria, confronto modelli) partono al caricamento.
+(49 località × 15 variabili) vale molto più di "1". Per questo la sezione temporali **non parte da
+sola quando i dati non ci sono**: chiede un click. Se invece la griglia è già in cache — stessa
+tile del reticolo, stessa corsa del modello — si apre da sé, perché quel click non
+proteggerebbe più niente: non parte nessuna richiesta. Le altre tre (previsione, qualità aria,
+confronto modelli) partono al caricamento.
 
 ## Allerte DPC: estratto pubblicato
 
