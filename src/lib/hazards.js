@@ -69,12 +69,16 @@ export const HAZARDS = [
         at: peak.at,
         ship,
         badge: hailSize(ship).label,
-        detail: `SHIP ${nf(ship, 2)}`,
+        /* Niente indice SHIP in interfaccia: è un numero che non significa
+           nulla per chi legge, e la sua unica lettura utile — la fascia di
+           diametro — è già il badge. Resta nel codice come grandezza di
+           calcolo. */
+        detail: '',
         note: hailSize(ship).note,
       }
     },
     quietText: 'Grandine non attesa',
-    hourly: { pick: (p) => p.ship, bands: SHIP_ZONE_BANDS, unit: '', dec: 2, label: 'Diametro atteso (indice SHIP)' },
+    hourly: { pick: (p) => p.ship, bands: SHIP_ZONE_BANDS, unit: '', dec: 2, label: 'Diametro atteso' },
   },
   {
     id: 'wind',

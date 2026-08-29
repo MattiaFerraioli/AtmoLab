@@ -41,11 +41,12 @@ function RiskTooltip({ active, payload, label, palette, hazard }) {
       </div>
       <div className="flex items-center gap-2">
         <span className="h-2.5 w-2.5 rounded-sm" style={{ background: SEVERITY_COLORS[sev] }} />
-        {hazard.hourly.label} {nf(value ?? 0, hazard.hourly.dec)} {hazard.hourly.unit}
+        {/* Per la grandine il "valore" è l'indice SHIP: si mostra solo la
+            fascia di diametro, che è la sua unica lettura sensata. */}
+        {hazard.id === 'hail'
+          ? `${hazard.hourly.label} ${hailSize(p.ship).label}`
+          : `${hazard.hourly.label} ${nf(value ?? 0, hazard.hourly.dec)} ${hazard.hourly.unit}`}
       </div>
-      {hazard.id === 'hail' && (
-        <div className="tnum mt-1 text-ink-sec">diametro {hailSize(p.ship).label}</div>
-      )}
       {p.cape != null && (
         <div className="tnum text-ink-sec">
           CAPE {nf(p.cape, 0)} J/kg ({capeBand(p.cape)})
@@ -258,7 +259,7 @@ export default function HailRisk({
               ? 'nessun picco significativo'
               : worst?.cape != null
                 ? `Energia ${capeBand(worst.cape)} · CAPE ${nf(worst.cape, 0)} J/kg`
-                : `SHIP ambiente ${nf(worst?.ship ?? 0, 2)}`
+                : 'ora del picco nell\u2019area'
           }
         >
           <span className="text-[17px]">{worst?.metric.at && !quiet ? fmtDayHour(worst.metric.at) : '–'}</span>
@@ -306,7 +307,7 @@ export default function HailRisk({
                   className="text-ink-muted"
                   title={`Accordo fra ${AGREEMENT_COUNT} modelli (ECMWF, GFS, ICON): bassa = nessuno o uno prevede il temporale, media = due, alta = tutti. Il conteggio esatto è scritto su ogni zona.`}
                 >
-                  · Probabilità:
+                  Probabilità:
                 </span>
                 {[
                   ['Bassa', '2 6'],
@@ -409,7 +410,13 @@ export default function HailRisk({
               ticks={focusSeries.filter((_, i) => i % (isMobile ? 4 : 3) === 0).map((p) => p.t)}
               tickFormatter={(t) => new Date(t).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
             />
+            {/* Per la grandine l'asse Y porterebbe l'indice SHIP, che da solo
+                non dice niente a chi legge: nascosto. La scala la danno il
+                colore delle barre (le stesse fasce della legenda sotto la
+                mappa) e il tooltip, che scrive la fascia in centimetri.
+                Vento e pioggia hanno unità vere e tengono il loro asse. */}
             <YAxis
+              hide={hazard.id === 'hail'}
               stroke={palette.axis}
               tick={{ fill: palette.muted, fontSize: 11 }}
               tickLine={false}

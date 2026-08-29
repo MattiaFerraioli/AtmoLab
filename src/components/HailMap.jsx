@@ -170,9 +170,16 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                     ? `chicchi ${c.metric.badge}`
                     : `rischio ${SEVERITY_LABELS[c.severity].toLowerCase()}`}
                 </strong>
-                <br />
-                {c.metric.badge} · {c.metric.detail}
+                {/* Per la grandine il diametro è già nella riga sopra: qui
+                    resta solo il dettaglio degli altri pericoli, se c'è. */}
+                {c.metric.detail && (
+                  <>
+                    <br />
+                    {c.metric.badge} · {c.metric.detail}
+                  </>
+                )}
                 {c.rotation && (
+
                   <>
                     {' '}
                     · <strong style={{ color: '#8b3fb5' }}>possibile supercella</strong>
@@ -186,10 +193,6 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                     {hazard.id === 'hail' ? 'Innesco previsto da' : 'Previsto da'} {fractionText(c.prob)}
                   </>
                 )}
-                <br />
-                <span style={{ opacity: 0.7 }}>
-                  {c.gridLat.toFixed(2)}°, {c.gridLon.toFixed(2)}°
-                </span>
               </div>
             </Tooltip>
           </Rectangle>
