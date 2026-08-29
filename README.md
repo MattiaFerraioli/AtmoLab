@@ -185,6 +185,40 @@ sulla quota, cioè il limite vero del progetto. I 230 km di lato bastano come co
 | Vento | raffica massima del giorno | km/h | 60 / 75 / 90 / 105 km/h |
 | Pioggia | accumulo totale sulla finestra | mm (punta oraria a fianco) | 10 / 25 / 50 / 80 mm |
 
+### Reticolo fisso e cache locale
+
+La griglia non è centrata sulla località, ma **agganciata a un reticolo fisso globale** (multipli
+di 0,35° a partire dallo zero, `snapToLattice` in `hail.js`). Prima era centrata sul punto esatto:
+due persone a pochi chilometri di distanza generavano 49 punti tutti diversi, quindi due richieste
+diverse per lo stesso pezzo di atmosfera. Agganciata al reticolo, chiunque cerchi qualcosa nella
+stessa zona riceve **gli stessi identici punti**, e il risultato diventa riusabile. Il prezzo è che
+la località non sta più al centro esatto: fino a **24 km** di scostamento nel caso peggiore (mezza
+diagonale di cella), su un riquadro da 230 km di lato. Le distanze mostrate restano calcolate dalla
+posizione vera.
+
+Il risultato già elaborato finisce in **IndexedDB** (`lib/cache.js`), non in localStorage: una
+griglia di tre giorni sono ~2 MB di JSON e localStorage si ferma a ~5 MB per tutta l'app.
+
+**La chiave contiene la corsa del modello**, non un tempo di scadenza: finché la corsa è quella,
+l'API risponderebbe gli stessi numeri, e quando ne esce una nuova la chiave cambia da sé. Niente da
+indovinare e niente dato stantio. I meta delle corse arrivano da `runs.js`; la griglia **aspetta**
+che abbiano risposto prima di partire, altrimenti salverebbe sotto una chiave di ripiego per poi
+non ritrovarla al giro successivo. Per lo stesso motivo `useModelRuns` restituisce `{}` in caso di
+errore e `null` solo mentre carica: i due casi vanno distinti.
+
+`withCache` tiene anche un **registro delle richieste in volo**. All'avvio l'effetto può ripartire
+più volte in rapida successione, e senza registro ognuna controllerebbe la cache prima che la
+precedente abbia risposto: tre miss e tre griglie scaricate, cioè tre volte la quota. Il controllo
+del registro è **sincrono, prima di qualunque `await`** — con la lettura da IndexedDB in mezzo, le
+chiamate concorrenti sfuggirebbero comunque.
+
+La ricarica manuale passa `force` e scavalca la cache, ma solo per il giro che l'ha chiesta.
+
+**Perché tutto questo**: aprire la sezione temporali costa ~130 chiamate pesate (74 la griglia dei
+valori, 59 quella delle probabilità), su un piano free da 600/minuto, 5.000/ora e 10.000/giorno
+contate **per IP**. Senza cache, poche decine di ricariche spengono la sezione per tutti quelli
+dietro quell'indirizzo.
+
 **Sorgente della griglia**: dentro il dominio ICON-2I (bbox conservativo lat 35–48,8 / lon
 4,5–20,5) ed entro 48 ore, la griglia usa il modello a 2,2 km — CAPE, raffiche e pioggia risolti
 alla scala della cella. Fuori, o oltre, si torna al blend best-match — la griglia locale ci sta
@@ -242,17 +276,32 @@ react-leaflet invariato, nei pane sopra.
 davvero. La sezione temporali parte già da un click, quindi non c'è nessun ritardo aggiuntivo
 percepibile per chi la apre, e chi non la apre mai non paga niente.
 
-**Contorni smussati**: i perimetri a scalini della griglia passano per due iterazioni di
-smussamento di Chaikin (ogni lato → punti a 1/4 e 3/4), che li trasforma in curve morbide stile
-outlook disegnato a mano, restando dentro l'inviluppo delle celle.
+**Zone stile outlook** (`src/lib/zones.js`): le celle non si disegnano come quadretti
+indipendenti, ma come **macchie di livello annidate**, come negli outlook SPC/ESTOFEX (il
+livello 2 sta dentro l'1). Ogni zona porta una sola etichetta col valore, posta sulla cella di
+massimo che contiene, a partire dal livello "Basso": con le etichette solo da "moderato" in su,
+una giornata tutta gialla lasciava la mappa muta. I rettangoli restano come hit-area invisibili
+per tooltip e selezione.
 
-**Zone stile outlook** (`src/lib/zones.js`): le celle non si disegnano più come quadretti
-indipendenti — per ogni livello di severità le celle contigue vengono raggruppate in componenti
-connesse e se ne traccia il contorno, annidato come negli outlook SPC/ESTOFEX (il livello 2 sta
-dentro l'1). Ogni zona porta una sola etichetta col valore, posta sulla cella di massimo, a
-partire dal livello "Basso": prima le etichette scattavano solo da "moderato" in su e una
-giornata tutta gialla lasciava la mappa muta. I rettangoli restano come hit-area invisibili per
-tooltip e selezione.
+**Come si ottengono le macchie**: i contorni non seguono più i lati delle celle. Il campo dei
+49 punti viene interpolato su una maglia 12 volte più fitta per lato (73×73) e i poligoni escono
+da **marching squares** (`d3-contour`) sulle soglie delle fasce, con i buchi gestiti dalla
+libreria; una passata leggera di Chaikin toglie i gradini da mezzo sotto-passo.
+
+Seguire i lati delle celle, anche smussandoli, lasciava la griglia da 0,35° in trasparenza: si
+leggevano blocchi. E un bordo netto attorno a un quadrato afferma che lì il fenomeno finisce, il
+che è falso — i 49 punti sono campioni di un campo continuo, e un contorno morbido lo dice.
+
+L'interpolazione è **bicubica Catmull-Rom, ritagliata sull'intervallo dei valori presenti nella
+griglia**. Bicubica perché la bilineare è continua ma non derivabile sui bordi di cella, e i
+contorni ne uscivano con un angolo netto ogni 39 km. Ritagliata perché la cubica sovraelonga, e
+su un prodotto di rischio sovraelongare significa inventare un massimo che nessun modello ha
+previsto. Catmull-Rom passa esattamente per i nodi, quindi **sui punti misurati il valore resta
+quello del modello** — è la differenza rispetto a una sfocatura, che li sposterebbe tutti.
+
+Resta vero che **l'interpolazione non aggiunge informazione**: i dati sono 49 punti a ~39 km, le
+macchie sono larghe, e infittirle davvero costerebbe quota Open-Meteo. I lati diritti che si
+vedono ogni tanto sono il bordo della griglia, dove i dati finiscono per davvero.
 
 ## Cosa mostra in più, per tutti e tre
 

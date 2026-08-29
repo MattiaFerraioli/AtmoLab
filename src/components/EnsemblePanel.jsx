@@ -5,7 +5,7 @@ import { Card, Message, Segmented, Skeleton } from './Ui'
 import { fetchEnsembleGrid, fetchEnsemblePoint, fetchObserved } from '../lib/api'
 import { ENSEMBLE_MAP_METRICS, ENSEMBLE_METRICS, crossVerdicts, ensembleFractions, ensembleGridCells, fractionStep } from '../lib/ensemble'
 import { recordObserved, recordSnapshot, snapshotsFor } from '../lib/history'
-import { GRID_SIDE, HAIL_GRID, buildGrid } from '../lib/hail'
+import { GRID_SIDE, HAIL_GRID, buildGrid, snapToLattice } from '../lib/hail'
 import { SEVERITY_COLORS } from '../lib/hazards'
 import { fmtDayHour, nf } from '../lib/format'
 import { useIsMobile } from '../lib/hooks'
@@ -182,7 +182,8 @@ function EnsembleMap({ location, timezone, palette, theme }) {
   useEffect(() => {
     if (!enabled) return undefined
     const ctrl = new AbortController()
-    const points = buildGrid(location, HAIL_GRID.step)
+    // Stesso reticolo fisso della sezione deterministica: le due griglie devono coincidere.
+    const points = buildGrid(snapToLattice(location, HAIL_GRID.step), HAIL_GRID.step)
     fetchEnsembleGrid(points, 2, timezone, ctrl.signal)
       .then((results) => setCells(ensembleGridCells(results, points)))
       .catch((e) => {

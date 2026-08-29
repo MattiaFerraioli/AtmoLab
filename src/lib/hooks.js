@@ -83,7 +83,11 @@ export function useModelRuns() {
     const ctrl = new AbortController()
     fetchModelRuns(ctrl.signal)
       .then(setRuns)
-      .catch(() => setRuns(null))
+      /* Oggetto vuoto, non null: null significa "sto ancora caricando", e chi
+         costruisce la chiave di cache della griglia deve poter distinguere i
+         due casi — altrimenti parte con la corsa ignota e salva sotto una
+         chiave che al giro dopo non ritrova. */
+      .catch(() => setRuns({}))
     return () => ctrl.abort()
   }, [])
   return runs

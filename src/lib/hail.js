@@ -62,6 +62,26 @@ export const HAIL_DAYS = [
 ]
 export const MAX_HAIL_OFFSET = 2 // oltre 72 h i parametri convettivi non dicono più nulla
 
+/**
+ * Centro della griglia agganciato a un RETICOLO FISSO globale (multipli del
+ * passo a partire dallo zero). Prima la griglia era centrata sulla località
+ * esatta: due persone a pochi chilometri di distanza generavano 49 punti tutti
+ * diversi, quindi due richieste diverse per lo stesso pezzo di atmosfera e
+ * nessuna possibilità di riusare un risultato già scaricato.
+ *
+ * Agganciandola al reticolo, chiunque cerchi qualcosa nella stessa zona
+ * riceve gli STESSI punti: la richiesta diventa ripetibile e la si può tenere
+ * da parte. Il prezzo è che la località non sta più esattamente al centro, ma
+ * entro mezzo passo (~20 km) — le distanze mostrate restano calcolate dalla
+ * posizione vera, cambia solo l'inquadratura.
+ */
+export function snapToLattice({ latitude, longitude }, step) {
+  return {
+    latitude: +(Math.round(latitude / step) * step).toFixed(4),
+    longitude: +(Math.round(longitude / step) * step).toFixed(4),
+  }
+}
+
 /** Punti della griglia centrata sulla località. */
 export function buildGrid({ latitude, longitude }, step) {
   const half = (GRID_SIDE - 1) / 2

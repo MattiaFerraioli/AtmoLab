@@ -70,8 +70,10 @@ Documentazione tecnica completa, con ogni scelta motivata e ogni misura annotata
 
 ## Limiti noti (dichiarati anche in UI/README)
 
-- **Quota Open-Meteo**: al minuto e al giorno. Mitigata con retry automatico e fetch in serie
-  (non più in parallelo) per la griglia, ma sotto uso intenso può ancora capitare un errore.
+- **Quota Open-Meteo**: 600 chiamate/minuto, 5.000/ora, 10.000/giorno, contate **per IP** (non per
+  dispositivo: chi sta dietro lo stesso wi-fi o CGNAT condivide il budget). Aprire la sezione
+  temporali costa ~130 chiamate pesate. Mitigata dal reticolo fisso + cache locale in IndexedDB
+  con chiave sulla corsa del modello, e dal registro delle richieste in volo.   Restano il retry automatico e le due griglie richieste in serie, non in parallelo.
 - **Grandine è una stima**, non un dato diretto: indice SHIP da parametri d'ambiente, non un
   diametro pubblicato dal modello. Dichiarato in UI.
 - **Anche la griglia locale può uscire** dal dominio ad alta risoluzione ICON-2I (bbox fisso,

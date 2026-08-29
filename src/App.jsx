@@ -9,7 +9,8 @@ import EnsemblePanel from './components/EnsemblePanel'
 import { Card, DayFilterBar, Message, Section, Segmented } from './components/Ui'
 import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, fetchProbGrid, reverseGeocode } from './lib/api'
 import { DEFAULT_LOCATION, DEFAULT_MODELS, MAX_MODELS, MODELS } from './lib/constants'
-import { HAIL_GRID, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, summariseCells } from './lib/hail'
+import { HAIL_GRID, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, snapToLattice, summariseCells } from './lib/hail'
+import { withCache } from './lib/cache'
 import { agreementCells } from './lib/agreement'
 import { useDpcAlert } from './components/DpcAlerts'
 import { fmtLong, fmtTime } from './lib/format'
@@ -102,6 +103,15 @@ export default function App() {
   // Filtro giorno: volutamente non persistito, è una vista temporanea.
   const [selectedDay, setSelectedDay] = useState(null)
   const runs = useModelRuns()
+  const runsRef = useRef(null)
+  runsRef.current = runs
+
+  /* La griglia aspetta che i meta delle corse abbiano risposto: la chiave di
+     cache contiene la corsa, e partire prima vorrebbe dire salvare sotto la
+     chiave di ripiego e non ritrovare niente al giro successivo. `useModelRuns`
+     restituisce null finché carica e un oggetto (anche vuoto) quando ha finito,
+     quindi qui basta guardare che non sia più null. */
+  const runsSettled = runs !== null
 
   const [hailDayOffset, setHailDayOffset] = useLocalStorage('hailDayOffset', 0)
   const [hazardId, setHazardId] = useLocalStorage('hazard', 'hail')
@@ -120,6 +130,7 @@ export default function App() {
   const [comparisonUpdatedAt, setComparisonUpdatedAt] = useState(null)
   const [hailUpdatedAt, setHailUpdatedAt] = useState(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const lastReload = useRef(0) // per distinguere "ricarica chiesta" da un semplice rerun
 
   const slots = useStableSlots(selected, MAX_MODELS)
 
@@ -203,9 +214,15 @@ export default function App() {
 
   /* --- rischio grandine su griglia --- */
   useEffect(() => {
-    if (!hailEnabled || hailDayOutOfRange) return undefined
+    const tz = forecast?.timezone ?? location.timezone
+    /* Senza fuso non si parte: entrerebbe nella chiave di cache e cambierebbe
+       all'arrivo della previsione, facendo scaricare la griglia due volte. */
+    if (!hailEnabled || hailDayOutOfRange || !tz || !runsSettled) return undefined
     const ctrl = new AbortController()
-    const points = buildGrid(location, HAIL_GRID.step)
+    /* Griglia agganciata al reticolo fisso, non centrata sulla località: è
+       quello che rende la richiesta identica per tutti quelli della stessa
+       zona, e quindi riusabile dalla cache. */
+    const points = buildGrid(snapToLattice(location, HAIL_GRID.step), HAIL_GRID.step)
     /* Dentro il dominio ICON-2I ed entro 48 h la griglia usa il modello a
        2,2 km: CAPE, raffiche e pioggia risolti alla scala della cella invece
        che lisciati dal blend globale. Fuori, o oltre, si torna al best-match. */
@@ -213,18 +230,50 @@ export default function App() {
     setHailHiRes(hiRes)
     setHailLoading(true)
     setHailError(null)
-    const tz = forecast?.timezone ?? location.timezone
     setHailAgreement(null)
-    fetchHailGrid(points, hailDays, tz, hiRes ? ICON2I_MODEL : null, ctrl.signal)
-      .then((results) => {
-        setHailCells(summariseCells(results, points))
-        setHailUpdatedAt(Date.now())
+
+    /* La chiave porta la CORSA del modello, non un tempo di scadenza: finché
+       la corsa è quella, l'API risponderebbe gli stessi numeri, e quando ne
+       esce una nuova la chiave cambia da sé. Se i meta non sono ancora
+       arrivati si ripiega su una finestra di 3 ore. */
+    const known = runsRef.current
+    const runOf = () => {
+      if (!known) return null
+      if (hiRes) return known[ICON2I_MODEL]?.initialised ?? null
+      const all = Object.values(known).filter(Boolean).map((r) => r.initialised)
+      return all.length ? Math.max(...all) : null
+    }
+    const run = runOf() ?? `~${Math.floor(Date.now() / (3 * 3600 * 1000))}`
+    const centre = points[(points.length - 1) / 2]
+    const base = `${centre.lat},${centre.lon}:${hailDays}:${hiRes ? 'icon2i' : 'blend'}:${tz}:${run}`
+    /* Il pulsante di ricarica manuale deve scavalcare la cache, altrimenti non
+       ricarica niente — ma solo il giro innescato da lui: senza il confronto
+       col valore precedente, dopo una ricarica manuale la cache resterebbe
+       scavalcata per tutto il resto della sessione. */
+    const force = reloadKey !== lastReload.current
+    lastReload.current = reloadKey
+
+    withCache(
+      `hail:v1:${base}`,
+      () =>
+        fetchHailGrid(points, hailDays, tz, hiRes ? ICON2I_MODEL : null, ctrl.signal).then((r) =>
+          summariseCells(r, points),
+        ),
+      { force },
+    )
+      .then(({ data, at }) => {
+        setHailCells(data)
+        setHailUpdatedAt(at)
         setHailLoading(false)
         /* Accordo fra modelli DOPO i valori, non insieme: due griglie in
            parallelo esauriscono la quota al minuto. Se fallisce si perde
            solo la probabilità, i valori restano — errore non fatale. */
-        return fetchProbGrid(points, hailDays, tz, ctrl.signal)
-          .then((agg) => setHailAgreement(agreementCells(agg)))
+        return withCache(
+          `prob:v1:${base}`,
+          () => fetchProbGrid(points, hailDays, tz, ctrl.signal).then(agreementCells),
+          { force },
+        )
+          .then(({ data: agg }) => setHailAgreement(agg))
           .catch(() => setHailAgreement(null))
       })
       .catch((e) => {
@@ -238,7 +287,11 @@ export default function App() {
         setHailLoading(false)
       })
     return () => ctrl.abort()
-  }, [location, hailDays, hailDayOutOfRange, hailEnabled, forecast?.timezone, reloadKey])
+    /* `runs` di proposito NON è fra le dipendenze: si legge da un riferimento.
+       Fosse una dipendenza, l'arrivo dei meta farebbe ripartire l'effetto e
+       riscaricare la griglia. Se non sono ancora arrivati si usa la finestra di
+       3 ore, che scade da sé. */
+  }, [location, hailDays, hailDayOutOfRange, hailEnabled, forecast?.timezone, reloadKey, runsSettled])
 
   // Cambiare località azzera il filtro giorno: le date restano valide ma il
   // contesto no, e un filtro invisibile in cima alla pagina confonde.
