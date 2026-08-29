@@ -87,17 +87,18 @@ function chaikinOpen(line, iterations = 2) {
  * lato del dominio: due punti su lati diversi (una diagonale che taglia
  * l'angolo) sono un contorno vero e vanno disegnati.
  */
-function openOutlines(ring, n) {
+function openOutlines(ring, w, h) {
   const eps = 1e-6
   const onEdge = (a, b, get, at) => Math.abs(get(a) - at) < eps && Math.abs(get(b) - at) < eps
-  /* Il dominio di d3-contour va da 0 a n, non a n-1: il valore di indice i
-     sta a coordinata i+0.5, quindi attorno alla griglia resta mezzo passo di
-     bordo. Verificato su una 3×3 tutta alta: l'anello passa per 0 e per 3. */
+  /* Il dominio di d3-contour va da 0 a w (e a h), non a w-1: il valore di
+     indice i sta a coordinata i+0.5, quindi attorno alla griglia resta mezzo
+     passo di bordo. Verificato su una 3×3 tutta alta: l'anello passa per 0 e
+     per 3. */
   const isBoundary = (a, b) =>
     onEdge(a, b, (p) => p[0], 0) ||
-    onEdge(a, b, (p) => p[0], n) ||
+    onEdge(a, b, (p) => p[0], w) ||
     onEdge(a, b, (p) => p[1], 0) ||
-    onEdge(a, b, (p) => p[1], n)
+    onEdge(a, b, (p) => p[1], h)
 
   // d3 chiude l'anello ripetendo il primo punto: si lavora sui punti unici
   const pts = ring.slice(0, -1)
@@ -142,9 +143,13 @@ function catmullRom(p0, p1, p2, p3, t) {
 }
 
 /**
- * Campo interpolato bicubico (Catmull-Rom separabile): da side×side nodi a
- * N×N, con N = (side-1)·SUB+1. Ritorna l'array piatto che d3-contour si
+ * Campo interpolato bicubico (Catmull-Rom separabile): da rows×cols nodi a
+ * una maglia SUB volte più fitta. Ritorna l'array piatto che d3-contour si
  * aspetta (x scorre per primo).
+ *
+ * Righe e colonne sono separate perché la griglia non è più per forza
+ * quadrata: unendo le tile adiacenti del reticolo si ottengono rettangoli
+ * (tre tile in fila fanno 7 righe per 21 colonne).
  *
  * Bicubica e non bilineare perché quest'ultima è continua ma non derivabile
  * sui bordi di cella: i contorni ne uscivano con un angolo netto ogni 39 km,
@@ -153,31 +158,32 @@ function catmullRom(p0, p1, p2, p3, t) {
  * nessun modello ha previsto: il risultato viene quindi RITAGLIATO
  * nell'intervallo dei valori davvero presenti nella griglia.
  */
-function upsample(grid, side) {
-  const n = (side - 1) * SUB + 1
-  const out = new Float64Array(n * n)
+function upsample(grid, rows, cols) {
+  const w = (cols - 1) * SUB + 1
+  const h = (rows - 1) * SUB + 1
+  const out = new Float64Array(w * h)
   const flat = grid.flat()
   const lo = Math.min(...flat)
   const hi = Math.max(...flat)
   const at = (r, c) =>
-    grid[Math.min(Math.max(r, 0), side - 1)][Math.min(Math.max(c, 0), side - 1)]
+    grid[Math.min(Math.max(r, 0), rows - 1)][Math.min(Math.max(c, 0), cols - 1)]
 
-  for (let fy = 0; fy < n; fy += 1) {
+  for (let fy = 0; fy < h; fy += 1) {
     const fr = fy / SUB
-    const r1 = Math.min(Math.floor(fr), side - 1)
+    const r1 = Math.min(Math.floor(fr), rows - 1)
     const tr = fr - r1
-    for (let fx = 0; fx < n; fx += 1) {
+    for (let fx = 0; fx < w; fx += 1) {
       const fc = fx / SUB
-      const c1 = Math.min(Math.floor(fc), side - 1)
+      const c1 = Math.min(Math.floor(fc), cols - 1)
       const tc = fc - c1
       const col = []
       for (let k = -1; k <= 2; k += 1)
         col.push(catmullRom(at(r1 + k, c1 - 1), at(r1 + k, c1), at(r1 + k, c1 + 1), at(r1 + k, c1 + 2), tc))
       const v = catmullRom(col[0], col[1], col[2], col[3], tr)
-      out[fy * n + fx] = Math.min(hi, Math.max(lo, v))
+      out[fy * w + fx] = Math.min(hi, Math.max(lo, v))
     }
   }
-  return { values: out, n }
+  return { values: out, w, h }
 }
 
 /** Ray casting su un anello in coordinate di maglia. */
@@ -204,13 +210,17 @@ const inPolygon = (poly, x, y) =>
 export function buildZones(cells, step, spec) {
   if (!cells?.length) return []
   const { valueOf, labels, probOf, bands } = spec
-  const side = Math.max(...cells.map((c) => c.row)) + 1
+  /* Righe e colonne indipendenti: unendo più tile del reticolo la griglia
+     diventa rettangolare. Gli indici sono globali, cioè già riferiti
+     all'insieme delle tile caricate. */
+  const rows = Math.max(...cells.map((c) => c.row)) + 1
+  const cols = Math.max(...cells.map((c) => c.col)) + 1
   const latMin = Math.min(...cells.map((c) => c.gridLat))
   const lonMin = Math.min(...cells.map((c) => c.gridLon))
 
-  const grid = Array.from({ length: side }, () => new Array(side).fill(0))
+  const grid = Array.from({ length: rows }, () => new Array(cols).fill(0))
   for (const c of cells) grid[c.row][c.col] = valueOf(c) ?? 0
-  const { values, n } = upsample(grid, side)
+  const { values, w, h } = upsample(grid, rows, cols)
 
   /* d3-contour restituisce le coordinate nello spazio degli indici della
      maglia — (x, y) = (colonna, riga) in sotto-passi — ma con il valore di
@@ -228,7 +238,7 @@ export function buildZones(cells, step, spec) {
 
   // dal livello più alto: l'etichetta della zona più severa vince sulla stessa cella
   for (let level = 4; level >= 1; level -= 1) {
-    const multi = contours().size([n, n]).thresholds([bands[level - 1]])(values)
+    const multi = contours().size([w, h]).thresholds([bands[level - 1]])(values)
     for (const poly of multi[0]?.coordinates ?? []) {
       /* Le celle dentro il poligono servono a due cose: la probabilità della
          zona (accordo fra modelli) e dove posare l'etichetta. */
@@ -264,7 +274,7 @@ export function buildZones(cells, step, spec) {
         // riempimento, il tratto lo portano le spezzate qui sotto.
         polygon: poly.map((ring) => chaikin(ring.map(toLatLng))),
         outlines: poly
-          .flatMap((ring) => openOutlines(ring, n))
+          .flatMap((ring) => openOutlines(ring, w, h))
           /* Agli angoli del dominio d3 taglia lo spigolo con una diagonale di
              mezzo sotto-passo: non giace su un lato solo, quindi passa per
              contorno vero. È lunga ~1,5 km e sarebbe solo un trattino sospeso

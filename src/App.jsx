@@ -25,6 +25,10 @@ const sameSpot = (a, b) =>
  *  segnale che il service worker sta servendo una risposta dalla cache. */
 const Stamp = ({ at }) => <span className="tnum text-[12px] text-ink-muted">Aggiornato {fmtTime(at)}</span>
 
+/* La vista d'insieme sugli ensemble resta nel codice ma fuori dall'interfaccia:
+   finché non è affidabile, la sezione temporali mostra solo la previsione. */
+const SHOW_ENSEMBLE_TAB = false
+
 const MAX_COMPARE_DAYS = 16 // limite Open-Meteo
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v))
 
@@ -423,26 +427,28 @@ export default function App() {
         <Section
           title="Rischio temporali"
           hint={
-            stormTab === 'previsione'
+            !SHOW_ENSEMBLE_TAB || stormTab === 'previsione'
               ? 'Grandine, raffiche e accumuli: dove, quando, e con che intensità'
               : 'Sperimentale — probabilità dai 31 membri di GFS, incrociata con la previsione'
           }
           action={
             <div className="flex items-center gap-3">
               {stormTab === 'previsione' && hailEnabled && hailUpdatedAt ? <Stamp at={hailUpdatedAt} /> : null}
-              <Segmented
-                ariaLabel="Vista della sezione temporali"
-                options={[
-                  { value: 'previsione', label: 'Previsionale' },
-                  { value: 'sperimentale', label: 'Sperimentale' },
-                ]}
-                value={stormTab}
-                onChange={setStormTab}
-              />
+              {SHOW_ENSEMBLE_TAB ? (
+                <Segmented
+                  ariaLabel="Vista della sezione temporali"
+                  options={[
+                    { value: 'previsione', label: 'Previsionale' },
+                    { value: 'sperimentale', label: 'Sperimentale' },
+                  ]}
+                  value={stormTab}
+                  onChange={setStormTab}
+                />
+              ) : null}
             </div>
           }
         >
-          {stormTab === 'sperimentale' ? (
+          {SHOW_ENSEMBLE_TAB && stormTab === 'sperimentale' ? (
             <EnsemblePanel
               location={location}
               timezone={forecast?.timezone ?? location.timezone}

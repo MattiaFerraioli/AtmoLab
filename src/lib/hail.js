@@ -82,6 +82,55 @@ export function snapToLattice({ latitude, longitude }, step) {
   }
 }
 
+/**
+ * Centri delle tile adiacenti a quella data, sullo stesso reticolo.
+ * Il passo fra un centro e l'altro è GRID_SIDE·step: le tile si affiancano
+ * senza sovrapporsi e senza lasciare buchi fra i nodi.
+ *
+ * `rings = 1` dà le 8 attorno; con `axis: 'lon'` solo le due a est e ovest.
+ */
+export function neighbourTiles({ latitude, longitude }, step, { rings = 1, axis = null } = {}) {
+  const pitch = GRID_SIDE * step
+  const out = []
+  for (let dr = -rings; dr <= rings; dr += 1) {
+    for (let dc = -rings; dc <= rings; dc += 1) {
+      if (!dr && !dc) continue
+      if (axis === 'lon' && dr !== 0) continue
+      if (axis === 'lat' && dc !== 0) continue
+      out.push({
+        latitude: +(latitude + dr * pitch).toFixed(4),
+        longitude: +(longitude + dc * pitch).toFixed(4),
+      })
+    }
+  }
+  return out
+}
+
+/**
+ * Fonde le celle di più tile in UNA griglia con indici globali.
+ *
+ * Serve perché contornare tile per tile lascerebbe fra l'una e l'altra una
+ * striscia larga un passo senza campo — una cucitura vuota bene in vista.
+ * Siccome tutte le tile stanno sullo stesso reticolo, l'unione dei loro nodi
+ * è a sua volta una griglia regolare: si ricalcolano riga e colonna rispetto
+ * all'angolo sud-ovest dell'insieme e il resto del disegno non cambia.
+ *
+ * I buchi (un rettangolo incompleto) vanno evitati a monte chiedendo tutte le
+ * tile del rettangolo: qui verrebbero riempiti di zeri, che il campo
+ * leggerebbe come "niente rischio" invece che "non lo so".
+ */
+export function mergeTiles(tileCells, step) {
+  const cells = tileCells.flat()
+  if (!cells.length) return cells
+  const latMin = Math.min(...cells.map((c) => c.gridLat))
+  const lonMin = Math.min(...cells.map((c) => c.gridLon))
+  return cells.map((c) => ({
+    ...c,
+    row: Math.round((c.gridLat - latMin) / step),
+    col: Math.round((c.gridLon - lonMin) / step),
+  }))
+}
+
 /** Punti della griglia centrata sulla località. */
 export function buildGrid({ latitude, longitude }, step) {
   const half = (GRID_SIDE - 1) / 2
