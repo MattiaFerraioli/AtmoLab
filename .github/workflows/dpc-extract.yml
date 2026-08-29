@@ -1,0 +1,36 @@
+name: Estratto allerte DPC
+
+# Orari scelti sui dati reali: su 2.430 giorni di storico del repo DPC la
+# prima emissione ha mediana 14:28 italiane e coda fino alle 16:05, con un
+# secondo bollettino nel 2-7% dei giorni fra le 16:00 e le 17:40. Le ore qui
+# sono UTC e non seguono l'ora legale, quindi ogni riga copre entrambe le
+# stagioni: d'estate sono +2, d'inverno +1.
+on:
+  schedule:
+    - cron: '20 14 * * *' # 16:20 estive / 15:20 invernali — la prima emissione
+    - cron: '30 16 * * *' # 18:30 / 17:30 — gli aggiornamenti pomeridiani
+  workflow_dispatch: # esecuzione manuale, per provare senza aspettare
+
+# Un solo giro alla volta: due esecuzioni sovrapposte scriverebbero lo stesso
+# oggetto e l'ultima a finire non è detto sia la più recente.
+concurrency:
+  group: dpc-extract
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Nessun `npm ci`: lo script usa solo fetch e i moduli del repo.
+      - name: Estrai e pubblica
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: node scripts/dpc-extract.mjs

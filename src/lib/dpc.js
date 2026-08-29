@@ -1,116 +1,84 @@
 /* ============================================================
-   Allerte Protezione Civile — bollettino di criticità
+   Allerte Protezione Civile — lato browser
    ------------------------------------------------------------
    Fonte: open data ufficiale DPC su GitHub (CC-BY 4.0), repo
    pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica.
-   Un bollettino al giorno (~14:30-15:30), oggi + domani, 187 zone
-   di allertamento con tre rischi (idraulico, temporali,
-   idrogeologico) e la lista dei Comuni di ogni zona: il match con
-   la località è per nome comune, niente geometrie.
+   Un bollettino al giorno (emissione mediana ~14:30, coda fino
+   alle 16:05; un aggiornamento pomeridiano nel 2-7% dei giorni),
+   oggi + domani, 187 zone di allertamento con tre rischi e la
+   lista dei Comuni: il match con la località è per nome comune,
+   niente geometrie.
 
-   Pesi misurati: listing trees ~0,8MB + bollettino 5KB + due
-   TopoJSON da 1,2MB l'uno. Per questo l'estratto (solo livelli e
-   comuni, ~300KB) va in localStorage e si riscarica al più ogni
-   6 ore: il costo pieno è una tantum al giorno per dispositivo.
+   DUE PERCORSI, in quest'ordine:
 
-   Il nome file ha orario variabile (20260818_1434.json): l'unico
-   modo affidabile di scoprirlo è la git trees API — la contents
-   API tronca a 1000 voci e il repo ne ha migliaia.
+   1. L'ESTRATTO PUBBLICATO (~250 KB), prodotto una volta sola dal
+      job schedulato e servito da CDN. Un GET e basta.
+   2. Il percorso diretto su GitHub, come ripiego: 2 chiamate alla
+      loro API (limite 60/ora PER IP — dietro un CGNAT bastano
+      poche persone a esaurirlo e la sezione sparisce per tutte)
+      più due TopoJSON da 1,2 MB. Resta perché l'estratto può
+      mancare, essere vecchio, o non essere ancora configurato.
+
+   La scelta fra i due non guarda l'orologio ma il CONTENUTO: un
+   estratto che non copre più la giornata di oggi viene scartato,
+   qualunque sia la sua età.
    ============================================================ */
 
-const REPO = 'pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica'
-const API = `https://api.github.com/repos/${REPO}`
+import { buildBulletin, localDate, mapAvailability } from './dpcCore'
+
+export { LEVEL_META, previewUrl } from './dpcCore'
+
 const CACHE_KEY = 'wm.dpc'
 const MAX_AGE_MS = 6 * 3600 * 1000
 
-const LEVELS = { 'NESSUNA ALLERTA': 0, 'ALLERTA GIALLA': 1, 'ALLERTA ARANCIONE': 2, 'ALLERTA ROSSA': 3 }
+/* Impostato in fase di build. Senza, si va diretti su GitHub: l'app resta
+   funzionante anche senza l'estratto configurato. */
+const EXTRACT_URL = import.meta.env.VITE_DPC_EXTRACT_URL
 
-/** Colori ufficiali dell'allertamento; lo 0 è un "tutto regolare" discreto. */
-export const LEVEL_META = [
-  { label: 'nessuna allerta', color: '#8e8e93' },
-  { label: 'allerta gialla', color: '#eab308' },
-  { label: 'allerta arancione', color: '#f97316' },
-  { label: 'allerta rossa', color: '#dc2626' },
-]
+/** Copre ancora oggi? Un bollettino di ieri non vale, per quanto recente. */
+const coversToday = (data) => Boolean(data?.days?.[1]?.date >= localDate())
 
-/** "Ordinaria / ALLERTA GIALLA" → 1 */
-function levelOf(text) {
-  const m = /NESSUNA ALLERTA|ALLERTA (?:GIALLA|ARANCIONE|ROSSA)/.exec(text ?? '')
-  return m ? LEVELS[m[0]] : 0
+/** L'estratto pubblicato, o null se manca, è illeggibile o è scaduto. */
+async function fromExtract() {
+  if (!EXTRACT_URL) return null
+  try {
+    const res = await fetch(EXTRACT_URL, { cache: 'no-cache' })
+    if (!res.ok) return null
+    const data = await res.json()
+    return coversToday(data) ? data : null
+  } catch {
+    return null // rete, CORS, JSON rotto: si passa al ripiego
+  }
 }
-
-async function getJson(url) {
-  const res = await fetch(url)
-  if (!res.ok) throw new Error(`HTTP ${res.status} su ${url}`)
-  return res.json()
-}
-
-/** URL del bollettino più recente, via git trees (2 chiamate API). */
-async function latestBulletinUrl() {
-  const root = await getJson(`${API}/git/trees/master`)
-  const filesSha = root.tree.find((t) => t.path === 'files')?.sha
-  if (!filesSha) throw new Error('cartella files assente nel repo DPC')
-  const files = await getJson(`${API}/git/trees/${filesSha}`)
-  const names = files.tree.map((t) => t.path).filter((p) => /^\d{8}_\d{4}\.json$/.test(p))
-  if (!names.length) throw new Error('nessun bollettino nel repo DPC')
-  const name = names.sort()[names.length - 1]
-  return `https://raw.githubusercontent.com/${REPO}/master/files/${name}`
-}
-
-/** TopoJSON del giorno → zone col solo necessario: livelli e comuni. */
-function extractZones(topo) {
-  const key = Object.keys(topo.objects)[0]
-  return topo.objects[key].geometries.map((g) => {
-    const p = g.properties
-    return {
-      zone: p['Nome zona'],
-      comuni: p.Comuni ?? [],
-      temporali: levelOf(p['Per rischio temporali']),
-      idrogeologico: levelOf(p['Per rischio idrogeologico']),
-      idraulico: levelOf(p['Per rischio idraulico']),
-    }
-  })
-}
-
-const localDate = (d = new Date()) => d.toLocaleDateString('sv') // YYYY-MM-DD locale
 
 /**
- * Bollettino corrente: { fetchedAt, name, stem, days: [{date, zones}] }.
- * I giorni portano la DATA REALE (dal nome file): "oggi/domani" del bollettino
- * sono date fisse, dopo mezzanotte slittano — l'etichetta la decide chi legge.
- * Cache: 6 ore, ma se il bollettino in cache è di ieri si riprova ogni 30
- * minuti — quello nuovo esce ~14:30 e non va aspettato fino a scadenza piena.
+ * Bollettino corrente: { fetchedAt, name, stem, days: [{date, zones}], maps }.
+ *
+ * Cache locale di 6 ore, ma se quello in cache non copre più oggi si riprova
+ * ogni 30 minuti: il bollettino nuovo esce nel primo pomeriggio e non ha senso
+ * aspettare la scadenza piena.
  */
 export async function fetchDpcBulletin() {
   try {
     const cached = JSON.parse(localStorage.getItem(CACHE_KEY))
-    const bulletinDate = cached?.days?.[0]?.date
-    if (bulletinDate) {
-      const maxAge = bulletinDate < localDate() ? 30 * 60 * 1000 : MAX_AGE_MS
+    if (cached?.days?.[0]?.date) {
+      const maxAge = coversToday(cached) ? MAX_AGE_MS : 30 * 60 * 1000
       if (Date.now() - cached.fetchedAt < maxAge) return cached
     }
   } catch {
     /* cache illeggibile: si riscarica */
   }
 
-  const bulletinUrl = await latestBulletinUrl()
-  const stem = /(\d{8}_\d{4})\.json$/.exec(bulletinUrl)[1]
-  const bulletin = await getJson(bulletinUrl)
-  const [today, tomorrow] = await Promise.all([
-    getJson(bulletin.today.topo_json),
-    getJson(bulletin.tomorrow.topo_json),
-  ])
-  const issueDate = new Date(`${stem.slice(0, 4)}-${stem.slice(4, 6)}-${stem.slice(6, 8)}T12:00`)
-  const nextDate = new Date(issueDate.getTime() + 24 * 3600 * 1000)
-  const data = {
-    fetchedAt: Date.now(),
-    name: bulletin.name,
-    stem,
-    days: [
-      { date: localDate(issueDate), zones: extractZones(today) },
-      { date: localDate(nextDate), zones: extractZones(tomorrow) },
-    ],
+  const published = await fromExtract()
+  const bulletin = published ?? {
+    ...(await buildBulletin()),
+    /* Sul percorso di ripiego le due HEAD sulle mappe le fa il browser; sul
+       percorso normale sono già dentro l'estratto. */
+    maps: null,
   }
+  if (!published && !bulletin.maps) bulletin.maps = await mapAvailability(bulletin.stem)
+
+  const data = { ...bulletin, fetchedAt: Date.now() }
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(data))
   } catch {
@@ -133,7 +101,3 @@ export function zoneForComune(day, comune) {
   if (!c) return null
   return day.zones.find((z) => z.comuni.some((x) => norm(x) === c)) ?? null
 }
-
-/** Mappa nazionale ufficiale del bollettino (PNG pronto, ~160KB). */
-export const previewUrl = (stem, day) =>
-  `https://raw.githubusercontent.com/${REPO}/master/files/preview/${stem}_${day}.png`

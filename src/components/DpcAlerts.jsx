@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { LEVEL_META, fetchDpcBulletin, previewUrl, zoneForComune } from '../lib/dpc'
+import { mapAvailability } from '../lib/dpcCore'
 
 const RISKS = [
   { key: 'temporali', label: 'Temporali' },
@@ -54,6 +55,7 @@ export function useDpcAlert(location) {
     zoneName: days[0].zone.zone,
     bulletinName: data.name,
     stem: data.stem,
+    maps: data.maps ?? null,
     days,
     hasAlerts: days.some((d) => d.risks.length > 0),
   }
@@ -125,27 +127,22 @@ export function DpcAlertBand({ alert }) {
 
 /** Popup con la mappa nazionale ufficiale: nessuna espansione della hero. */
 function DpcMapModal({ alert, onClose }) {
-  /* Gli aggiornamenti pomeridiani pubblicano per "oggi" un PNG segnaposto
-     quasi vuoto (~4KB contro i ~160KB di una mappa vera): il peso, letto con
-     una HEAD, distingue la mappa vera dalla tavola bianca. */
-  const [available, setAvailable] = useState(null)
+  /* Quali mappe esistono davvero lo dice ormai l'estratto pubblicato, che se
+     l'è già chiesto una volta per tutti. Le due HEAD restano solo per i
+     bollettini presi dal percorso di ripiego o rimasti in cache da una
+     versione precedente dell'app. */
+  const [available, setAvailable] = useState(alert.maps)
   useEffect(() => {
+    if (alert.maps) {
+      setAvailable(alert.maps)
+      return undefined
+    }
     let dead = false
-    Promise.all(
-      ['oggi', 'domani'].map(async (k) => {
-        try {
-          const res = await fetch(previewUrl(alert.stem, k), { method: 'HEAD' })
-          const len = Number(res.headers.get('content-length')) || 0
-          return [k, res.ok && len > 30000]
-        } catch {
-          return [k, true] /* dubbio: meglio mostrare */
-        }
-      }),
-    ).then((entries) => !dead && setAvailable(Object.fromEntries(entries)))
+    mapAvailability(alert.stem).then((m) => !dead && setAvailable(m))
     return () => {
       dead = true
     }
-  }, [alert.stem])
+  }, [alert.stem, alert.maps])
 
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()

@@ -37,6 +37,52 @@ giorno, ma il conteggio è *pesato* per località × variabili × giorni: la gri
 sola**: si carica con un click, e la scelta non viene ricordata fra visite. Le altre tre richieste
 (previsione, qualità aria, confronto modelli) partono al caricamento.
 
+## Allerte DPC: estratto pubblicato
+
+Il bollettino di criticità della Protezione Civile arriva dal repo open data
+`pcm-dpc/DPC-Bollettini-Criticita-Idrogeologica-Idraulica` (CC-BY 4.0). Scoprire il bollettino più
+recente costa **2 chiamate alla API di GitHub** — il nome file ha orario variabile e la contents
+API tronca a 1000 voci, quindi servono le git trees — più **due TopoJSON da ~1,2 MB**.
+
+Farlo fare a ogni dispositivo era lo spreco: la API di GitHub ha un limite di **60 chiamate/ora per
+IP**, quindi dietro un CGNAT bastano poche persone perché la sezione allerte sparisca per tutte,
+in silenzio.
+
+Ora quel lavoro lo fa **una volta sola** un job schedulato (`.github/workflows/dpc-extract.yml`,
+script in `scripts/dpc-extract.mjs`) che pubblica un estratto di **~260 KB** su Supabase Storage,
+in un bucket pubblico. Il client fa un GET e basta — nessuna chiave, nessun `supabase-js` nel
+bundle.
+
+**Perché GitHub Actions e non una funzione serverless**: il parsing dei TopoJSON non sta nei 10 ms
+di CPU dei Cloudflare Workers free, e il cron di Vercel Hobby ammette una sola esecuzione al
+giorno. Su Actions non ci sono limiti di CPU e gli orari sono liberi.
+
+**Gli orari sono scelti sui dati**, non a occhio: su 2.430 giorni di storico del repo DPC la prima
+emissione ha mediana **14:28** italiane e coda fino alle **16:05**, e un secondo bollettino compare
+nel **2-7%** dei giorni fra le 16:00 e le 17:40. I cron di GitHub sono in UTC e non seguono l'ora
+legale, quindi ogni riga copre entrambe le stagioni.
+
+Il nucleo di parsing sta in `lib/dpcCore.js` e gira **sia nel job sia nel browser**: niente
+localStorage lì dentro, solo `fetch`. Il browser lo usa nel **percorso di ripiego**, che resta
+attivo quando l'estratto manca, è vecchio o non è ancora configurato. La scelta fra i due percorsi
+non guarda l'orologio ma il contenuto: un estratto che non copre più la giornata di oggi viene
+scartato, qualunque sia la sua età.
+
+L'estratto porta anche il **flag delle mappe segnaposto**: gli aggiornamenti pomeridiani
+pubblicano per "oggi" un PNG quasi vuoto (~4 KB contro ~160 KB), e riconoscerlo nel job evita due
+richieste HEAD a ogni apertura del popup.
+
+### Configurazione
+
+1. Supabase → **Storage** → nuovo bucket `dpc`, **pubblico**.
+2. Nei secrets del repo (*Settings → Secrets and variables → Actions*): `SUPABASE_URL` e
+   `SUPABASE_SERVICE_KEY` (la `service_role`, che **non va mai nel client né nel repo**).
+3. Variabile d'ambiente di build, in locale e sull'hosting:
+   `VITE_DPC_EXTRACT_URL=https://<progetto>.supabase.co/storage/v1/object/public/dpc/latest.json`
+4. Prova senza pubblicare: `node scripts/dpc-extract.mjs --dry-run`.
+
+Senza il punto 3 l'app funziona lo stesso, sul percorso diretto di prima.
+
 ## PWA
 
 `vite-plugin-pwa` in `generateSW`, con `registerType: 'autoUpdate'`.
