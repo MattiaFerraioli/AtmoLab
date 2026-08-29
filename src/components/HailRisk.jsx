@@ -7,22 +7,32 @@ import { HAZARDS, SEVERITY_COLORS, SEVERITY_LABELS, applyHazard, hailZoneStep, h
 import { AGREEMENT_COUNT, cellFraction, fractionLabel, fractionText } from '../lib/agreement'
 import { fmtDayHour, nf, relativePosition } from '../lib/format'
 
-/** "42 km a NE", ma per la cella della località il nome del posto: "qui" da solo non significa niente. */
-const placeLabel = (location, lat, lon) => {
-  const rp = relativePosition(location.latitude, location.longitude, lat, lon)
-  return rp === 'qui' ? location.name : rp
-}
+/**
+ * "42 km a NE", ma la cella che CONTIENE la località si chiama col suo nome.
+ *
+ * Il riconoscimento non può basarsi sulla distanza: da quando la griglia è
+ * agganciata al reticolo fisso, il nodo più vicino può stare fino a 24 km, e
+ * la soglia dei 6 km di `relativePosition` non scattava più — la città
+ * spariva dalle etichette, sostituita da "13 km a NO". Si confronta invece
+ * l'identità della cella: quella di casa è una sola, e le altre distano un
+ * passo intero (39 km), quindi non c'è ambiguità.
+ */
+const isHome = (home, lat, lon) => Boolean(home) && home.gridLat === lat && home.gridLon === lon
+
+const placeLabel = (location, lat, lon, home) =>
+  isHome(home, lat, lon)
+    ? location.name
+    : relativePosition(location.latitude, location.longitude, lat, lon)
 
 /* Come placeLabel, ma da incastrare in una frase: "a Cogliate" per la cella
-   della località, "55 km a E" per una remota — con la preposizione davanti
+   di casa, "55 km a E" per una remota — con la preposizione davanti
    verrebbe "attesa a 55 km a E". */
-const placePhrase = (location, lat, lon) => {
-  const rp = relativePosition(location.latitude, location.longitude, lat, lon)
-  return rp === 'qui' ? ` a ${location.name}` : ` ${rp}`
-}
+const placePhrase = (location, lat, lon, home) =>
+  isHome(home, lat, lon)
+    ? ` a ${location.name}`
+    : ` ${relativePosition(location.latitude, location.longitude, lat, lon)}`
 import { useCellName, useIsMobile } from '../lib/hooks'
 
-const CENTRE = (GRID_SIDE - 1) / 2
 
 function Tile({ k, children, sub }) {
   return (
@@ -145,8 +155,22 @@ export default function HailRisk({
     return g > 0 ? g : null
   }, [cells])
   const worst = ranked[0]
-  const centre = hazardCells?.find((c) => c.row === CENTRE && c.col === CENTRE)
-  const focus = selected ?? centre ?? worst
+  /* La cella di casa è quella che contiene la località, non quella al centro
+     della griglia: col reticolo fisso le due non coincidono più. */
+  const home = useMemo(() => {
+    if (!hazardCells?.length) return null
+    let best = null
+    let bestD = Infinity
+    for (const c of hazardCells) {
+      const d = Math.hypot(c.gridLat - location.latitude, c.gridLon - location.longitude)
+      if (d < bestD) {
+        bestD = d
+        best = c
+      }
+    }
+    return best
+  }, [hazardCells, location.latitude, location.longitude])
+  const focus = selected ?? home ?? worst
 
   const focusSeries = useMemo(() => focus?.series ?? [], [focus])
   const worstName = useCellName(worst?.gridLat, worst?.gridLon)
@@ -256,7 +280,7 @@ export default function HailRisk({
             che in testata sarebbero peggio delle coordinate che sostituiscono. */}
         <Tile k="Dove" sub={worstName ?? undefined}>
           <span className="text-[17px]">
-            {worst ? placeLabel(location, worst.gridLat, worst.gridLon) : '–'}
+            {worst ? placeLabel(location, worst.gridLat, worst.gridLon, home) : '–'}
           </span>
         </Tile>
 
@@ -366,7 +390,7 @@ export default function HailRisk({
                       <span className="h-7 w-1.5 shrink-0 rounded-full" style={{ background: color }} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-[13px] font-semibold">
-                          {placeLabel(location, c.gridLat, c.gridLon)}
+                          {placeLabel(location, c.gridLat, c.gridLon, home)}
                         </span>
                         <span className="block text-[11.5px] text-ink-muted">
                           {c.metric.at ? fmtDayHour(c.metric.at) : '–'} ·{' '}
@@ -403,7 +427,7 @@ export default function HailRisk({
 
       <div className="border-t border-hair p-4 pt-3">
         <div className="mb-1 ml-1 text-[13px] font-semibold text-ink-sec">
-          {`${hazard.hourly.title}${focus ? placePhrase(location, focus.gridLat, focus.gridLon) : ''}`}
+          {`${hazard.hourly.title}${focus ? placePhrase(location, focus.gridLat, focus.gridLon, home) : ''}`}
         </div>
         <ResponsiveContainer width="100%" height={170}>
           <BarChart data={focusSeries} margin={{ top: 6, right: 10, bottom: 4, left: isMobile ? 2 : -6 }}>
