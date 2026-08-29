@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { LEVEL_META, fetchDpcBulletin, previewUrl, zoneForComune } from '../lib/dpc'
-import { mapAvailability } from '../lib/dpcCore'
 
 const RISKS = [
   { key: 'temporali', label: 'Temporali' },
@@ -44,6 +43,7 @@ export function useDpcAlert(location) {
       const zone = zoneForComune(day, location.name)
       return {
         label: day.date === today ? 'Oggi' : 'Domani',
+        map: day.map ?? null,
         zone,
         risks: zone ? RISKS.filter((r) => zone[r.key] > 0).map((r) => ({ ...r, level: zone[r.key] })) : [],
       }
@@ -55,7 +55,6 @@ export function useDpcAlert(location) {
     zoneName: days[0].zone.zone,
     bulletinName: data.name,
     stem: data.stem,
-    maps: data.maps ?? null,
     days,
     hasAlerts: days.some((d) => d.risks.length > 0),
   }
@@ -127,23 +126,6 @@ export function DpcAlertBand({ alert }) {
 
 /** Popup con la mappa nazionale ufficiale: nessuna espansione della hero. */
 function DpcMapModal({ alert, onClose }) {
-  /* Quali mappe esistono davvero lo dice ormai l'estratto pubblicato, che se
-     l'è già chiesto una volta per tutti. Le due HEAD restano solo per i
-     bollettini presi dal percorso di ripiego o rimasti in cache da una
-     versione precedente dell'app. */
-  const [available, setAvailable] = useState(alert.maps)
-  useEffect(() => {
-    if (alert.maps) {
-      setAvailable(alert.maps)
-      return undefined
-    }
-    let dead = false
-    mapAvailability(alert.stem).then((m) => !dead && setAvailable(m))
-    return () => {
-      dead = true
-    }
-  }, [alert.stem, alert.maps])
-
   useEffect(() => {
     const onKey = (e) => e.key === 'Escape' && onClose()
     document.addEventListener('keydown', onKey)
@@ -179,23 +161,24 @@ function DpcMapModal({ alert, onClose }) {
           </button>
         </div>
         <div data-lenis-prevent className="grid gap-3 overflow-auto p-4 sm:grid-cols-2">
-          {[
-            ['oggi', 'Oggi'],
-            ['domani', 'Domani'],
-          ].map(([k, label]) => (
-            <figure key={k}>
-              {available?.[k] === false ? (
-                <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-hair p-6 text-center text-[12.5px] text-ink-muted">
-                  Mappa di {label.toLowerCase()} non pubblicata in questo aggiornamento del bollettino.
-                </div>
-              ) : (
+          {/* Ogni giorno sa da quale bollettino viene la SUA mappa: quella di
+              oggi spesso è pubblicata solo nel bollettino di ieri, come
+              "domani". Il riquadro di ripiego resta per il caso in cui non
+              esista in nessuno dei due. */}
+          {alert.days.map((day) => (
+            <figure key={day.label}>
+              {day.map ? (
                 <img
-                  src={previewUrl(alert.stem, k)}
-                  alt={`Mappa nazionale delle allerte di ${label.toLowerCase()}`}
+                  src={previewUrl(day.map.stem, day.map.slot)}
+                  alt={`Mappa nazionale delle allerte di ${day.label.toLowerCase()}`}
                   className="w-full rounded-xl bg-white"
                 />
+              ) : (
+                <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-hair p-6 text-center text-[12.5px] text-ink-muted">
+                  Mappa di {day.label.toLowerCase()} non ancora pubblicata.
+                </div>
               )}
-              <figcaption className="mt-1 text-[12px] text-ink-muted">{label}</figcaption>
+              <figcaption className="mt-1 text-[12px] text-ink-muted">{day.label}</figcaption>
             </figure>
           ))}
         </div>

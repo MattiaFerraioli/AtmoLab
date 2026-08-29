@@ -17,7 +17,7 @@
      node scripts/dpc-extract.mjs --dry-run   (stampa e non pubblica)
    ============================================================ */
 
-import { buildBulletin, mapAvailability } from '../src/lib/dpcCore.js'
+import { buildBulletin } from '../src/lib/dpcCore.js'
 
 const BUCKET = 'dpc'
 const OBJECT = 'latest.json'
@@ -31,19 +31,15 @@ if (!dryRun && (!SUPABASE_URL || !SUPABASE_SERVICE_KEY)) {
 }
 
 const bulletin = await buildBulletin()
-const payload = {
-  ...bulletin,
-  maps: await mapAvailability(bulletin.stem),
-  generatedAt: Date.now(),
-}
+const payload = { ...bulletin, generatedAt: Date.now() }
 
 const body = JSON.stringify(payload)
 const zones = payload.days[0].zones.length
 const comuni = payload.days[0].zones.reduce((n, z) => n + z.comuni.length, 0)
+const maps = payload.days.map((d) => `${d.date} da ${d.map ? `${d.map.stem}/${d.map.slot}` : 'nessuna'}`)
 console.log(
-  `bollettino ${payload.stem} · ${payload.days.map((d) => d.date).join(' + ')} · ` +
-    `${zones} zone · ${comuni} comuni · mappe ${JSON.stringify(payload.maps)} · ` +
-    `${(body.length / 1024).toFixed(0)} KB`,
+  `bollettino ${payload.stem} · ${zones} zone · ${comuni} comuni · ` +
+    `${(body.length / 1024).toFixed(0)} KB\nmappe: ${maps.join(' | ')}`,
 )
 
 if (dryRun) {

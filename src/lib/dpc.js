@@ -24,11 +24,11 @@
    qualunque sia la sua età.
    ============================================================ */
 
-import { buildBulletin, localDate, mapAvailability } from './dpcCore'
+import { buildBulletin, localDate } from './dpcCore'
 
 export { LEVEL_META, previewUrl } from './dpcCore'
 
-const CACHE_KEY = 'wm.dpc'
+const CACHE_KEY = 'wm.dpc.v2' // v2: ogni giorno porta il bollettino da cui prendere la mappa
 const MAX_AGE_MS = 6 * 3600 * 1000
 
 /* Impostato in fase di build. Senza, si va diretti su GitHub: l'app resta
@@ -69,15 +69,9 @@ export async function fetchDpcBulletin() {
     /* cache illeggibile: si riscarica */
   }
 
-  const published = await fromExtract()
-  const bulletin = published ?? {
-    ...(await buildBulletin()),
-    /* Sul percorso di ripiego le due HEAD sulle mappe le fa il browser; sul
-       percorso normale sono già dentro l'estratto. */
-    maps: null,
-  }
-  if (!published && !bulletin.maps) bulletin.maps = await mapAvailability(bulletin.stem)
-
+  /* Il ripiego rifà lo stesso lavoro dell'estratto, mappe comprese: costa
+     qualche HEAD in più al browser, ma quello che ne esce ha la stessa forma. */
+  const bulletin = (await fromExtract()) ?? (await buildBulletin())
   const data = { ...bulletin, fetchedAt: Date.now() }
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(data))
