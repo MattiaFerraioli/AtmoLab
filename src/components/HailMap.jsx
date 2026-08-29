@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import L from 'leaflet'
-import { MapContainer, Marker, Polygon, Rectangle, TileLayer, Tooltip, useMap } from 'react-leaflet'
+import { MapContainer, Marker, Polygon, Rectangle, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
+/* MapLibre calcola l'URL del suo worker a runtime (`new URL('./' + nome,
+   import.meta.url)`): essendo costruito da una template string, nessun
+   bundler può vederlo, quindi il file non finisce mai in dist e il worker
+   non parte. Senza worker la mappa disegna sfondo e sprite ma NON chiede
+   una sola tile: schermo vuoto, e in produzione pure senza errori in
+   console. `?worker&url` fa impacchettare a Vite il worker con tutte le sue
+   dipendenze e ci restituisce l'URL vero, da passare a setWorkerUrl(). */
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { DragControl, LockOverlay } from './MapLock'
 import { TILE_ATTRIB } from '../lib/constants'
 import { fmtDayHour, nf, windDir } from '../lib/format'
@@ -9,6 +17,52 @@ import { useIsTouch } from '../lib/hooks'
 import { SEVERITY_COLORS, SEVERITY_LABELS, zoneSpecOf } from '../lib/hazards'
 import { AGREEMENT_COUNT, fractionText } from '../lib/agreement'
 import { buildZones } from '../lib/zones'
+
+/**
+ * Sfondo della mappa. OpenFreeMap serve tile VETTORIALI, non raster: il
+ * fondale lo disegna MapLibre su canvas, montato dal ponte dentro il
+ * `tilePane` di Leaflet. Sopra restano i pane normali, quindi zone, marker
+ * e tooltip qui sotto non cambiano di una riga.
+ *
+ * L'import è dinamico perché maplibre-gl pesa quanto tutto il resto del
+ * bundle: la sezione temporali parte comunque da un click, un attimo in più
+ * sul primo disegno della mappa non si nota, mentre il peso su chi non la
+ * apre mai si noterebbe.
+ */
+function VectorBase({ styleUrl }) {
+  const map = useMap()
+
+  useEffect(() => {
+    let layer = null
+    let cancelled = false
+
+    /* Anche il CSS di maplibre viaggia nel chunk pigro: da solo pesava
+       +10 KB gzip sul foglio critico, per una mappa che molti non aprono. */
+    Promise.all([
+      import('maplibre-gl'),
+      import('@maplibre/maplibre-gl-leaflet'),
+      import('maplibre-gl/dist/maplibre-gl.css'),
+    ]).then(([maplibre, mod]) => {
+      if (cancelled) return
+      maplibre.setWorkerUrl(maplibreWorkerUrl) // prima di creare la mappa
+      const maplibreGL = mod.maplibreGL ?? mod.default
+      /* Lo stile non dichiara la sua attribuzione: passandola qui il ponte la
+         usa al posto di quella (vuota) letta dalle sources. */
+      layer = maplibreGL({
+        style: styleUrl,
+        attributionControl: { customAttribution: TILE_ATTRIB },
+      })
+      layer.addTo(map)
+    })
+
+    return () => {
+      cancelled = true
+      if (layer) layer.remove()
+    }
+  }, [map, styleUrl])
+
+  return null
+}
 
 /**
  * La griglia cambia estensione con il preset: la vista deve seguirla.
@@ -75,7 +129,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
         scrollWheelZoom={false}
         style={{ height: '100%', width: '100%' }}
       >
-        <TileLayer key={theme} url={palette.tiles} attribution={TILE_ATTRIB} maxZoom={19} />
+        <VectorBase key={theme} styleUrl={palette.mapStyle} />
         <FitToCells bounds={bounds} />
         <DragControl enabled={!locked} />
 

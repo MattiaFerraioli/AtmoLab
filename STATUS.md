@@ -49,6 +49,13 @@ Documentazione tecnica completa, con ogni scelta motivata e ogni misura annotata
   ora per vicinanza, non uguaglianza esatta delle coordinate).
 - Scroll con inerzia (Lenis), rispettando mappe e strisce orizzontali.
 - Sweep di copywriting: maiuscole a inizio frase ovunque, spiegoni tecnici ridotti a una riga.
+- **Basemap da CARTO a OpenFreeMap (29 ago)**: CARTO ha reso obbligatoria la API key e senza
+  chiave stampa "API KEY REQUIRED" sopra la mappa. Passata a OpenFreeMap: nessuna chiave,
+  nessun limite, stili `positron`/`dark` identici nell'aspetto ai CARTO di prima. Sono tile
+  vettoriali, quindi il fondale ora lo disegna MapLibre GL dentro il `tilePane` di Leaflet
+  (ponte `@maplibre/maplibre-gl-leaflet`); zone, marker e tooltip restano react-leaflet
+  invariati. Import dinamico, così i ~250 KB gzip di maplibre-gl non pesano su chi non apre
+  la mappa.
 - **Griglia unica (26 ago)**: rimosse le estensioni regionale (0,7°) e ampia (1,4°), resta
   solo la locale (0,35°). A quei passi i punti stavano a ~78 e ~155 km mentre una cella
   temporalesca è larga 5–30 km: un sondaggio spalmato su un'area molte volte più grande del
@@ -73,6 +80,10 @@ Documentazione tecnica completa, con ogni scelta motivata e ogni misura annotata
   La riga di piè di sezione dice quale modello sta rispondendo.
 - **Allerte DPC**: match per nome Comune, non per geometria — frazioni o nomi non standard
   possono non trovare la zona (la sezione allora non compare, niente dato inventato).
+- **OpenFreeMap non ha SLA**: è un servizio pubblico gratuito mantenuto da una persona sola e
+  finanziato da donazioni ricorrenti. Se sparisce, la mappa perde il fondale (le zone colorate
+  continuano a disegnarsi). È un solo valore da cambiare — `mapStyle` in `constants.js` — e in
+  caso estremo il loro stack è interamente self-hostabile.
 - **Ensemble limitato a GFS 0,5°**: unico modello con livelli in quota per membro. Bias di
   scala noto e dichiarato (CAPE strutturalmente più basso che nei modelli km-scale).
 

@@ -51,7 +51,8 @@ controllo ogni ora più uno al ritorno in primo piano (`visibilitychange`); trov
 
 - **Previsioni** (`api|air-quality-api|geocoding-api.open-meteo.com`): `NetworkFirst`, timeout 6 s,
   scadenza 30 minuti. La rete vince sempre, la cache è solo rete di sicurezza.
-- **Tile mappa** (CARTO): `CacheFirst`, 7 giorni.
+- **Mappa** (`tiles.openfreemap.org`: tile vettoriali, stile, font, sprite): `CacheFirst`,
+  7 giorni, 200 voci.
 
 Una PWA meteo offline mostrerebbe previsioni vecchie senza dirlo: per questo la scadenza è
 30 minuti, la stessa soglia oltre la quale il LED in topbar diventa rosso lampeggiante, e ogni
@@ -217,6 +218,29 @@ probabilità d'innesco è a tre livelli, dalle soglie di rischio (0,2 / 0,5): **
 puntinato, **media** = tratteggiato, **alta** = continuo; il livello è scritto anche
 nell'etichetta della zona ("prob. bassa"). Vento e pioggia zonano sulla severità, che lì coincide
 col valore.
+
+### Sfondo della mappa
+
+Le tile vengono da **[OpenFreeMap](https://openfreemap.org/)**: nessuna chiave, nessuna
+registrazione, nessun limite di richieste dichiarato. Stili `positron` (chiaro) e `dark`, che
+sono i corrispettivi di quelli CARTO usati fino ad agosto 2026 — l'aspetto della mappa non
+cambia. Attribuzione obbligatoria, e va scritta a mano (`TILE_ATTRIB` in `constants.js`): gli
+stili non la portano dentro le proprie `sources`.
+
+**Perché siamo passati**: CARTO ha reso obbligatoria la API key per i suoi basemap. Senza
+chiave le tile continuano ad arrivare (HTTP 200, PNG valido) ma con un watermark
+"API KEY REQUIRED" stampato sopra. La loro chiave sarebbe gratuita fino a 5 milioni di tile al
+mese, ma avrebbe messo una chiave dentro un'app che non ne ha nessun'altra.
+
+**Costo tecnico**: OpenFreeMap serve tile **vettoriali**, non raster, quindi il `TileLayer` di
+Leaflet non basta. Il fondale lo disegna MapLibre GL su canvas, montato dentro il `tilePane` di
+Leaflet dal ponte `@maplibre/maplibre-gl-leaflet`: zone, marker e tooltip restano codice
+react-leaflet invariato, nei pane sopra.
+
+`maplibre-gl` pesa quanto tutto il resto del bundle (~247 KB gzip), perciò l'import è
+**dinamico**, CSS compreso: finisce in un chunk a parte, scaricato solo quando la mappa monta
+davvero. La sezione temporali parte già da un click, quindi non c'è nessun ritardo aggiuntivo
+percepibile per chi la apre, e chi non la apre mai non paga niente.
 
 **Contorni smussati**: i perimetri a scalini della griglia passano per due iterazioni di
 smussamento di Chaikin (ogni lato → punti a 1/4 e 3/4), che li trasforma in curve morbide stile
@@ -418,6 +442,7 @@ trackpad hanno un'inerzia da ~1,1 s, il touch resta nativo. Tre regole per non r
   (`models=a,b,c`), quindi accendere o spegnere un modello nel grafico non genera traffico.
 - Le previsioni orarie partono dalle 00:00 del giorno corrente; il confronto viene tagliato
   all'ora locale **della località**, non del browser, usando `utc_offset_seconds`.
-- Stack: Vite 8 + React 19 + Tailwind 4 + Recharts 3 + Leaflet / react-leaflet 5.
+- Stack: Vite 8 + React 19 + Tailwind 4 + Recharts 3 + Leaflet / react-leaflet 5, con
+  MapLibre GL come fondale vettoriale della mappa (vedi *Sfondo della mappa*).
 - Nessun backend, nessuna chiave, nessun cookie. I preferiti e le preferenze stanno in
   `localStorage`.

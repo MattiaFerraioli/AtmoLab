@@ -4,6 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // Il worker di MapLibre è ESM: senza questo Vite lo impacchetta come IIFE.
+  worker: { format: 'es' },
   plugins: [
     react(),
     tailwindcss(),
@@ -45,12 +47,15 @@ export default defineConfig({
             },
           },
           {
-            // Tile mappa: cambiano quasi mai, cache prima di tutto.
-            urlPattern: /^https:\/\/[a-d]\.basemaps\.cartocdn\.com\/.*/i,
+            /* Mappa: tile vettoriali, stile, font e sprite stanno tutti sullo
+               stesso host OpenFreeMap. Cambiano quasi mai, cache prima di tutto.
+               Le voci scendono da 400 a 200: un .pbf pesa molto più di un .png
+               raster, e 400 avrebbero riempito centinaia di MB di storage. */
+            urlPattern: /^https:\/\/tiles\.openfreemap\.org\/.*/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'map-tiles',
-              expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 7 },
+              expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },

@@ -59,7 +59,7 @@ export const PALETTE = {
     warn: '#fab219',
     serious: '#ec835a',
     critical: '#d03b3b',
-    tiles: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    mapStyle: 'https://tiles.openfreemap.org/styles/positron',
   },
   dark: {
     series: ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'],
@@ -73,12 +73,17 @@ export const PALETTE = {
     warn: '#fab219',
     serious: '#ec835a',
     critical: '#d03b3b',
-    tiles: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    mapStyle: 'https://tiles.openfreemap.org/styles/dark',
   },
 }
 
+/* Le tile arrivano da OpenFreeMap: niente chiave, niente registrazione,
+   nessun limite dichiarato. Gli stili positron/dark sono i corrispettivi di
+   quelli CARTO usati prima, che da agosto 2026 stampano "API KEY REQUIRED"
+   sopra la mappa se la chiave manca. L'attribuzione è obbligatoria e va
+   scritta a mano: gli stili non la portano dentro le sources. */
 export const TILE_ATTRIB =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  '<a href="https://openfreemap.org/">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/">OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 
 export const DEFAULT_LOCATION = {
   name: 'Verona',
