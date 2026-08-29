@@ -17,6 +17,7 @@ import { useIsTouch } from '../lib/hooks'
 import { SEVERITY_COLORS, SEVERITY_LABELS, zoneSpecOf } from '../lib/hazards'
 import { AGREEMENT_COUNT, fractionText } from '../lib/agreement'
 import { FIELD_PAD, buildZones } from '../lib/zones'
+import { neighbourTiles } from '../lib/hail'
 
 /**
  * Sfondo della mappa. OpenFreeMap serve tile VETTORIALI, non raster: il
@@ -29,6 +30,23 @@ import { FIELD_PAD, buildZones } from '../lib/zones'
  * sul primo disegno della mappa non si nota, mentre il peso su chi non la
  * apre mai si noterebbe.
  */
+/**
+ * Etichette in italiano. Lo stile OpenFreeMap mette il nome inglese per primo
+ * (`["coalesce", ["get","name_en"], ["get","name"]]`), quindi in Italia usciva
+ * Milan, Venice, Turin. Qui si scarica lo stile e si riscrivono i campi di
+ * testo perché preferiscano `name:it` e, in mancanza, il nome locale — che in
+ * Italia è già l'italiano. Gli scudi stradali usano `ref` e restano com'erano.
+ */
+async function italianStyle(url) {
+  const style = await (await fetch(url)).json()
+  for (const layer of style.layers ?? []) {
+    const field = layer.layout?.['text-field']
+    if (!field || !JSON.stringify(field).includes('name')) continue
+    layer.layout['text-field'] = ['coalesce', ['get', 'name:it'], ['get', 'name']]
+  }
+  return style
+}
+
 function VectorBase({ styleUrl }) {
   const map = useMap()
 
@@ -48,11 +66,11 @@ function VectorBase({ styleUrl }) {
       const maplibreGL = mod.maplibreGL ?? mod.default
       /* Lo stile non dichiara la sua attribuzione: passandola qui il ponte la
          usa al posto di quella (vuota) letta dalle sources. */
-      layer = maplibreGL({
-        style: styleUrl,
-        attributionControl: { customAttribution: TILE_ATTRIB },
+      italianStyle(styleUrl).then((style) => {
+        if (cancelled) return
+        layer = maplibreGL({ style, attributionControl: { customAttribution: TILE_ATTRIB } })
+        layer.addTo(map)
       })
-      layer.addTo(map)
     })
 
     return () => {
@@ -102,9 +120,38 @@ function valueIcon(text, color, prob) {
   })
 }
 
-export default function HailMap({ cells, step, origin, palette, theme, steering, hazard, onSelectCell }) {
+/** Riporta al genitore i confini della vista, a ogni spostamento e zoom. */
+function ViewportWatch({ onView }) {
+  const map = useMap()
+  useEffect(() => {
+    const fire = () => onView(map.getBounds())
+    map.on('moveend', fire)
+    map.on('zoomend', fire)
+    fire()
+    return () => {
+      map.off('moveend', fire)
+      map.off('zoomend', fire)
+    }
+  }, [map, onView])
+  return null
+}
+
+export default function HailMap({
+  cells,
+  tiles,
+  extending,
+  onExtend,
+  step,
+  origin,
+  palette,
+  theme,
+  steering,
+  hazard,
+  onSelectCell,
+}) {
   const isTouch = useIsTouch()
   const [unlocked, setUnlocked] = useState(false)
+  const [view, setView] = useState(null)
   const locked = isTouch && !unlocked
   const half = step / 2
 
@@ -117,6 +164,43 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
       [Math.max(...lats) + half, Math.max(...lons) + half],
     ]
   }, [cells, half])
+
+  /**
+   * Le tile del reticolo che la vista attuale scopre e che non abbiamo.
+   *
+   * Non si caricano da sole: ognuna vale ~130 chiamate pesate sulla quota, e
+   * un paio di trascinamenti distratti la brucerebbero. Se ce ne sono, compare
+   * un pulsante e decide chi guarda.
+   */
+  const missing = useMemo(() => {
+    if (!view || !tiles?.length || !onExtend) return []
+    const loaded = new Set(tiles.map((t) => `${t.latitude},${t.longitude}`))
+    const seen = new Set()
+    const out = []
+    for (const t of tiles) {
+      for (const n of neighbourTiles(t, step)) {
+        const key = `${n.latitude},${n.longitude}`
+        if (loaded.has(key) || seen.has(key)) continue
+        seen.add(key)
+        /* Criterio: il CENTRO della tile deve essere inquadrato. Contare la
+           sovrapposizione non funzionava — Leaflet scatta a zoom interi e al
+           primo caricamento inquadra fino al doppio dell'area dei dati, così
+           le vicine risultavano già "in vista" senza che nessuno avesse mosso
+           niente. Il centro dentro lo schermo invece vuol dire che quell'area
+           la stai guardando davvero. */
+        if (view.contains([n.latitude, n.longitude])) {
+          const dLat = n.latitude - view.getCenter().lat
+          const dLon = n.longitude - view.getCenter().lng
+          out.push({ ...n, far: Math.hypot(dLat, dLon) })
+        }
+      }
+    }
+    /* Le più vicine al centro dello schermo per prime, e non più di due per
+       volta: ogni tile vale ~130 chiamate pesate, e proporne cinque con un
+       pulsante solo significa bruciare mezza giornata di quota per un click
+       distratto. */
+    return out.sort((a, b) => a.far - b.far).slice(0, 2)
+  }, [view, tiles, step, onExtend])
 
   /* Zone stile outlook: contorni per livello, un'etichetta per zona. */
   const zones = useMemo(() => buildZones(cells, step, zoneSpecOf(hazard)), [cells, step, hazard])
@@ -151,11 +235,15 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
       <MapContainer
         center={[origin.latitude, origin.longitude]}
         zoom={7}
+        /* Zoom continuo: con lo scatto agli interi il fitBounds inquadrava
+           fino al doppio dell'area dei dati, lasciando margini vuoti larghi. */
+        zoomSnap={0}
         scrollWheelZoom={false}
         style={{ height: '100%', width: '100%' }}
       >
         <VectorBase key={theme} styleUrl={palette.mapStyle} />
         <FitToCells bounds={bounds} />
+        <ViewportWatch onView={setView} />
         <DragControl enabled={!locked} />
 
         {/* Riempimento e contorno viaggiano separati: il poligono porta solo
@@ -277,6 +365,18 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
           </svg>
           {windDir(steering.towardsDeg)} · {nf(steering.speed, 0)} km/h
         </div>
+      )}
+      {missing.length > 0 && !locked && (
+        <button
+          type="button"
+          onClick={() => onExtend(missing)}
+          disabled={extending}
+          className="absolute bottom-8 left-1/2 z-[500] -translate-x-1/2 cursor-pointer rounded-full border border-hair bg-surface/85 px-3.5 py-2 text-[12.5px] font-semibold text-ink backdrop-blur-md transition duration-300 hover:bg-surface disabled:cursor-default disabled:opacity-70"
+        >
+          {extending
+            ? 'Carico…'
+            : `Estendi l'analisi ${missing.length > 1 ? `(${missing.length} aree)` : 'qui'}`}
+        </button>
       )}
       {locked && <LockOverlay onUnlock={() => setUnlocked(true)} />}
     </div>
