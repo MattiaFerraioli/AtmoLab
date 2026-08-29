@@ -318,6 +318,36 @@ probabilità d'innesco è a tre livelli: **bassa** = contorno puntinato, **media
 sempre col conteggio esatto accanto. Vento e pioggia zonano sulla severità, che lì coincide
 col valore.
 
+### Radar della Protezione Civile
+
+Strato attivabile sulla mappa dei temporali, spento all'apertura: finché non lo accendi non parte
+nessuna richiesta. Fonte `radar-api.protezionecivile.it` con le tile su una cache S3, prodotto
+**VMI** (intensità massima verticale), aggiornato ogni 5 minuti.
+
+**Perché questa e non RainViewer**: la licenza. Il radar DPC è **CC-BY-SA con uso commerciale
+permesso** citando `Radar-DPC`; RainViewer è *"free for personal or educational use only"*, quindi
+incompatibile con un pulsante di donazione sul sito. Nessuna chiave in entrambi i casi, ma solo il
+primo regge il giorno che il progetto smette di essere solo personale. La clausola share-alike
+riguarda i *prodotti derivati*: mostrare le tile con l'attribuzione non la fa scattare.
+
+**È osservazione, non previsione**, e le due cose non vanno confuse: il pulsante porta sempre l'ora
+del rilevamento (`Radar · 00:20`). La DPC avverte che il dato in tempo reale non è validato e può
+contenere anomalie.
+
+Due dettagli che non stanno nella documentazione pubblica e sono stati ricavati osservando il loro
+visore, poi verificati:
+
+- il percorso delle tile è `/{TIPO}/{YYYY}/{MM}/{DD}/{HHmm}/{z}/{x}/{y}/{tipo}.webp`, con la data
+  in **UTC** a passi di 5 minuti e il nome del file in minuscolo;
+- le tile esistono **solo dallo zoom 5 al 7**. Oltre, S3 risponde 403 con un XML e Chrome lo blocca
+  (`ERR_BLOCKED_BY_ORB`): niente immagini e nessun errore visibile. Per questo il layer dichiara
+  `minNativeZoom` 5 e `maxNativeZoom` 7 — Leaflet ingrandisce l'ultima tile disponibile invece di
+  chiedere livelli che non esistono.
+
+Esiste anche **SRI** (intensità di pioggia al suolo) con le stesse tile, e **POH** (probabilità di
+grandine osservata) che però pubblica solo il prodotto grezzo, non le tile: risponde 403 e resta
+fuori finché non le espongono.
+
 ### Sfondo della mappa
 
 Le tile vengono da **[OpenFreeMap](https://openfreemap.org/)**: nessuna chiave, nessuna

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import L from 'leaflet'
-import { MapContainer, Marker, Polygon, Polyline, Rectangle, Tooltip, useMap } from 'react-leaflet'
+import { MapContainer, Marker, Polygon, Polyline, Rectangle, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 /* MapLibre calcola l'URL del suo worker a runtime (`new URL('./' + nome,
    import.meta.url)`): essendo costruito da una template string, nessun
@@ -16,7 +16,8 @@ import { SEVERITY_COLORS, SEVERITY_LABELS, zoneSpecOf } from '../lib/hazards'
 import { AGREEMENT_COUNT, fractionText } from '../lib/agreement'
 import { FIELD_PAD, buildZones } from '../lib/zones'
 import { DragControl, LockOverlay } from './MapLock'
-import { useIsTouch } from '../lib/hooks'
+import { useIsTouch, useRadar } from '../lib/hooks'
+import { RADAR_ATTRIB, radarTileUrl } from '../lib/radar'
 
 /**
  * Sfondo della mappa. OpenFreeMap serve tile VETTORIALI, non raster: il
@@ -138,6 +139,10 @@ function valueIcon(text, color, prob) {
 export default function HailMap({ cells, step, origin, palette, theme, steering, hazard, onSelectCell }) {
   const isTouch = useIsTouch()
   const [unlocked, setUnlocked] = useState(false)
+  /* Radar spento all'apertura: è osservazione, non fa parte della previsione
+     che la sezione racconta, e acceso interroga la DPC ogni cinque minuti. */
+  const [radarOn, setRadarOn] = useState(false)
+  const radarTime = useRadar(radarOn)
   /* Su touch il trascinamento di Leaflet cattura lo scorrimento della pagina:
      la mappa nasce ferma e si attiva con un tocco. Su mouse non serve. */
   const locked = isTouch && !unlocked
@@ -221,6 +226,24 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
       >
         <VectorBase key={theme} styleUrl={palette.mapStyle} />
         <FitAndFence bounds={bounds} />
+        {/* Sopra il fondale, sotto le zone: il rischio previsto deve restare
+            leggibile anche con la pioggia osservata accesa. */}
+        {radarOn && radarTime && (
+          <TileLayer
+            key={radarTime}
+            url={radarTileUrl('VMI', radarTime)}
+            opacity={0.65}
+            zIndex={350}
+            attribution={RADAR_ATTRIB}
+            /* Il radar è pubblicato solo dallo zoom 5 al 7: oltre, S3 risponde
+               403 con un XML e Chrome lo blocca (ERR_BLOCKED_BY_ORB), quindi
+               niente tile e nessun errore visibile. Con questi limiti Leaflet
+               smette di chiedere livelli inesistenti e ingrandisce l'ultimo
+               disponibile — sgranato, ma è la risoluzione vera del dato. */
+            minNativeZoom={5}
+            maxNativeZoom={7}
+          />
+        )}
         <DragControl enabled={!locked} />
 
         {/* Riempimento e contorno viaggiano separati: il poligono porta solo
@@ -323,6 +346,18 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
         )}
       </MapContainer>
 
+      <button
+        type="button"
+        onClick={() => setRadarOn((v) => !v)}
+        className={`absolute bottom-8 left-2 z-[500] cursor-pointer rounded-full border px-3 py-1.5 text-[11.5px] font-semibold backdrop-blur-md transition duration-300 ${
+          radarOn ? 'border-accent/60 bg-accent/25 text-ink' : 'border-hair bg-surface/75 text-ink-sec hover:bg-surface'
+        }`}
+        title="Pioggia osservata dal radar della Protezione Civile: è un rilevamento, non una previsione"
+      >
+        {radarOn
+          ? `Radar · ${radarTime ? new Date(radarTime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '…'}`
+          : 'Radar'}
+      </button>
       {locked && <LockOverlay onUnlock={() => setUnlocked(true)} />}
       {steering?.towardsDeg != null && (
         <div

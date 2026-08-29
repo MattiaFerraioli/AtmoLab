@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Lenis from 'lenis'
 import { PALETTE } from './constants'
 import { fetchModelRuns } from './runs'
+import { fetchLastRadar } from './radar'
 import { reverseGeocode } from './api'
 
 /** Stato persistito in localStorage, con fallback silenzioso se non disponibile. */
@@ -100,6 +101,36 @@ export function useModelRuns() {
     }
   }, [])
   return runs
+}
+
+/**
+ * Ultimo rilevamento radar disponibile, mentre lo strato è acceso.
+ *
+ * Si interroga solo quando serve — spento, non parte nessuna richiesta — e si
+ * ricontrolla ogni cinque minuti, che è il passo con cui la Protezione Civile
+ * pubblica i prodotti. Un errore lascia semplicemente lo strato vuoto: il
+ * radar è un di più, non deve poter rompere la sezione.
+ */
+export function useRadar(enabled, type = 'VMI') {
+  const [time, setTime] = useState(null)
+  useEffect(() => {
+    if (!enabled) {
+      setTime(null)
+      return undefined
+    }
+    let dead = false
+    const check = () =>
+      fetchLastRadar(type)
+        .then((t) => !dead && setTime(t))
+        .catch(() => !dead && setTime(null))
+    check()
+    const id = setInterval(check, 5 * 60 * 1000)
+    return () => {
+      dead = true
+      clearInterval(id)
+    }
+  }, [enabled, type])
+  return time
 }
 
 /** Chiude un pannello al click fuori dal riferimento. */
