@@ -90,7 +90,9 @@ function FitToCells({ bounds }) {
     if (!bounds) return
     const fit = () => {
       map.invalidateSize({ animate: false })
-      map.fitBounds(bounds, { padding: [14, 14], animate: false })
+      /* Nessun margine: il contenitore ha ormai la forma esatta dell'area, e
+         un padding rimetterebbe le fasce vuote che si volevano togliere. */
+      map.fitBounds(bounds, { padding: [0, 0], animate: false })
     }
     fit()
     const observer = new ResizeObserver(fit)
@@ -130,6 +132,22 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
     ]
   }, [cells, half])
 
+  /**
+   * Proporzione del contenitore = proporzione dell'area analizzata.
+   *
+   * In Mercatore un quadrato in gradi non è un quadrato sullo schermo: a
+   * latitudine φ viene disegnato 1/cos(φ) volte più alto che largo (a 45°,
+   * 1,41). Con un contenitore di forma diversa, `fitBounds` incastrava il
+   * quadrato dentro e lasciava due fasce vuote ai lati — territorio NON
+   * analizzato, in bella vista accanto ai dati. Dando al riquadro la stessa
+   * forma, i due combaciano: si vede l'area analizzata e nient'altro, senza
+   * ritagliarne via i bordi.
+   */
+  const aspect = useMemo(
+    () => Math.cos((origin.latitude * Math.PI) / 180),
+    [origin.latitude],
+  )
+
   /* Zone stile outlook: contorni per livello, un'etichetta per zona. */
   const zones = useMemo(() => buildZones(cells, step, zoneSpecOf(hazard)), [cells, step, hazard])
 
@@ -159,7 +177,11 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
   }, [cells, step])
 
   return (
-    <div data-lenis-prevent className="relative z-[1] h-[320px] overflow-hidden rounded-2xl border border-hair card-shadow sm:h-[440px]">
+    <div
+      data-lenis-prevent
+      style={{ aspectRatio: aspect }}
+      className="relative z-[1] w-full overflow-hidden rounded-2xl border border-hair card-shadow"
+    >
       <MapContainer
         center={[origin.latitude, origin.longitude]}
         zoom={7}

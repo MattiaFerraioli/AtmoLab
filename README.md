@@ -157,6 +157,11 @@ Verificato a 390 px. Le scelte che il CSS da solo non copriva:
   affiancati si spezzavano su tre righe.
 - Topbar su due righe — brand, LED e pulsanti sopra, ricerca sotto.
 - "Stato dei modelli" è un `<details>`, chiuso di default su mobile e aperto su desktop.
+- Il riquadro della mappa ha la **proporzione dell'area analizzata**, non una altezza fissa:
+  `aspectRatio: cos(latitudine)`. In Mercatore un quadrato in gradi è disegnato 1/cos(φ) volte
+  più alto che largo (1,41 a 45°), quindi con un riquadro di forma diversa `fitBounds` lasciava
+  due fasce vuote ai lati, piene di territorio non analizzato. Ora i due combaciano e il
+  `fitBounds` va senza padding.
 - La mappa dei temporali è **ferma**: niente trascinamento, niente zoom, nessun controllo.
   Inquadra esattamente l'area analizzata e fuori di lì non ci sono dati — lasciar trascinare
   invitava a guardare aree vuote, e caricarle costerebbe ~130 chiamate pesate l'una. Chi vuole
