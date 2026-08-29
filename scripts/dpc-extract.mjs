@@ -52,10 +52,20 @@ if (dryRun) {
 }
 
 /* upsert: l'oggetto è sempre lo stesso, si sovrascrive. Il bucket è pubblico
-   in lettura, quindi il client lo prende con un GET normale e senza chiavi. */
-const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${OBJECT}`, {
+   in lettura, quindi il client lo prende con un GET normale e senza chiavi.
+
+   Le due intestazioni servono entrambe. Le chiavi nuove di Supabase
+   (`sb_secret_…`) non sono JWT, e lo Storage con il solo `Authorization:
+   Bearer` risponde "Invalid Compact JWS": vuole la chiave anche in `apikey`.
+   Con le chiavi vecchie in formato JWT funzionano comunque tutte e due.
+
+   La barra finale nell'URL del progetto si toglie: copiandolo dalla
+   dashboard viene spesso con lo slash, e concatenando si otterrebbe `//`. */
+const base = SUPABASE_URL.replace(/\/+$/, '')
+const res = await fetch(`${base}/storage/v1/object/${BUCKET}/${OBJECT}`, {
   method: 'POST',
   headers: {
+    apikey: SUPABASE_SERVICE_KEY,
     Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
     'Content-Type': 'application/json',
     'Cache-Control': 'max-age=600',

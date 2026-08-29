@@ -25,3 +25,8 @@ dist-ssr
 
 # vite-plugin-pwa in dev
 dev-dist
+
+# Variabili d'ambiente: solo .env.example va versionato
+.env
+.env.*
+!.env.example
