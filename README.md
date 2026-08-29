@@ -181,7 +181,7 @@ sulla quota, cioè il limite vero del progetto. I 230 km di lato bastano come co
 
 | Pericolo | Metrica di colore | Valore mostrato | Soglie |
 | --- | --- | --- | --- |
-| Grandine | rischio combinato ambiente × innesco | diametro (<1 / 1–2 / 2–4 / >4 cm) + coda "fino a" | 0,05 / 0,2 / 0,5 / 1 |
+| Grandine | diametro atteso (indice SHIP) | diametro (<1 / 1–2 / 2–4 / >4 cm) + coda "fino a" | 0,05 / 0,35 / 0,8 / 1,5 |
 | Vento | raffica massima del giorno | km/h | 60 / 75 / 90 / 105 km/h |
 | Pioggia | accumulo totale sulla finestra | mm (punta oraria a fianco) | 10 / 25 / 50 / 80 mm |
 
@@ -214,9 +214,9 @@ diametro (le stesse soglie di `hailSize`, che `sizeRank` in `buildNarrative` dev
 con chiavi disallineate la grandine sparisce silenziosamente dalla sintesi), così una zona
 etichettata "2–4 cm" contiene solo celle di quella fascia — prima il contorno seguiva il rischio e l'etichetta il diametro del punto
 peggiore, e una zona "rischio basso" grande mezzo nord-ovest sembrava tutta da 2–4 cm. La
-probabilità d'innesco è a tre livelli, dalle soglie di rischio (0,2 / 0,5): **bassa** = contorno
-puntinato, **media** = tratteggiato, **alta** = continuo; il livello è scritto anche
-nell'etichetta della zona ("prob. bassa"). Vento e pioggia zonano sulla severità, che lì coincide
+probabilità d'innesco è a tre livelli: **bassa** = contorno puntinato, **media** = tratteggiato,
+**alta** = continuo; il livello è scritto anche nell'etichetta della zona ("prob. bassa · 0/3"),
+sempre col conteggio esatto accanto. Vento e pioggia zonano sulla severità, che lì coincide
 col valore.
 
 ### Sfondo della mappa
@@ -277,9 +277,10 @@ SHIP × un peso d'innesco letto da un solo run: è una **frequenza reale** — q
 (ECMWF, GFS, ICON, `lib/agreement.js`) prevedono l'evento nella cella. Evento: convezione per la
 grandine (codice temporalesco, o pioggia ≥ 1 mm/h con CAPE ≥ 500), raffiche ≥ 60 km/h per il
 vento, accumulo giornaliero ≥ 10 mm per la pioggia. Soglie: bassa = un modello,
-media = due, alta = tutti; **zero modelli è uno stato a sé** ("solo ambiente", contorno puntinato
-finissimo): le condizioni per l'evento ci sarebbero, ma nessuno prevede l'innesco — non è una
-probabilità bassa, è assenza di innesco, e mascherarla da "bassa" era scorretto. I **valori** (diametro, raffica, accumulo, geometria delle zone)
+media = due, alta = tutti; **zero modelli sta dentro "bassa"** — aveva una voce sua ("solo
+ambiente") ma si leggeva come una quarta categoria misteriosa invece dell'estremo basso della
+stessa scala, e il conteggio scritto di fianco ("0/3") dice già esattamente quanto vale. I
+**valori** (diametro, raffica, accumulo, geometria delle zone)
 restano dal modello a più alta risoluzione: mai mediare gli ingredienti fra modelli — la media
 cancella proprio le code che si cercano. Costo: +4 variabili × 3 modelli sulla stessa griglia.
 
@@ -338,10 +339,29 @@ SHIP = MUCAPE · w · LR₇₅ · (−T₅₀₀) · shear₀₋₆ / 42.000.000
 | shear₀₋₆ | differenza vettoriale fra vento a 500 hPa e a 10 m, limitata a 7–27 m/s |
 | zero termico | `freezing_level_height`, penalizza sotto 2400 m |
 
-SHIP > 1 indica ambiente favorevole a grandine ≥ 5 cm. Poiché SHIP descrive il **potenziale** e
-non l'**innesco**, il rischio mostrato pesa SHIP con la convezione effettivamente prevista dal
-modello (`weather_code` temporalesco o precipitazione). Il diametro è una **stima da parametri**,
+SHIP > 1 indica ambiente favorevole a grandine ≥ 5 cm. Il diametro è una **stima da parametri**,
 non l'uscita di un modello di grandine.
+
+### Perché non esiste più un "rischio" unico
+
+C'era una scala combinata (SHIP × peso d'innesco, da *Trascurabile* a *Molto alto*) che ora non
+compare più in interfaccia. Moltiplicava due metri diversi, e soprattutto contraddiceva la
+probabilità mostrata accanto: il rischio pesava con l'innesco previsto da **un solo** modello —
+quello della griglia, ICON-2I o blend — mentre la probabilità conta l'accordo di **tre modelli
+globali diversi**. Bastava che ICON-2I non mettesse temporali in quella cella e i tre globali sì
+per ottenere "rischio trascurabile" accanto a "probabilità alta", con in mezzo un diametro
+> 4 cm calcolato dal solo ambiente. Tre numeri, tre fonti, presentati come una storia sola.
+
+Al loro posto le due grandezze che gli outlook convettivi veri (SPC, ESTOFEX) tengono separate,
+e che non possono contraddirsi perché rispondono a domande diverse:
+
+- **diametro atteso** — quanto sarebbero grossi i chicchi *se* il temporale si formasse (ambiente,
+  cioè SHIP). È anche la scala di colore di mappa, celle e grafico orario: una sola scala ovunque.
+- **probabilità** — quanto è probabile che si formi (accordo fra i tre modelli).
+
+`risk` resta calcolato in `hail.js`, ma solo per uso interno: serve a distinguere le ore
+convettive dalle altre, così la raffica mostrata è quella da downburst e non quella di un fronte
+senza temporali.
 
 Costo API: una sola richiesta multi-località per l'intera griglia (49 punti × 14 variabili ×
 fino a 72 ore ≈ 250 kB, meno di un secondo).
@@ -390,7 +410,7 @@ src/
     api.js                 chiamate Open-Meteo (forecast, geocoding, qualità aria, multi-modello)
     constants.js           modelli, variabili, palette, paesi
     format.js              formattazione IT, bande AQI, mediana, distanza/direzione
-    hail.js                griglia, SHIP, peso d'innesco, bande di rischio e diametro
+    hail.js                griglia, SHIP, peso d’innesco (uso interno) e diametro
     hooks.js               localStorage, tema, debounce, click-outside, corse modelli
     runs.js                meta.json per modello: corsa, pubblicazione, orizzonte
     wmo.js                 codici meteo WMO → testo + icona

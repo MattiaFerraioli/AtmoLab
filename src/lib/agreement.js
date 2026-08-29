@@ -79,13 +79,14 @@ export function cellFraction(agreement, hazardId, hoursFilter, targetDay) {
 }
 
 /**
- * Etichetta di probabilità dalla frazione. Lo zero è uno stato a sé: "nessun
- * modello prevede l'innesco" non è una probabilità bassa, è assenza di
- * innesco — la zona resta perché l'ambiente c'è, ma va detto per quel che è.
+ * Etichetta di probabilità dalla frazione: tre gradini, nient'altro.
+ * Lo zero era una quarta voce a sé ("solo ambiente"), ma si leggeva come una
+ * categoria misteriosa invece dell'estremo basso della stessa scala. Ora 0/3
+ * è "bassa", e accanto resta sempre scritto il conteggio: chi vuole sapere se
+ * è 0 o 1 modello su 3 lo legge lì, senza gergo.
  */
 export function fractionLabel(frac) {
   if (frac == null) return null
-  if (frac <= 0) return 'nessuna'
   if (frac > 2 / 3) return 'alta'
   if (frac >= 1 / 3) return 'media'
   return 'bassa'

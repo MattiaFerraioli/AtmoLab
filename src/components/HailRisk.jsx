@@ -4,7 +4,7 @@ import HailMap from './HailMap'
 import { Card, Message, Segmented, Skeleton } from './Ui'
 import { GRID_SIDE, HAIL_DAYS, HAIL_GRID, buildNarrative, capeBand, hailSize, hasRotationPotential, peakOf, steeringOf } from '../lib/hail'
 import { HAZARDS, SEVERITY_COLORS, SEVERITY_LABELS, applyHazard, hailZoneStep, hazardById, severityOf, zoneSpecOf } from '../lib/hazards'
-import { AGREEMENT_COUNT, cellFraction, fractionText } from '../lib/agreement'
+import { AGREEMENT_COUNT, cellFraction, fractionLabel, fractionText } from '../lib/agreement'
 import { fmtDayHour, nf, relativePosition } from '../lib/format'
 
 /** "42 km a NE", ma per la cella della località il nome del posto: "qui" da solo non significa niente. */
@@ -207,24 +207,39 @@ export default function HailRisk({
               }}
             >
               <span className="h-2 w-2 rounded-full" style={{ background: worstColor }} />
-              {SEVERITY_LABELS[worstSeverity]}
+              {hazard.id === 'hail' ? (worst?.metric.badge ?? '—') : SEVERITY_LABELS[worstSeverity]}
             </span>
           </div>
           <div className="mt-1 truncate text-[12.5px] text-ink-sec">
-            {worst?.prob != null
-              ? worst.prob <= 0
-                ? 'Nessun modello prevede l\u2019innesco: solo ambiente favorevole'
-                : `${hazard.id === 'hail' ? 'Innesco previsto da' : 'Previsto da'} ${fractionText(worst.prob)}`
-              : (worst?.metric.detail ?? '–')}
+            {hazard.id === 'hail'
+              ? (quiet ? 'Ambiente non favorevole' : 'Se si forma il temporale')
+              : worst?.prob != null
+                ? `Previsto da ${fractionText(worst.prob)}`
+                : (worst?.metric.detail ?? '–')}
           </div>
         </div>
 
-        <Tile
-          k={hazard.id === 'hail' ? 'Diametro stimato' : hazard.id === 'wind' ? 'Raffica massima' : 'Accumulo massimo'}
-          sub={worst?.metric.note ?? '–'}
-        >
-          {worst?.metric.badge ?? '—'}
-        </Tile>
+        {/* Le due grandezze stanno affiancate e restano distinte: il badge
+            dice quanto grossi sarebbero i chicchi, questa tile quanto è
+            probabile che il temporale ci sia. Per vento e pioggia la
+            grandezza è output diretto del modello e resta dov'era. */}
+        {hazard.id === 'hail' ? (
+          <Tile
+            k="Probabilità di temporali"
+            sub={worst?.prob != null ? fractionText(worst.prob) : 'accordo fra modelli non disponibile'}
+          >
+            <span className="text-[17px]">
+              {worst?.prob != null ? fractionLabel(worst.prob) : '–'}
+            </span>
+          </Tile>
+        ) : (
+          <Tile
+            k={hazard.id === 'wind' ? 'Raffica massima' : 'Accumulo massimo'}
+            sub={worst?.metric.note ?? '–'}
+          >
+            {worst?.metric.badge ?? '—'}
+          </Tile>
+        )}
 
         {/* Distanza e direzione come valore: è l'informazione utile e sempre
             sensata. Il nome del posto sta sotto, come contesto — su celle
@@ -289,12 +304,11 @@ export default function HailRisk({
               <span className="inline-flex items-center gap-3 text-ink-muted">
                 <span
                   className="text-ink-muted"
-                  title={`Accordo fra ${AGREEMENT_COUNT} modelli (ECMWF, GFS, ICON): bassa = uno prevede l'evento, media = due, alta = tutti. "Solo ambiente" = nessuno lo prevede: restano le condizioni, manca l'innesco.`}
+                  title={`Accordo fra ${AGREEMENT_COUNT} modelli (ECMWF, GFS, ICON): bassa = nessuno o uno prevede il temporale, media = due, alta = tutti. Il conteggio esatto è scritto su ogni zona.`}
                 >
                   · Probabilità:
                 </span>
                 {[
-                  ['Solo ambiente', '1 7'],
                   ['Bassa', '2 6'],
                   ['Media', '7 5'],
                   ['Alta', null],
@@ -323,8 +337,8 @@ export default function HailRisk({
           <div className="mb-2 text-[13px] font-semibold text-ink-sec">Celle più esposte</div>
           {quiet ? (
             <Message>
-              Nessuna cella con rischio apprezzabile {dayOffset === 0 ? 'per il resto di oggi' : 'in questo giorno'}.
-              L&apos;ambiente non è favorevole alla grandine, oppure non è prevista convezione.
+              Nessuna cella con grandine attesa {dayOffset === 0 ? 'per il resto di oggi' : 'in questo giorno'}:
+              l&apos;ambiente non è favorevole.
             </Message>
           ) : (
             <ol className="flex flex-col gap-1.5">
@@ -346,7 +360,14 @@ export default function HailRisk({
                           {placeLabel(location, c.gridLat, c.gridLon)}
                         </span>
                         <span className="block text-[11.5px] text-ink-muted">
-                          {c.metric.at ? fmtDayHour(c.metric.at) : '–'} · {SEVERITY_LABELS[c.severity]}
+                          {c.metric.at ? fmtDayHour(c.metric.at) : '–'} ·{' '}
+                          {/* Il diametro è già nella colonna a destra: qui ci va
+                              l'altra metà della storia, quanto è probabile. */}
+                          {hazard.id === 'hail'
+                            ? c.prob != null
+                              ? `prob. ${fractionLabel(c.prob)} · ${Math.round(c.prob * AGREEMENT_COUNT)}/${AGREEMENT_COUNT}`
+                              : 'probabilità n/d'
+                            : SEVERITY_LABELS[c.severity]}
                           {c.rotation && (
                             <span
                               className="font-semibold text-[#8b3fb5]"
@@ -421,9 +442,11 @@ export default function HailRisk({
         </div>
         {hazard.id === 'hail' ? (
           <>
-            Il diametro è stimato dall&apos;indice <strong>SHIP</strong>, non un dato diretto del modello: va
-            interpretato con cautela, soprattutto sull&apos;entità del chicco. La probabilità è l&apos;accordo fra tre
-            modelli sull&apos;innesco.
+            Due numeri separati, come negli outlook convettivi: il <strong>diametro</strong> dice quanto
+            sarebbero grossi i chicchi <em>se</em> il temporale si formasse — stimato dall&apos;indice
+            <strong> SHIP</strong>, non un dato diretto del modello, quindi da prendere con cautela sull&apos;entità
+            del chicco. La <strong>probabilità</strong> dice quanto è probabile che si formi, ed è l&apos;accordo fra
+            tre modelli. Nessuno dei due contiene l&apos;altro.
           </>
         ) : hazard.id === 'wind' ? (
           <>

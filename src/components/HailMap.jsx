@@ -88,7 +88,7 @@ function FitToCells({ bounds }) {
 /** Etichetta di zona: valore sopra, probabilità d'innesco sotto (se nota). */
 function valueIcon(text, color, prob) {
   const count = prob ? `${Math.round(prob.frac * AGREEMENT_COUNT)}/${AGREEMENT_COUNT}` : ''
-  const text2 = prob?.label === 'nessuna' ? `Solo ambiente · ${count}` : prob ? `Prob. ${prob.label} · ${count}` : ''
+  const text2 = prob ? `Prob. ${prob.label} · ${count}` : ''
   const sub = text2 ? `<div style="font:500 9px/1.1 system-ui;opacity:.85;margin-top:1px">${text2}</div>` : ''
   return L.divIcon({
     className: '',
@@ -144,13 +144,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                 weight: 2,
                 opacity: 0.9,
                 dashArray:
-                  z.prob?.label === 'nessuna'
-                    ? '2 10'
-                    : z.prob?.label === 'bassa'
-                      ? '3 9'
-                      : z.prob?.label === 'media'
-                        ? '10 7'
-                        : null,
+                  z.prob?.label === 'bassa' ? '3 9' : z.prob?.label === 'media' ? '10 7' : null,
                 fillColor: SEVERITY_COLORS[z.level],
                 fillOpacity: 0.07 + z.level * 0.05,
               }}
@@ -171,7 +165,10 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
             <Tooltip sticky>
               <div className="text-[12px] leading-snug">
                 <strong>
-                  {hazard.label} · rischio {SEVERITY_LABELS[c.severity].toLowerCase()}
+                  {hazard.label} ·{' '}
+                  {hazard.id === 'hail'
+                    ? `chicchi ${c.metric.badge}`
+                    : `rischio ${SEVERITY_LABELS[c.severity].toLowerCase()}`}
                 </strong>
                 <br />
                 {c.metric.badge} · {c.metric.detail}

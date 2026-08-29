@@ -1,4 +1,4 @@
-import { hailSize, riskBand } from './hail'
+import { hailSize } from './hail'
 import { fractionLabel } from './agreement'
 import { nf } from './format'
 
@@ -34,6 +34,14 @@ export function severityOf(value, bands) {
   return 0
 }
 
+/* Fasce di diametro atteso, sulle stesse soglie di hailSize(). Sono l'unica
+   scala della grandine: colore della mappa, severità della cella e fascia in
+   legenda vengono tutte da qui, così mappa, lista e riepilogo non possono
+   più raccontare tre storie diverse. */
+const SHIP_ZONE_BANDS = [0.05, 0.35, 0.8, 1.5]
+
+export const hailZoneStep = (ship) => severityOf(ship, SHIP_ZONE_BANDS)
+
 const peakBy = (series, pick) =>
   series.reduce(
     (best, p) => {
@@ -47,14 +55,17 @@ export const HAZARDS = [
   {
     id: 'hail',
     label: 'Grandine',
-    /* Il colore segue il rischio combinato (ambiente × innesco), il numero
-       stampato è il diametro: sono due cose diverse e vanno tenute distinte. */
-    bands: [0.05, 0.2, 0.5, 1],
+    /* Una grandezza sola: il diametro atteso, che dipende dall'ambiente.
+       L'ora di picco è quella con l'ambiente peggiore, non più quella del
+       rischio combinato — così il diametro mostrato appartiene davvero
+       all'ora e alla cella indicate. Quanto sia probabile che il temporale
+       si formi lo dice la probabilità, di fianco e separata. */
+    bands: SHIP_ZONE_BANDS,
     metric(series) {
-      const peak = peakBy(series, (p) => p.risk)
-      const ship = peak.point?.ship ?? 0
+      const peak = peakBy(series, (p) => p.ship)
+      const ship = peak.value
       return {
-        value: peak.value,
+        value: ship,
         at: peak.at,
         ship,
         badge: hailSize(ship).label,
@@ -63,7 +74,7 @@ export const HAZARDS = [
       }
     },
     quietText: 'Grandine non attesa',
-    hourly: { pick: (p) => p.risk, bands: [0.05, 0.2, 0.5, 1], unit: '', dec: 2, label: 'Indice grandine' },
+    hourly: { pick: (p) => p.ship, bands: SHIP_ZONE_BANDS, unit: '', dec: 2, label: 'Diametro atteso (indice SHIP)' },
   },
   {
     id: 'wind',
@@ -134,9 +145,6 @@ export function applyHazard(cells, hazardId) {
   })
 }
 
-/** Compatibilità: la severità grandine resta quella storica di riskBand. */
-export const hailSeverity = (risk) => riskBand(risk).step
-
 
 /* ------------------------------------------------------------
    Zonazione per la mappa.
@@ -148,11 +156,10 @@ export const hailSeverity = (risk) => riskBand(risk).step
    si zona PER FASCIA DI DIAMETRO (stesse soglie di hailSize), così
    ogni zona contiene solo celle della sua fascia; la probabilità
    d'innesco passa nel tratto del contorno (tratteggiato = incerto).
+   Da quando la severità della grandine È la fascia di diametro, zona
+   e cella usano la stessa scala: `stepOf` qui sotto e `bands` del
+   pericolo danno lo stesso numero.
    ------------------------------------------------------------ */
-
-const SHIP_ZONE_BANDS = [0.05, 0.35, 0.8, 1.5]
-
-export const hailZoneStep = (ship) => severityOf(ship, SHIP_ZONE_BANDS)
 
 /** Massima frazione d'accordo nella zona: etichetta + valore, o null senza dati. */
 function probFromCells(comp) {

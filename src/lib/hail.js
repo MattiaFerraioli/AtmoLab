@@ -147,17 +147,17 @@ export function triggerWeight(weatherCode, precipitation) {
   return 0.12 // solo potenziale, nessuna precipitazione prevista
 }
 
-export const RISK_LABELS = ['Trascurabile', 'Basso', 'Moderato', 'Alto', 'Molto alto']
-
-/**
- * Bande di rischio combinato (SHIP × innesco). Restituisce solo lo step: il
- * colore lo prende il chiamante dalla stessa rampa sequenziale, così mappa,
- * lista e grafico parlano la stessa lingua cromatica.
- */
-export function riskBand(risk) {
-  const step = risk >= 1 ? 4 : risk >= 0.5 ? 3 : risk >= 0.2 ? 2 : risk >= 0.05 ? 1 : 0
-  return { step, label: RISK_LABELS[step] }
-}
+/* La scala "rischio combinato" (SHIP × innesco, da Trascurabile a Molto alto)
+   non esiste più in interfaccia. Mescolava due metri diversi e finiva per
+   contraddire la probabilità: il rischio moltiplicava per l'innesco di UN
+   modello (quello della griglia), la probabilità contava l'accordo di tre
+   modelli globali diversi, e "rischio trascurabile" poteva stare accanto a
+   "probabilità alta". Al suo posto le due grandezze che gli outlook
+   convettivi veri (SPC, ESTOFEX) tengono separate: quanto sarebbero grossi i
+   chicchi SE si formasse il temporale (ambiente, cioè SHIP) e quanto è
+   probabile che si formi (accordo fra modelli). `risk` resta calcolato qui
+   sotto, ma solo come uso interno: distingue le ore convettive da quelle che
+   non lo sono, per la raffica da downburst. */
 
 /**
  * Diametro atteso: dipende dall'ambiente (SHIP), non dal peso d'innesco.
