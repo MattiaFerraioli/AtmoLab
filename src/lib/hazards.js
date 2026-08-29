@@ -78,7 +78,9 @@ export const HAZARDS = [
       }
     },
     quietText: 'Grandine non attesa',
-    hourly: { pick: (p) => p.ship, bands: SHIP_ZONE_BANDS, unit: '', dec: 2, label: 'Diametro atteso' },
+    /* `label` è la voce dentro il tooltip del grafico, `title` la frase in
+       testata: la seconda nomina il fenomeno, non la grandezza che lo misura. */
+    hourly: { pick: (p) => p.ship, bands: SHIP_ZONE_BANDS, unit: '', dec: 2, label: 'Diametro atteso', title: 'Grandine attesa' },
   },
   {
     id: 'wind',
@@ -99,7 +101,7 @@ export const HAZARDS = [
       }
     },
     quietText: 'Nessuna raffica rilevante',
-    hourly: { pick: (p) => p.gust, bands: [60, 75, 90, 105], unit: 'km/h', dec: 0, label: 'Raffica' },
+    hourly: { pick: (p) => p.gust, bands: [60, 75, 90, 105], unit: 'km/h', dec: 0, label: 'Raffica', title: 'Raffiche di vento' },
   },
   {
     id: 'rain',
@@ -131,7 +133,7 @@ export const HAZARDS = [
     quietText: 'Accumuli irrilevanti',
     /* Soglie orarie, non giornaliere: 20 mm in un'ora è nubifragio, 20 mm in
        un giorno è pioggia normale. */
-    hourly: { pick: (p) => p.precip, bands: [1, 4, 10, 20], unit: 'mm/h', dec: 1, label: 'Intensità' },
+    hourly: { pick: (p) => p.precip, bands: [1, 4, 10, 20], unit: 'mm/h', dec: 1, label: 'Intensità', title: 'Intensità pioggia' },
   },
 ]
 

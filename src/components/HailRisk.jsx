@@ -403,9 +403,7 @@ export default function HailRisk({
 
       <div className="border-t border-hair p-4 pt-3">
         <div className="mb-1 ml-1 text-[13px] font-semibold text-ink-sec">
-          {hazard.id === 'hail'
-            ? `Grandine attesa${focus ? placePhrase(location, focus.gridLat, focus.gridLon) : ''}`
-            : `${hazard.hourly.label} ora per ora · ${focus ? placeLabel(location, focus.gridLat, focus.gridLon) : '–'}`}
+          {`${hazard.hourly.title}${focus ? placePhrase(location, focus.gridLat, focus.gridLon) : ''}`}
         </div>
         <ResponsiveContainer width="100%" height={170}>
           <BarChart data={focusSeries} margin={{ top: 6, right: 10, bottom: 4, left: isMobile ? 2 : -6 }}>
