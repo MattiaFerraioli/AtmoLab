@@ -77,6 +77,9 @@ export default function HailRisk({
   onHazardChange,
   agreement,
   hiRes,
+  tiles,
+  extending,
+  onExtend,
   dayLocked,
   dayOutOfRange,
   palette,
@@ -293,6 +296,9 @@ export default function HailRisk({
         <div>
           <HailMap
             cells={hazardCells}
+            tiles={tiles}
+            extending={extending}
+            onExtend={onExtend}
             step={step}
             origin={location}
             palette={palette}

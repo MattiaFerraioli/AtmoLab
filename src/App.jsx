@@ -9,7 +9,7 @@ import EnsemblePanel from './components/EnsemblePanel'
 import { Card, DayFilterBar, Message, Section, Segmented } from './components/Ui'
 import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, fetchProbGrid, reverseGeocode } from './lib/api'
 import { DEFAULT_LOCATION, DEFAULT_MODELS, MAX_MODELS, MODELS } from './lib/constants'
-import { HAIL_GRID, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, snapToLattice, summariseCells } from './lib/hail'
+import { HAIL_GRID, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, mergeTiles, snapToLattice, summariseCells } from './lib/hail'
 import { withCache } from './lib/cache'
 import { agreementCells } from './lib/agreement'
 import { useDpcAlert } from './components/DpcAlerts'
@@ -72,6 +72,39 @@ function useStableSlots(selected, max) {
   }, [selected, max])
 }
 
+/**
+ * Scarica UNA tile del reticolo: valori e, se riesce, accordo fra modelli.
+ *
+ * Le due griglie vanno in serie e non in parallelo: insieme esaurirebbero la
+ * quota al minuto. L'accordo è un di più — se fallisce restano i valori, e le
+ * celle semplicemente non mostrano la probabilità.
+ */
+async function fetchTile({ centre, days, tz, hiRes, run, force }) {
+  const points = buildGrid(centre, HAIL_GRID.step)
+  const base = `${centre.latitude},${centre.longitude}:${days}:${hiRes ? 'icon2i' : 'blend'}:${tz}:${run}`
+  const { data: cells, at } = await withCache(
+    `hail:v1:${base}`,
+    () =>
+      fetchHailGrid(points, days, tz, hiRes ? ICON2I_MODEL : null).then((r) =>
+        summariseCells(r, points),
+      ),
+    { force },
+  )
+  let agreement = null
+  try {
+    agreement = (
+      await withCache(
+        `prob:v1:${base}`,
+        () => fetchProbGrid(points, days, tz).then(agreementCells),
+        { force },
+      )
+    ).data
+  } catch {
+    /* la probabilità è opzionale: senza, restano i valori */
+  }
+  return { cells, agreement, at }
+}
+
 export default function App() {
   const { theme, toggle: toggleTheme, palette } = useTheme()
   useSmoothScroll()
@@ -119,10 +152,22 @@ export default function App() {
 
   const [hailDayOffset, setHailDayOffset] = useLocalStorage('hailDayOffset', 0)
   const [hazardId, setHazardId] = useLocalStorage('hazard', 'hail')
-  const [hailCells, setHailCells] = useState(null)
-  const [hailAgreement, setHailAgreement] = useState(null)
+  /* Le tile caricate, in ordine di arrivo: la prima è quella della località,
+     le altre arrivano solo se l'utente chiede di estendere l'analisi. Celle e
+     accordo restano allineati per indice perché si concatenano nello stesso
+     ordine. */
+  const [hailTiles, setHailTiles] = useState([])
+  const hailCells = useMemo(
+    () => (hailTiles.length ? mergeTiles(hailTiles.map((t) => t.cells), HAIL_GRID.step) : null),
+    [hailTiles],
+  )
+  const hailAgreement = useMemo(
+    () => (hailTiles.some((t) => t.agreement) ? hailTiles.flatMap((t) => t.agreement ?? t.cells.map(() => null)) : null),
+    [hailTiles],
+  )
   const [hailHiRes, setHailHiRes] = useState(false)
   const [hailLoading, setHailLoading] = useState(true)
+  const [hailExtending, setHailExtending] = useState(false)
   const [hailError, setHailError] = useState(null)
   /* Non persistito e spento all'avvio: la griglia è 49 località × 14 variabili,
      di gran lunga la richiesta più pesante sulla quota Open-Meteo. Su un sito
@@ -216,17 +261,42 @@ export default function App() {
     return () => ctrl.abort()
   }, [location, varId, compareDays, reloadKey])
 
+  /* La chiave di cache porta la CORSA del modello, non un tempo di scadenza:
+     finché la corsa è quella, l'API risponderebbe gli stessi numeri, e quando
+     ne esce una nuova la chiave cambia da sé. Se i meta non sono ancora
+     arrivati si ripiega su una finestra di 3 ore. */
+  const runKeyFor = useCallback((hiRes) => {
+    const known = runsRef.current
+    const run = !known
+      ? null
+      : hiRes
+        ? (known[ICON2I_MODEL]?.initialised ?? null)
+        : (() => {
+            const all = Object.values(known).filter(Boolean).map((r) => r.initialised)
+            return all.length ? Math.max(...all) : null
+          })()
+    return run ?? `~${Math.floor(Date.now() / (3 * 3600 * 1000))}`
+  }, [])
+
   /* --- rischio grandine su griglia --- */
   useEffect(() => {
     const tz = forecast?.timezone ?? location.timezone
     /* Senza fuso non si parte: entrerebbe nella chiave di cache e cambierebbe
        all'arrivo della previsione, facendo scaricare la griglia due volte. */
     if (!hailEnabled || hailDayOutOfRange || !tz || !runsSettled) return undefined
-    const ctrl = new AbortController()
+    /* Niente AbortController su queste richieste, ed è una scelta.
+       `withCache` restituisce a chi arriva dopo LA STESSA promessa di chi era
+       già in volo: annullandola per conto proprio, il primo che se ne va la fa
+       fallire anche a tutti gli altri — che è esattamente il motivo per cui la
+       griglia non compariva più. Le richieste vanno fino in fondo e finiscono
+       in cache, utili a chiunque; qui ci si limita a ignorare il risultato se
+       nel frattempo è cambiato tutto. */
+    let dead = false
     /* Griglia agganciata al reticolo fisso, non centrata sulla località: è
        quello che rende la richiesta identica per tutti quelli della stessa
        zona, e quindi riusabile dalla cache. */
-    const points = buildGrid(snapToLattice(location, HAIL_GRID.step), HAIL_GRID.step)
+    const centre = snapToLattice(location, HAIL_GRID.step)
+    const points = buildGrid(centre, HAIL_GRID.step)
     /* Dentro il dominio ICON-2I ed entro 48 h la griglia usa il modello a
        2,2 km: CAPE, raffiche e pioggia risolti alla scala della cella invece
        che lisciati dal blend globale. Fuori, o oltre, si torna al best-match. */
@@ -234,22 +304,8 @@ export default function App() {
     setHailHiRes(hiRes)
     setHailLoading(true)
     setHailError(null)
-    setHailAgreement(null)
 
-    /* La chiave porta la CORSA del modello, non un tempo di scadenza: finché
-       la corsa è quella, l'API risponderebbe gli stessi numeri, e quando ne
-       esce una nuova la chiave cambia da sé. Se i meta non sono ancora
-       arrivati si ripiega su una finestra di 3 ore. */
-    const known = runsRef.current
-    const runOf = () => {
-      if (!known) return null
-      if (hiRes) return known[ICON2I_MODEL]?.initialised ?? null
-      const all = Object.values(known).filter(Boolean).map((r) => r.initialised)
-      return all.length ? Math.max(...all) : null
-    }
-    const run = runOf() ?? `~${Math.floor(Date.now() / (3 * 3600 * 1000))}`
-    const centre = points[(points.length - 1) / 2]
-    const base = `${centre.lat},${centre.lon}:${hailDays}:${hiRes ? 'icon2i' : 'blend'}:${tz}:${run}`
+    const run = runKeyFor(hiRes)
     /* Il pulsante di ricarica manuale deve scavalcare la cache, altrimenti non
        ricarica niente — ma solo il giro innescato da lui: senza il confronto
        col valore precedente, dopo una ricarica manuale la cache resterebbe
@@ -257,32 +313,18 @@ export default function App() {
     const force = reloadKey !== lastReload.current
     lastReload.current = reloadKey
 
-    withCache(
-      `hail:v1:${base}`,
-      () =>
-        fetchHailGrid(points, hailDays, tz, hiRes ? ICON2I_MODEL : null, ctrl.signal).then((r) =>
-          summariseCells(r, points),
-        ),
-      { force },
-    )
-      .then(({ data, at }) => {
-        setHailCells(data)
+    /* Cambiando località o giorno si riparte dalla sola tile centrale: le
+       estensioni chieste per la vista precedente non c'entrano più. */
+    fetchTile({ centre, days: hailDays, tz, hiRes, run, force })
+      .then(({ cells, agreement, at }) => {
+        if (dead) return
+        setHailTiles([{ centre, cells, agreement }])
         setHailUpdatedAt(at)
         setHailLoading(false)
-        /* Accordo fra modelli DOPO i valori, non insieme: due griglie in
-           parallelo esauriscono la quota al minuto. Se fallisce si perde
-           solo la probabilità, i valori restano — errore non fatale. */
-        return withCache(
-          `prob:v1:${base}`,
-          () => fetchProbGrid(points, hailDays, tz, ctrl.signal).then(agreementCells),
-          { force },
-        )
-          .then(({ data: agg }) => setHailAgreement(agg))
-          .catch(() => setHailAgreement(null))
       })
       .catch((e) => {
-        if (e.name === 'AbortError') return
-        setHailCells(null)
+        if (dead) return
+        setHailTiles([])
         setHailError(
           /minutely api request limit/i.test(e.message)
             ? 'quota API al minuto esaurita — riprova fra un minuto'
@@ -290,12 +332,54 @@ export default function App() {
         )
         setHailLoading(false)
       })
-    return () => ctrl.abort()
+    return () => {
+      dead = true
+    }
     /* `runs` di proposito NON è fra le dipendenze: si legge da un riferimento.
        Fosse una dipendenza, l'arrivo dei meta farebbe ripartire l'effetto e
        riscaricare la griglia. Se non sono ancora arrivati si usa la finestra di
        3 ore, che scade da sé. */
-  }, [location, hailDays, hailDayOutOfRange, hailEnabled, forecast?.timezone, reloadKey, runsSettled])
+  }, [location, hailDays, hailDayOutOfRange, hailEnabled, forecast?.timezone, reloadKey, runsSettled, runKeyFor])
+
+  /**
+   * Carica le tile chieste dalla mappa, in serie.
+   *
+   * In serie e non in parallelo perché ognuna vale ~130 chiamate pesate: due
+   * insieme rischiano la quota al minuto. E si scartano le tile che NON usano
+   * lo stesso modello di quella centrale: fondere ICON-2I a 2,2 km con il
+   * blend, che attenua i picchi, farebbe comparire un gradino artificiale
+   * lungo la giunzione, e il contorno ci correrebbe sopra.
+   */
+  const extendHail = useCallback(
+    async (centres) => {
+      const tz = forecast?.timezone ?? location.timezone
+      if (!tz || hailExtending) return
+      setHailExtending(true)
+      try {
+        for (const centre of centres) {
+          const points = buildGrid(centre, HAIL_GRID.step)
+          if (gridFitsIcon2i(points, hailDays) !== hailHiRes) continue
+          const { cells, agreement } = await fetchTile({
+            centre,
+            days: hailDays,
+            tz,
+            hiRes: hailHiRes,
+            run: runKeyFor(hailHiRes),
+          })
+          setHailTiles((prev) =>
+            prev.some((t) => t.centre.latitude === centre.latitude && t.centre.longitude === centre.longitude)
+              ? prev
+              : [...prev, { centre, cells, agreement }],
+          )
+        }
+      } catch {
+        /* una tile in meno non invalida quelle già caricate */
+      } finally {
+        setHailExtending(false)
+      }
+    },
+    [forecast?.timezone, location.timezone, hailDays, hailHiRes, hailExtending, runKeyFor],
+  )
 
   // Cambiare località azzera il filtro giorno: le date restano valide ma il
   // contesto no, e un filtro invisibile in cima alla pagina confonde.
@@ -483,6 +567,9 @@ export default function App() {
               onHazardChange={setHazardId}
               agreement={hailAgreement}
               hiRes={hailHiRes}
+              tiles={hailTiles.map((t) => t.centre)}
+              extending={hailExtending}
+              onExtend={extendHail}
               dayLocked={Boolean(selectedDay)}
               dayOutOfRange={hailDayOutOfRange}
               palette={palette}

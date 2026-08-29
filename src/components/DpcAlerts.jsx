@@ -60,6 +60,16 @@ export function useDpcAlert(location) {
   }
 }
 
+/* Il bollettino copre oggi e domani, ma dopo la pubblicazione serale può
+   restare il solo domani (o il solo oggi): la frase nomina i giorni che ci
+   sono davvero, invece di promettere una copertura che non c'è. */
+const quietPhrase = (days) => {
+  const names = days.map((d) => d.label.toLowerCase())
+  return names.length > 1
+    ? `Nessuna allerta per le giornate di ${names.slice(0, -1).join(', di ')} e di ${names.at(-1)}`
+    : `Nessuna allerta per la giornata di ${names[0]}`
+}
+
 function RiskChip({ label, level }) {
   const meta = LEVEL_META[level]
   return (
@@ -101,7 +111,7 @@ export function DpcAlertBand({ alert }) {
             className="h-2.5 w-2.5 shrink-0 rounded-full"
             style={{ background: '#30d158', boxShadow: '0 0 6px #30d158' }}
           />
-          Nessuna allerta per la giornata odierna
+          {quietPhrase(alert.days)}
         </div>
       )}
 

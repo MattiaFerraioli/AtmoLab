@@ -31,14 +31,7 @@ export default function TopBar({
     <header className={`safe-top safe-x sticky top-0 z-[900] glass-bar border-b border-hair transition-transform duration-300 ease-out ${hidden ? "-translate-y-full" : "translate-y-0"}`}>
       <div className="mx-auto flex max-w-[1180px] flex-wrap items-center gap-2 px-5 py-2.5 sm:gap-3 sm:px-6 sm:py-3">
         <div className="order-1 flex shrink-0 items-center gap-2 text-[17px] font-semibold tracking-[-0.02em]">
-          <svg viewBox="0 0 24 24" fill="none" strokeWidth="1.8" strokeLinecap="round" className="h-6 w-6">
-            <circle cx="8" cy="8" r="3.2" stroke="#eda100" />
-            <path d="M8 2.4v1.3M8 12.3v1.3M2.4 8h1.3M12.3 8h1.3M4.1 4.1l.9.9M11 11l.9.9M11.9 4.1l-.9.9M5 11l-.9.9" stroke="#eda100" />
-            <path
-              d="M17.5 20.5H8.8a3.8 3.8 0 0 1-.4-7.6 5.2 5.2 0 0 1 9.9 1.1 3.3 3.3 0 0 1-.8 6.5Z"
-              stroke="var(--accent)"
-            />
-          </svg>
+          <img src="/favicon.png" alt="" width="24" height="24" className="h-6 w-6" />
           <span className="hidden sm:inline">AtmoLab</span>
         </div>
 

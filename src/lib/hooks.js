@@ -80,15 +80,24 @@ export function useDebounced(value, ms = 220) {
 export function useModelRuns() {
   const [runs, setRuns] = useState(null)
   useEffect(() => {
-    const ctrl = new AbortController()
-    fetchModelRuns(ctrl.signal)
-      .then(setRuns)
+    /* Niente annullamento: il montaggio doppio di StrictMode faceva abortire
+       la prima lettura, `fetchModelRuns` inghiottiva l'errore modello per
+       modello e restituiva un oggetto con tutti i valori nulli. Chi costruisce
+       la chiave di cache della griglia leggeva "corse sconosciute", ripiegava
+       sulla finestra di 3 ore, e al giro successivo — con i meta finalmente
+       arrivati — usava una chiave diversa: due volte la stessa griglia
+       scaricata. Sono poche decine di KB, si lasciano finire. */
+    let dead = false
+    fetchModelRuns()
+      .then((r) => !dead && setRuns(r))
       /* Oggetto vuoto, non null: null significa "sto ancora caricando", e chi
          costruisce la chiave di cache della griglia deve poter distinguere i
          due casi — altrimenti parte con la corsa ignota e salva sotto una
          chiave che al giro dopo non ritrova. */
-      .catch(() => setRuns({}))
-    return () => ctrl.abort()
+      .catch(() => !dead && setRuns({}))
+    return () => {
+      dead = true
+    }
   }, [])
   return runs
 }
