@@ -190,6 +190,10 @@ Verificato a 390 px. Le scelte che il CSS da solo non copriva:
   più alto che largo (1,41 a 45°), quindi con un riquadro di forma diversa `fitBounds` lasciava
   due fasce vuote ai lati, piene di territorio non analizzato. Ora i due combaciano e il
   `fitBounds` va senza padding.
+- Un **segnaposto** marca la località scelta, sulle coordinate vere e non sul nodo del reticolo:
+  fra le due può esserci fino a mezza cella, cioè 24 km, e senza riferimento la mappa si legge
+  male. È dichiarato non interattivo perché sotto ci sono i rettangoli invisibili che aprono il
+  dettaglio della cella, e un segnaposto cliccabile aprirebbe un buco morto proprio lì.
 - La mappa dei temporali sta **dentro un recinto**: si può ingrandire e girare nell'area
   analizzata, non allargare oltre né uscirne. Lo zoom di partenza diventa il minimo
   (`setMinZoom`) e `maxBounds` con viscosità piena fa da muro (`FitAndFence` in `HailMap.jsx`).

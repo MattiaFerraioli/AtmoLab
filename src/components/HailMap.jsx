@@ -165,6 +165,30 @@ function FitAndFence({ bounds }) {
   return null
 }
 
+/**
+ * Segnaposto della località scelta.
+ *
+ * Serve da quando la griglia è agganciata al reticolo fisso: il nodo più
+ * vicino può stare fino a 24 km, quindi il centro della cella NON è dove sei
+ * tu, e senza un riferimento la mappa si legge male. È il punto vero, non
+ * quello arrotondato.
+ *
+ * Non interattivo di proposito: sotto ci sono i rettangoli invisibili che
+ * aprono il dettaglio della cella, e un segnaposto cliccabile creerebbe un
+ * buco morto proprio sulla località.
+ */
+const hereIcon = L.divIcon({
+  className: '',
+  iconSize: [0, 0],
+  iconAnchor: [0, 0],
+  html: `<div style="
+    position:absolute; transform:translate(-50%,-50%);
+    width:13px; height:13px; border-radius:50%;
+    background:#fff; border:3px solid #2a78d6;
+    box-shadow:0 0 0 2px rgba(0,0,0,.35), 0 1px 5px rgba(0,0,0,.5);
+  "></div>`,
+})
+
 /** Etichetta di zona: valore sopra, probabilità d'innesco sotto (se nota). */
 function valueIcon(text, color, prob) {
   const count = prob ? `${Math.round(prob.frac * AGREEMENT_COUNT)}/${AGREEMENT_COUNT}` : ''
@@ -363,6 +387,8 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
             </Tooltip>
           </Rectangle>
         ))}
+
+        <Marker position={[origin.latitude, origin.longitude]} icon={hereIcon} interactive={false} />
 
         {zones.map(
           (z, zi) =>
