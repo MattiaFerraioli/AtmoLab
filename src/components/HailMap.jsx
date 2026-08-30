@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
-import { MapContainer, Marker, Polygon, Polyline, Rectangle, TileLayer, Tooltip, useMap } from 'react-leaflet'
+import { MapContainer, Marker, Polygon, Polyline, Rectangle, Tooltip, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 /* MapLibre calcola l'URL del suo worker a runtime (`new URL('./' + nome,
    import.meta.url)`): essendo costruito da una template string, nessun
@@ -78,6 +78,52 @@ function VectorBase({ styleUrl }) {
       if (layer) layer.remove()
     }
   }, [map, styleUrl])
+
+  return null
+}
+
+/**
+ * Strato radar che cambia fotogramma senza sfarfallare.
+ *
+ * Rifare il layer a ogni aggiornamento — o chiamare `setUrl`, che internamente
+ * ridisegna — svuota le tile e le riscarica: per un istante la pioggia sparisce
+ * dalla mappa. Qui il fotogramma nuovo viene aggiunto trasparente e scoperto
+ * solo quando ha finito di caricare, e il vecchio si toglie dopo. Se le tile
+ * non arrivano (rete assente, prodotto mancante) resta appeso un layer
+ * invisibile e in mappa continua a vedersi il fotogramma precedente: meglio un
+ * dato di cinque minuti fa che il vuoto.
+ */
+function RadarLayer({ url, opacity }) {
+  const map = useMap()
+  const shown = useRef(null)
+
+  useEffect(() => {
+    if (!url) return undefined
+    const layer = L.tileLayer(url, {
+      opacity: 0,
+      zIndex: 350,
+      attribution: RADAR_ATTRIB,
+      /* Il radar è pubblicato solo dallo zoom 5 al 7: oltre, S3 risponde 403
+         con un XML e Chrome lo blocca (ERR_BLOCKED_BY_ORB), quindi niente
+         tile e nessun errore visibile. Con questi limiti Leaflet ingrandisce
+         l'ultima disponibile invece di chiedere livelli inesistenti. */
+      minNativeZoom: 5,
+      maxNativeZoom: 7,
+    })
+    const reveal = () => {
+      layer.setOpacity(opacity)
+      if (shown.current && shown.current !== layer) map.removeLayer(shown.current)
+      shown.current = layer
+    }
+    layer.on('load', reveal)
+    layer.addTo(map)
+
+    return () => {
+      layer.off('load', reveal)
+      if (shown.current === layer) shown.current = null
+      map.removeLayer(layer)
+    }
+  }, [url, opacity, map])
 
   return null
 }
@@ -228,22 +274,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
         <FitAndFence bounds={bounds} />
         {/* Sopra il fondale, sotto le zone: il rischio previsto deve restare
             leggibile anche con la pioggia osservata accesa. */}
-        {radarOn && radarTime && (
-          <TileLayer
-            key={radarTime}
-            url={radarTileUrl('VMI', radarTime)}
-            opacity={0.65}
-            zIndex={350}
-            attribution={RADAR_ATTRIB}
-            /* Il radar è pubblicato solo dallo zoom 5 al 7: oltre, S3 risponde
-               403 con un XML e Chrome lo blocca (ERR_BLOCKED_BY_ORB), quindi
-               niente tile e nessun errore visibile. Con questi limiti Leaflet
-               smette di chiedere livelli inesistenti e ingrandisce l'ultimo
-               disponibile — sgranato, ma è la risoluzione vera del dato. */
-            minNativeZoom={5}
-            maxNativeZoom={7}
-          />
-        )}
+        {radarOn && radarTime && <RadarLayer url={radarTileUrl('VMI', radarTime)} opacity={0.65} />}
         <DragControl enabled={!locked} />
 
         {/* Riempimento e contorno viaggiano separati: il poligono porta solo

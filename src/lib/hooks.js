@@ -119,15 +119,40 @@ export function useRadar(enabled, type = 'VMI') {
       return undefined
     }
     let dead = false
-    const check = () =>
+    let timer = null
+
+    /* Il controllo successivo si aggancia alla LORO cadenza invece di battere
+       ogni 5 minuti per conto suo: il prodotto dopo esce cinque minuti dopo
+       l'ultimo, quindi si guarda poco dopo quell'istante. Con un intervallo
+       fisso, accendendo il radar un attimo prima di una pubblicazione, si
+       restava indietro fino a dieci minuti; così lo scarto si dimezza senza
+       fare una richiesta in più. */
+    const schedule = (last) => {
+      const wait = last ? last + 5.5 * 60 * 1000 - Date.now() : 5 * 60 * 1000
+      timer = setTimeout(check, Math.min(Math.max(wait, 30 * 1000), 5 * 60 * 1000))
+    }
+    function check() {
+      clearTimeout(timer) // può arrivare anche dal ritorno in primo piano
       fetchLastRadar(type)
-        .then((t) => !dead && setTime(t))
-        .catch(() => !dead && setTime(null))
+        .then((t) => {
+          if (dead) return
+          setTime(t)
+          schedule(t)
+        })
+        .catch(() => !dead && schedule(null))
+    }
+
     check()
-    const id = setInterval(check, 5 * 60 * 1000)
+    /* Col telefono in tasca il browser rallenta i timer: al ritorno in primo
+       piano si ricontrolla subito, invece di mostrare un fotogramma vecchio
+       fino allo scatto successivo. */
+    const onVisible = () => document.visibilityState === 'visible' && check()
+    document.addEventListener('visibilitychange', onVisible)
+
     return () => {
       dead = true
-      clearInterval(id)
+      clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisible)
     }
   }, [enabled, type])
   return time

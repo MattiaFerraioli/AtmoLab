@@ -330,6 +330,18 @@ incompatibile con un pulsante di donazione sul sito. Nessuna chiave in entrambi 
 primo regge il giorno che il progetto smette di essere solo personale. La clausola share-alike
 riguarda i *prodotti derivati*: mostrare le tile con l'attribuzione non la fa scattare.
 
+**Aggiornamento**: mentre lo strato è acceso si ricontrolla qual è l'ultimo rilevamento, e il
+controllo è **agganciato alla cadenza della DPC** (ultimo prodotto + 5 minuti e mezzo) invece che
+a un intervallo fisso: con un timer scollegato, accendendo il radar un attimo prima di una
+pubblicazione si restava indietro fino a dieci minuti. Si ricontrolla anche al **rientro in primo
+piano**, perché col telefono in tasca il browser rallenta i timer. Da spento non parte nulla.
+
+Il cambio di fotogramma **non sfarfalla**: rifare il layer, o chiamare `setUrl` che internamente
+ridisegna, svuota le tile e le riscarica, e per un istante la pioggia sparisce. Il fotogramma
+nuovo viene aggiunto trasparente e scoperto solo a caricamento finito, poi si toglie il vecchio.
+Se le tile non arrivano resta visibile il fotogramma precedente: meglio un dato di cinque minuti
+fa che il vuoto.
+
 **È osservazione, non previsione**, e le due cose non vanno confuse: il pulsante porta sempre l'ora
 del rilevamento (`Radar · 00:20`). La DPC avverte che il dato in tempo reale non è validato e può
 contenere anomalie.
