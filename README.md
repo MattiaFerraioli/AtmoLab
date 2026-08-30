@@ -85,6 +85,25 @@ richieste HEAD a ogni apertura del popup.
 
 Senza il punto 3 l'app funziona lo stesso, sul percorso diretto di prima.
 
+## Privacy
+
+Testo unico in `components/PrivacyContent.jsx`, montato in due posti: il **popup** aperto dalla
+voce nel footer e la **pagina statica** `privacy.html`, generata come secondo ingresso in
+`vite.config.js`. Un solo file perché due copie divergono al primo ritocco, e a quel punto il sito
+dichiara due cose diverse. La pagina è servita ma non linkata: esiste per il giorno che serva un
+indirizzo citabile.
+
+Il guscio della finestra modale sta in `components/Modal.jsx`. Era cucito addosso alla mappa delle
+allerte in `DpcAlerts.jsx`; ora lo usano in due.
+
+**L'elenco dei terzi va compilato leggendo il codice**, non a memoria: ogni host che il browser
+contatta vede l'indirizzo IP di chi visita, ed è quello che va dichiarato. Sono sette — Open-Meteo
+(cinque sottodomini), BigDataCloud per il reverse geocoding (facile da dimenticare, è dentro
+`reverseGeocode` in `api.js`), OpenFreeMap/OpenMapTiles, Protezione Civile per bollettino, mappe e
+radar, GitHub come ripiego delle allerte, Supabase per l'estratto, Cloudflare per l'hosting. Per
+rifare il giro: `grep -rhoE "https://[a-zA-Z0-9.-]+\.[a-z]{2,}" src/` e le chiavi di
+`useLocalStorage`, più `DB_NAME` in `cache.js`.
+
 ## PWA
 
 `vite-plugin-pwa` in `generateSW`, con `registerType: 'autoUpdate'`.

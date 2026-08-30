@@ -3,7 +3,21 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+import { resolve } from 'node:path'
+
 export default defineConfig({
+  /* Seconda pagina statica: la privacy ha un URL vero e citabile senza tirare
+     dentro l'app. Non c'è routing client-side, quindi un secondo ingresso è la
+     via più economica — Cloudflare la serve come file, niente React da montare
+     per chi arriva solo a leggerla. */
+  build: {
+    rollupOptions: {
+      input: {
+        main: resolve(import.meta.dirname, 'index.html'),
+        privacy: resolve(import.meta.dirname, 'privacy.html'),
+      },
+    },
+  },
   // Il worker di MapLibre è ESM: senza questo Vite lo impacchetta come IIFE.
   worker: { format: 'es' },
   plugins: [

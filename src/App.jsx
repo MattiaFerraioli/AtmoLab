@@ -8,6 +8,8 @@ import HailRisk from './components/HailRisk'
 import EnsemblePanel from './components/EnsemblePanel'
 import { Card, DayFilterBar, Message, Section, Segmented } from './components/Ui'
 import { fetchAirQuality, fetchForecast, fetchHailGrid, fetchModelComparison, fetchProbGrid, reverseGeocode } from './lib/api'
+import Modal from './components/Modal'
+import PrivacyContent from './components/PrivacyContent'
 import { DEFAULT_LOCATION, DEFAULT_MODELS, MAX_MODELS, MODELS } from './lib/constants'
 import { HAIL_GRID, ICON2I_MODEL, MAX_HAIL_OFFSET, buildGrid, gridFitsIcon2i, mergeTiles, snapToLattice, summariseCells } from './lib/hail'
 import { cacheGet, withCache } from './lib/cache'
@@ -177,6 +179,7 @@ export default function App() {
      pubblico caricarla a ogni visita brucia il piano free in fretta. */
   const [hailEnabled, setHailEnabled] = useState(false)
   const [stormTab, setStormTab] = useState('previsione')
+  const [showPrivacy, setShowPrivacy] = useState(false)
 
   const [updatedAt, setUpdatedAt] = useState(null)
   const [comparisonUpdatedAt, setComparisonUpdatedAt] = useState(null)
@@ -639,8 +642,25 @@ export default function App() {
           </a>{' '}
           (CC-BY 4.0) · Modelli ECMWF IFS, NOAA GFS, DWD ICON, Météo-France ARPEGE/AROME,
           UK Met Office, ItaliaMeteo ARPAE ICON-2I. Geocoding Open-Meteo · Qualità dell&apos;aria CAMS · Allerte Dipartimento della Protezione
-          Civile (CC-BY 4.0) · Mappa OpenFreeMap © OpenMapTiles, dati © OpenStreetMap contributors.
+          Civile (CC-BY 4.0) · Radar-DPC · Mappa OpenFreeMap © OpenMapTiles, dati ©
+          OpenStreetMap contributors.
+          {/* Staccata dalla fila di attribuzioni: è una voce di navigazione, non
+              una fonte, e in mezzo ai punti medi si perderebbe. */}
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setShowPrivacy(true)}
+              className="cursor-pointer font-semibold text-ink-sec transition duration-300 hover:text-ink"
+            >
+              Privacy
+            </button>
+          </div>
         </footer>
+        {showPrivacy && (
+          <Modal title="Privacy" subtitle="Cosa fa e cosa non fa AtmoLab con i tuoi dati" onClose={() => setShowPrivacy(false)} maxWidth={720}>
+            <PrivacyContent />
+          </Modal>
+        )}
       </main>
     </>
   )

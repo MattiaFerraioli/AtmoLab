@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
+import Modal from './Modal'
 import { LEVEL_META, fetchDpcBulletin, previewUrl, zoneForComune } from '../lib/dpc'
 
 const RISKS = [
@@ -141,64 +141,33 @@ export function DpcAlertBand({ alert }) {
 
 /** Popup con la mappa nazionale ufficiale: nessuna espansione della hero. */
 function DpcMapModal({ alert, onClose }) {
-  useEffect(() => {
-    const onKey = (e) => e.key === 'Escape' && onClose()
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
-
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label="Mappa nazionale delle allerte"
+  return (
+    <Modal
+      title="Mappa nazionale delle allerte"
+      subtitle={`${alert.bulletinName} · allerta valida per l'intera zona ${alert.zoneName}`}
+      onClose={onClose}
+      bodyClassName="grid gap-3 sm:grid-cols-2"
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="flex max-h-[90dvh] w-full max-w-[860px] flex-col overflow-hidden rounded-[20px] border border-hair bg-surface card-shadow"
-      >
-        <div className="flex items-start gap-3 border-b border-hair p-4 pb-3">
-          <div>
-            <div className="text-[15px] font-bold">Mappa nazionale delle allerte</div>
-            <div className="mt-0.5 text-[12px] text-ink-muted">
-              {alert.bulletinName}
+      {/* Ogni giorno sa da quale bollettino viene la SUA mappa: quella di oggi
+          spesso è pubblicata solo nel bollettino di ieri, come "domani". Il
+          riquadro di ripiego resta per il caso in cui non esista in nessuno
+          dei due. */}
+      {alert.days.map((day) => (
+        <figure key={day.label}>
+          {day.map ? (
+            <img
+              src={previewUrl(day.map.stem, day.map.slot)}
+              alt={`Mappa nazionale delle allerte di ${day.label.toLowerCase()}`}
+              className="w-full rounded-xl bg-white"
+            />
+          ) : (
+            <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-hair p-6 text-center text-[12.5px] text-ink-muted">
+              Mappa di {day.label.toLowerCase()} non ancora pubblicata.
             </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Chiudi"
-            className="ml-auto flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-fill text-[17px] leading-none text-ink transition duration-300 hover:bg-fill-hover"
-          >
-            ×
-          </button>
-        </div>
-        <div data-lenis-prevent className="grid gap-3 overflow-auto p-4 sm:grid-cols-2">
-          {/* Ogni giorno sa da quale bollettino viene la SUA mappa: quella di
-              oggi spesso è pubblicata solo nel bollettino di ieri, come
-              "domani". Il riquadro di ripiego resta per il caso in cui non
-              esista in nessuno dei due. */}
-          {alert.days.map((day) => (
-            <figure key={day.label}>
-              {day.map ? (
-                <img
-                  src={previewUrl(day.map.stem, day.map.slot)}
-                  alt={`Mappa nazionale delle allerte di ${day.label.toLowerCase()}`}
-                  className="w-full rounded-xl bg-white"
-                />
-              ) : (
-                <div className="flex min-h-[180px] items-center justify-center rounded-xl border border-hair p-6 text-center text-[12.5px] text-ink-muted">
-                  Mappa di {day.label.toLowerCase()} non ancora pubblicata.
-                </div>
-              )}
-              <figcaption className="mt-1 text-[12px] text-ink-muted">{day.label}</figcaption>
-            </figure>
-          ))}
-        </div>
-      </div>
-    </div>,
-    document.body,
+          )}
+          <figcaption className="mt-1 text-[12px] text-ink-muted">{day.label}</figcaption>
+        </figure>
+      ))}
+    </Modal>
   )
 }
