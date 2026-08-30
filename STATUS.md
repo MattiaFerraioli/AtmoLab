@@ -1,14 +1,17 @@
 # AtmoLab — stato del progetto
 
-Aggiornato: 26 agosto 2026
+Aggiornato: 30 agosto 2026
 
 PWA meteo che confronta i modelli previsionali (ECMWF, GFS, ICON, ARPEGE/AROME, ICON-2I),
 con una sezione dedicata al rischio grandine/vento/pioggia a livello di cella, un ramo
 sperimentale a ensemble, e le allerte ufficiali della Protezione Civile.
 
-Repo: `github.com/MattiaFerraioli/AtmoLab` · Stack: Vite 8 + React 19 + Tailwind 4,
-Leaflet/react-leaflet per le mappe, Recharts per i grafici, `vite-plugin-pwa`. Nessun
-backend: tutto gira nel browser, dati da API pubbliche gratuite (Open-Meteo + open data DPC).
+Repo: `github.com/MattiaFerraioli/AtmoLab` · In produzione su **Cloudflare Pages**,
+`atmolab.byonex.app` · Stack: Vite 8 + React 19 + Tailwind 4, Leaflet/react-leaflet con
+fondale MapLibre, Recharts, `vite-plugin-pwa`. Nessun backend nell'app: tutto gira nel
+browser, dati da API pubbliche gratuite (Open-Meteo, open data e radar DPC, OpenFreeMap).
+L'unico pezzo lato server è un job su GitHub Actions che pubblica l'estratto delle allerte
+su Supabase Storage.
 
 ## Cosa fa, in breve
 
@@ -31,7 +34,49 @@ backend: tutto gira nel browser, dati da API pubbliche gratuite (Open-Meteo + op
 Documentazione tecnica completa, con ogni scelta motivata e ogni misura annotata:
 **`README.md`** nella root del repo. Questo file è solo lo stato "a che punto siamo".
 
-## Fatto (ultime due settimane)
+## Fatto nel fine settimana del 29-30 agosto
+
+- **Hosting spostato da Vercel a Cloudflare Pages.** Motivo: Vercel Hobby classifica
+  esplicitamente le donazioni come uso commerciale (*"Asking for Donations fall under
+  commercial usage"*), quindi un Buy Me a Coffee avrebbe richiesto Pro a 20 $/mese.
+  Cloudflare free non vieta il commerciale; l'unica clausola che ci tocca vieta di
+  raccogliere dati di carta sul nostro dominio, quindi il salvadanaio dovrà essere un
+  **link esterno**, mai un checkout incorporato.
+- **Allerte DPC via estratto pubblicato.** Un job schedulato su GitHub Actions
+  (`.github/workflows/dpc-extract.yml`) fa una volta sola il lavoro che prima faceva ogni
+  dispositivo — 2 chiamate alla API di GitHub, limite 60/ora per IP, più ~3,2 MB di
+  TopoJSON — e pubblica ~263 KB su Supabase Storage. In produzione: 1 richiesta, zero
+  chiamate a GitHub. Gli orari (14:20 e 16:30 UTC) vengono da 2.430 giorni di storico:
+  emissione mediana 14:28 italiane, coda alle 16:05, aggiornamento pomeridiano nel 2-7%
+  dei giorni. Su Actions e non su una funzione serverless perché il parsing non sta nei
+  10 ms di CPU dei Worker free e il cron Vercel Hobby ammette un solo giro al giorno.
+- **Mappa di oggi recuperata**: il bollettino a volte pubblica per "oggi" un PNG segnaposto
+  da 4 KB. La mappa vera esiste, è il "domani" del bollettino precedente: ora l'estratto
+  dice, per ogni data, **da quale bollettino prendere la mappa**. Nessun archivio in più —
+  i PNG li ospita la DPC, basta ricordare il puntatore.
+- **Zone dei temporali come macchie**, non più quadretti: campo interpolato (bicubica
+  Catmull-Rom ritagliata sull'intervallo dei dati) su una maglia 12× più fitta e contorni
+  con marching squares (`d3-contour`). Dove la macchia tocca il bordo della griglia il
+  tratto non viene disegnato: là non c'è un contorno, c'è la fine dei dati, e lo dice una
+  cornice neutra.
+- **Reticolo fisso + cache in IndexedDB** con chiave sulla **corsa del modello**, non a
+  tempo. La sezione ora si apre da sola se il dato è già in casa; il pulsante "Calcola"
+  torna solo quando aprire costerebbe davvero (località nuova, corsa nuova, oltre 12 ore).
+- **Mappa dentro un recinto**: proporzione del contenitore = proporzione dell'area
+  (`aspectRatio: cos(latitudine)`, perché in Mercatore un quadrato in gradi non è un
+  quadrato sullo schermo), zoom minimo = l'inquadratura dell'area, `maxBounds` come muro.
+  Si ingrandisce e si gira dentro il 7×7, non se ne esce.
+- **Radar DPC** come strato attivabile (VMI, 5 minuti), spento all'apertura. Scelto al posto
+  di RainViewer per la licenza: CC-BY-SA con **uso commerciale permesso**, mentre RainViewer
+  è "personal or educational use only" e sarebbe incompatibile con le donazioni.
+- **Prima visita**: si parte da Monza e la posizione si **offre** invece di chiederla
+  d'ufficio.
+- Linguaggio della grandine riscritto sugli outlook convettivi: via la scala di rischio
+  combinato, restano **diametro atteso** (se il temporale si forma) e **probabilità**
+  (accordo fra modelli). Via anche l'indice SHIP dall'interfaccia.
+- Fondale passato a **OpenFreeMap** con etichette in italiano.
+
+## Fatto prima
 
 - Restyle grafico completo in due passate: prima Apple-style (palette, ombre, pillole), poi
   liquid glass (trasparenze, bagliori dietro le card).
@@ -89,24 +134,25 @@ Documentazione tecnica completa, con ogni scelta motivata e ogni misura annotata
 - **Ensemble limitato a GFS 0,5°**: unico modello con livelli in quota per membro. Bias di
   scala noto e dichiarato (CAPE strutturalmente più basso che nei modelli km-scale).
 
-## Prossimo passo pianificato: Vercel Cron + Supabase per le allerte DPC
+## Da riprendere
 
-Deciso, non ancora iniziato — si riprende a breve.
-
-**Problema attuale**: ogni dispositivo, per le allerte, scarica in proprio ~2,4MB di TopoJSON
-dal repo GitHub della Protezione Civile più 2 chiamate alla API di GitHub (rate limit 60/ora
-per IP — sotto CGNAT/mobile può bastare poco per esaurirlo e silenziare la sezione per tutti
-quelli dietro lo stesso IP).
-
-**Soluzione**: una funzione serverless su Vercel (cron 2 volte al giorno, es. 15:00 e 18:00 per
-coprire anche gli aggiornamenti pomeridiani) fa il lavoro pesante una volta sola e scrive
-l'estratto compatto (~250KB: date, zone, livelli, comuni, flag mappa-segnaposto) su Supabase
-(tabella o Storage pubblico). L'app scarica un solo JSON piccolo dal CDN — niente più rate
-limit lato client, cache prevedibile, mattone da 2,4MB sparito. Il percorso GitHub diretto
-resta nel codice come fallback se l'endpoint Supabase è più vecchio di 24h.
-
-**Per partire**: conferma che Vercel è collegato al repo, e un progetto Supabase free (URL +
-service key, quest'ultima solo in env Vercel, mai nel client).
+- **Vedere il radar con la pioggia vera.** Il meccanismo è verificato (tile, ora del
+  rilevamento, cambio fotogramma senza sfarfallio) ma le notti serene danno tile vuote:
+  la resa sopra le zone colorate non è ancora stata giudicata.
+- **Il Buy Me a Coffee**, come link esterno. Da rileggere prima: il piano free di
+  Open-Meteo esclude *"subscriptions or advertising"* — le donazioni non le nomina, ma se
+  un domani arriva AdSense quel piano decade.
+- **Progetto Vercel da dismettere**, una volta certi di Cloudflare.
+- **Cache condivisa delle griglie meteo**: rimandata di proposito. Oggi il tetto è per IP,
+  quindi cresce con gli utenti; un proxy lo trasformerebbe in **un solo budget condiviso** e
+  con pochi utenti sparsi peggiorerebbe le cose. Il segnale per farla è la media di
+  richieste per tile distinta sopra 1. Mai scritture dai client: avvelenerebbero la cache
+  di tutti.
+- **Motore multi-tile già pronto e inerte**: `mergeTiles` fonde tile adiacenti del reticolo
+  in un campo unico e `zones.js` gestisce griglie rettangolari. Serve solo un chiamante, se
+  un giorno si volesse un'area più larga.
+- **SRI e POH**: SRI (pioggia al suolo) ha le tile e si aggiunge in due righe; POH
+  (probabilità di grandine osservata) pubblica solo il prodotto grezzo, le tile danno 403.
 
 ## Idee discusse, non ancora decise
 
@@ -114,8 +160,10 @@ service key, quest'ultima solo in env Vercel, mai nel client).
   discussione aperta, non ancora impostata l'architettura.
 - **Promozione a costo zero**: meta tag + Google Search Console (indicizzazione base),
   community meteo amatoriali/forum come canale di lancio naturale. AdSense valutato ma
-  rimandato: con traffico basso non copre nemmeno il tempo per configurarlo; prima serve
-  avere visite.
+  rimandato: con traffico basso non copre nemmeno il tempo per configurarlo, e farebbe
+  decadere il piano free di Open-Meteo.
+- **Auto-ospitare Open-Meteo** (è open source, immagine Docker) il giorno che il traffico
+  rendesse la quota il collo di bottiglia vero: costa un server, non un abbonamento.
 
 ## Come si lancia in locale
 
@@ -125,4 +173,11 @@ npm run dev      # http://localhost:5180
 npm run build    # dist/, con service worker generato
 ```
 
-Nessuna chiave API richiesta: tutte le fonti dati sono pubbliche e senza autenticazione.
+Nessuna chiave API richiesta per far girare l'app: tutte le fonti dati sono pubbliche e senza
+autenticazione. Per **pubblicare** l'estratto delle allerte servono invece `SUPABASE_URL` e
+`SUPABASE_SERVICE_KEY` nei secrets del repo, e `VITE_DPC_EXTRACT_URL` fra le variabili di build
+(già impostate). Senza quest'ultima l'app funziona lo stesso, sul percorso diretto GitHub.
+
+**Collaudo senza consumare quota**: le verifiche dell'interfaccia usano un simulatore delle
+risposte Open-Meteo intercettate in Playwright (nello scratchpad di lavoro, non versionato).
+Serve bloccare il service worker nel contesto di prova, altrimenti intercetta lui le fetch.
