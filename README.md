@@ -141,6 +141,13 @@ Cose da sapere:
   espresse come distanza e direzione dalla località, diametro stimato dei chicchi e andamento
   orario della cella scelta. Si guarda **un giorno alla volta** — oggi, domani o dopodomani, oppure
   il giorno scelto nella striscia dei 14 giorni. Su oggi le ore già passate sono escluse.
+- **Prima visita** — si parte da **Monza**, e la posizione si offre invece di strapparla. Se il
+  permesso di geolocalizzazione è già concesso la si usa in silenzio; se è ancora da chiedere
+  compare un invito con un pulsante, così a chiedere il permesso è un gesto dell'utente; se è
+  stato negato, niente. Chiedere il permesso all'apertura senza contesto è il modo migliore per
+  farselo negare, e nel browser un rifiuto è appiccicoso. La prima visita si riconosce leggendo
+  `wm.location` **durante il render**, prima che `useLocalStorage` scriva il valore iniziale nel
+  suo effetto: dopo, la chiave esisterebbe sempre.
 - **Ricerca** — per città con autocomplete; ogni risultato mostra bandiera, regione, paese e
   popolazione, che bastano a distinguere gli omonimi. Preferiti salvati in locale e
   geolocalizzazione, che risolve il nome del comune invece di mostrare le coordinate

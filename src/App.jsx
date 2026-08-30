@@ -113,6 +113,10 @@ export default function App() {
   const barHidden = useHideOnScroll(isMobile, heroRef)
 
   const [location, setLocation] = useLocalStorage('location', DEFAULT_LOCATION)
+  /* Letto in fase di render, PRIMA che useLocalStorage scriva il valore
+     iniziale nel suo effetto: dopo, la chiave esisterebbe sempre e non si
+     distinguerebbe più la prima visita da tutte le altre. */
+  const firstVisit = useRef(localStorage.getItem('wm.location') === null)
   const dpcAlert = useDpcAlert(location)
   const [favourites, setFavourites] = useLocalStorage('favourites', [])
   const [recent, setRecent] = useLocalStorage('recent', [])
@@ -426,6 +430,37 @@ export default function App() {
     )
   }, [setLocation])
 
+  /**
+   * Prima visita: la posizione si offre, non si strappa.
+   *
+   * Chiedere il permesso appena la pagina si apre, senza contesto, è il modo
+   * migliore per farselo negare — e un rifiuto nel browser è appiccicoso, lo
+   * paghi per sempre. Quindi: se il permesso c'è già, si usa in silenzio e
+   * l'utente si ritrova a casa propria; se è ancora da chiedere, compare un
+   * invito e a chiederlo è il suo click. Se è stato negato, niente.
+   */
+  const [locateInvite, setLocateInvite] = useState(false)
+  useEffect(() => {
+    if (!firstVisit.current || !navigator.geolocation) return undefined
+    let dead = false
+    const offri = () => !dead && setLocateInvite(true)
+    if (!navigator.permissions?.query) {
+      offri()
+      return undefined
+    }
+    navigator.permissions
+      .query({ name: 'geolocation' })
+      .then((stato) => {
+        if (dead) return
+        if (stato.state === 'granted') locate()
+        else if (stato.state === 'prompt') offri()
+      })
+      .catch(offri)
+    return () => {
+      dead = true
+    }
+  }, [locate])
+
   return (
     <>
       <TopBar
@@ -448,6 +483,31 @@ export default function App() {
       />
 
       <main className="safe-x mx-auto max-w-[1180px] pb-16 [--safe-pad:20px] sm:[--safe-pad:24px]">
+        {locateInvite && (
+          <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-hair bg-surface/70 px-4 py-3 text-[13px] backdrop-blur-md">
+            <span className="min-w-[200px] flex-1 text-ink-sec">
+              Stai vedendo <strong className="text-ink">{DEFAULT_LOCATION.name}</strong>. Vuoi le
+              previsioni per dove sei adesso?
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setLocateInvite(false)
+                locate()
+              }}
+              className="cursor-pointer rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition duration-300 hover:bg-[color-mix(in_srgb,var(--accent)_82%,white)]"
+            >
+              Usa la mia posizione
+            </button>
+            <button
+              type="button"
+              onClick={() => setLocateInvite(false)}
+              className="cursor-pointer rounded-full px-3 py-2 text-[13px] font-semibold text-ink-muted transition duration-300 hover:text-ink"
+            >
+              No, grazie
+            </button>
+          </div>
+        )}
         <div ref={heroRef} className="pt-6">
           {forecastError ? (
             <Message tone="error">Impossibile caricare la previsione: {forecastError}</Message>

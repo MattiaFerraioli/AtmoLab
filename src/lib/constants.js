@@ -85,13 +85,16 @@ export const PALETTE = {
 export const TILE_ATTRIB =
   '<a href="https://openfreemap.org/">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/">OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 
+/* Punto di partenza per chi arriva senza una località salvata e senza aver
+   dato la posizione. Vale finché non tocca il pulsante di localizzazione o
+   cerca qualcosa: da lì in poi la scelta è sua e viene ricordata. */
 export const DEFAULT_LOCATION = {
-  name: 'Verona',
+  name: 'Monza',
   country: 'Italia',
   country_code: 'IT',
-  admin1: 'Veneto',
-  latitude: 45.43854,
-  longitude: 10.9938,
+  admin1: 'Lombardia',
+  latitude: 45.5845,
+  longitude: 9.2744,
   timezone: 'Europe/Rome',
 }
 
