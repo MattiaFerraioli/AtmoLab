@@ -362,7 +362,7 @@ export default function HailRisk({
           {noneForecast && (
             <div className="mt-2.5 text-[12px] text-ink-muted">
               Nessuno dei {AGREEMENT_COUNT} modelli prevede temporali{' '}
-              {dayOffset === 0 ? 'per il resto di oggi' : 'in questo giorno'}: nessuna area
+              {dayOffset === 0 ? 'per il resto della giornata' : 'in questo giorno'}: nessuna area
               evidenziata. L&apos;ambiente sarebbe da {worst?.metric.badge}, se un temporale si
               formasse.
             </div>
@@ -418,7 +418,7 @@ export default function HailRisk({
             <Message>
               {/* Il pericolo lo dichiara `quietText`: prima la frase diceva
                   "grandine" anche mentre si guardava vento o pioggia. */}
-              {hazard.quietText} {dayOffset === 0 ? 'per il resto di oggi' : 'in questo giorno'}.
+              {hazard.quietText} {dayOffset === 0 ? 'per il resto della giornata' : 'in questo giorno'}.
             </Message>
           ) : (
             <ol className="flex flex-col gap-1.5">
