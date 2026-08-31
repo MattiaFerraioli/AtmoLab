@@ -250,6 +250,7 @@ export default function ModelCompare({
         slots={slots}
         palette={palette}
         availability={availability}
+        dayFiltered={Boolean(selectedDay)}
         onToggle={onToggleModel}
       />
 
@@ -261,7 +262,16 @@ export default function ModelCompare({
         </div>
       )}
 
-      <ModelRuns runs={runs} coverage={coverage} horizons={horizons} slots={slots} selected={selected} palette={palette} />
+      <ModelRuns
+        runs={runs}
+        coverage={coverage}
+        horizons={horizons}
+        slots={slots}
+        selected={selected}
+        palette={palette}
+        selectedDay={selectedDay}
+        availability={availability}
+      />
 
       <div className="p-4 pb-2">
         {error ? (

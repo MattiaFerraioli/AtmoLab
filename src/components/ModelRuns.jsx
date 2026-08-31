@@ -31,7 +31,7 @@ const Row = ({ k, children }) => (
  *    spiega perché una linea sparisce dal grafico. Mostrata solo quando
  *    succede davvero: ripeterla per ogni modello sarebbe rumore.
  */
-export default function ModelRuns({ runs, coverage, horizons, slots, selected, palette }) {
+export default function ModelRuns({ runs, coverage, horizons, slots, selected, palette, selectedDay, availability }) {
   const isMobile = useIsMobile()
   // null = ancora sull'automatico: chiuso su mobile (sei schede impilate sono
   // uno scroll infinito), aperto su desktop. Dopo un toggle vince la scelta.
@@ -70,6 +70,10 @@ export default function ModelRuns({ runs, coverage, horizons, slots, selected, p
           const cov = coverage?.[m.id]
           const horizon = horizons?.[m.id]
           const late = run && runAgeHours(run.initialised) > run.updateIntervalHours * 2.5
+          /* Con un giorno selezionato e nessun dato del modello dentro quel
+             giorno, la scheda lo dice con una frase intera: le sole righe di
+             validità lasciavano il dubbio sul perché la linea mancasse. */
+          const missesDay = Boolean(selectedDay) && availability?.[m.id] === false
 
           return (
             <div key={m.id} className={`p-3 ${on ? '' : 'opacity-55'}`}>
@@ -118,9 +122,14 @@ export default function ModelRuns({ runs, coverage, horizons, slots, selected, p
               </dl>
 
               {/* Solo quando c'è davvero qualcosa da segnalare per questa località. */}
-              {cov && !cov.end && (
+              {cov && !cov.end ? (
                 <div className="mt-1.5 text-[12px] text-[#ec835a]">Non copre questa località</div>
-              )}
+              ) : missesDay ? (
+                <div className="mt-1.5 text-[12px] text-[#ec835a]">
+                  Non valido per il giorno selezionato
+                  {cov?.end ? `: i dati terminano ${fmtDayHour(cov.end)}` : ''}
+                </div>
+              ) : null}
             </div>
           )
         })}
