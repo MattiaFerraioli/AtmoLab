@@ -179,7 +179,20 @@ export function zoneSpecOf(hazard) {
   if (hazard.id === 'hail') {
     return {
       stepOf: (c) => hailZoneStep(c.metric.ship ?? 0),
-      valueOf: (c) => c.metric.ship ?? 0,
+      /**
+       * Il campo delle macchie viene azzerato dove NESSUN modello prevede il
+       * temporale, cella per cella.
+       *
+       * Scartare la zona intera non bastava: la probabilità di una zona è il
+       * massimo fra le sue celle, e la zona di livello 1 copre quasi tutta la
+       * griglia — una sola cella con 1/3 teneva dipinto tutto, con le celle in
+       * lista a 0/3. Azzerando il valore in ingresso, i contorni si stringono
+       * da soli attorno a dove qualcuno vede qualcosa.
+       *
+       * `prob` a null significa "accordo non arrivato", non "zero": lì il
+       * valore resta, altrimenti un errore di rete cancellerebbe la mappa.
+       */
+      valueOf: (c) => (c.prob === 0 ? 0 : (c.metric.ship ?? 0)),
       // Soglie delle fasce: sono anche i livelli su cui si tracciano le isolinee.
       bands: SHIP_ZONE_BANDS,
       labels: ['< 1 cm', '1–2 cm', '2–4 cm', '> 4 cm'],
