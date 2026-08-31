@@ -372,6 +372,19 @@ nuovo viene aggiunto trasparente e scoperto solo a caricamento finito, poi si to
 Se le tile non arrivano resta visibile il fotogramma precedente: meglio un dato di cinque minuti
 fa che il vuoto.
 
+**Fusione `screen`, e non è un vezzo estetico.** Il server disegna in **nero** i pixel di
+non-dato — copertura radar e clutter. Sulla mappa quasi nera del visore DPC sono invisibili; sopra
+il nostro riempimento arancione diventavano macchioline scure che sembravano pioggia, ed è il
+difetto che si vedeva alla prima versione. Con `mix-blend-mode: screen` il nero non contribuisce e
+spariscono, mentre gli echi veri — verde, giallo, rosso nella loro palette — restano e non
+scuriscono mai ciò che c'è sotto.
+
+Verificato scaricando le tile di tutta Italia in una giornata serena: **un solo colore, nero
+puro**, e due soli valori di trasparenza. Il che significa anche che con questa fonte **non si può
+isolare il solo temporalesco**: dentro l'immagine non c'è intensità, i colori li mette il server.
+Fra i prodotti, LTG (fulmini) e HRD (pioggia intensa) sarebbero perfetti ma non hanno tile (404);
+POH, VIL ed ETM rispondono 403; il loro WMS/WMTS non risponde.
+
 **È osservazione, non previsione**, e le due cose non vanno confuse: il pulsante porta sempre l'ora
 del rilevamento (`Radar · 00:20`). La DPC avverte che il dato in tempo reale non è validato e può
 contenere anomalie.
@@ -419,6 +432,14 @@ livello 2 sta dentro l'1). Ogni zona porta una sola etichetta col valore, posta 
 massimo che contiene, a partire dal livello "Basso": con le etichette solo da "moderato" in su,
 una giornata tutta gialla lasciava la mappa muta. I rettangoli restano come hit-area invisibili
 per tooltip e selezione.
+
+**Niente zone dove nessun modello vede il temporale.** Il diametro viene dall'ambiente (SHIP) ed è
+condizionale — "se si formasse un temporale" — ma il colore non lo dice, e il colore è ciò che
+allarma: mezza regione dipinta 2-4 cm con probabilità **0/3** si legge come una previsione di
+grandine, e ci rendeva gli unici a darla. Con probabilità nota e nulla la zona non si disegna, e
+sotto la mappa compare la riga che spiega perché — una mappa vuota senza spiegazione sembra rotta.
+Attenzione alla distinzione: se l'accordo fra modelli **non è arrivato** (è una chiamata a parte,
+che può fallire) `prob` è `null` e la zona si disegna. "Non lo so" non è "zero".
 
 **Come si ottengono le macchie**: i contorni non seguono più i lati delle celle. Il campo dei
 49 punti viene interpolato su una maglia 12 volte più fitta per lato (73×73) e i poligoni escono

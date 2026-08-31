@@ -266,6 +266,15 @@ export function buildZones(cells, step, spec) {
         placed.push(label.at)
       }
       const prob = probOf(inside)
+      /* Grandine: se NESSUN modello prevede il temporale, la zona non si
+         disegna affatto.
+         Il diametro viene dall'ambiente (SHIP) ed è condizionale — "se si
+         formasse un temporale" — ma il colore non lo dice, e il colore è ciò
+         che allarma: mezza regione dipinta 2-4 cm in una giornata con 0/3
+         si legge come una previsione di grandine, e infatti eravamo gli unici
+         a darla. Con `prob` assente (l'accordo è una chiamata a parte, che può
+         fallire) si disegna: "non lo so" non è "zero". */
+      if (labels && prob && prob.frac === 0) continue
       zones.push({
         level,
         prob,

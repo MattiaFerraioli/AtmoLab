@@ -103,6 +103,13 @@ function RadarLayer({ url, opacity }) {
       opacity: 0,
       zIndex: 350,
       attribution: RADAR_ATTRIB,
+      /* `screen`: il nero non contribuisce, quindi spariscono i pixel di
+         non-dato — copertura radar e clutter — che il server disegna in nero.
+         Sulla mappa quasi nera della DPC non si notano; sopra il nostro
+         riempimento arancione diventavano macchioline scure che sembravano
+         pioggia. Gli echi veri, che sono verdi/giallo/rossi nella loro
+         palette, restano visibili e non scuriscono mai quello che c'è sotto. */
+      className: 'radar-screen',
       /* Il radar è pubblicato solo dallo zoom 5 al 7: oltre, S3 risponde 403
          con un XML e Chrome lo blocca (ERR_BLOCKED_BY_ORB), quindi niente
          tile e nessun errore visibile. Con questi limiti Leaflet ingrandisce

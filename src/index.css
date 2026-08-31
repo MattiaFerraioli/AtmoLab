@@ -247,3 +247,10 @@ body::before {
   background-size: 200% 100%;
   animation: shimmer 1.2s linear infinite;
 }
+
+/* Strato radar: fusione "screen" così il nero del non-dato non dipinge nulla.
+   Vedi il commento in HailMap.jsx — senza, i pixel di copertura e clutter
+   comparivano come macchie scure sopra le zone colorate. */
+.radar-screen {
+  mix-blend-mode: screen;
+}

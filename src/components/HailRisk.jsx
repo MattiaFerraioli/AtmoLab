@@ -189,6 +189,14 @@ export default function HailRisk({
   const worstColor = SEVERITY_COLORS[worstSeverity]
   const quiet = worstSeverity === 0
   const peakRisk = Math.max(...focusSeries.map((p) => hazard.hourly.pick(p) ?? 0), 0)
+  /* Grandine con probabilità nota e nulla su TUTTE le celle: le zone non
+     vengono disegnate (vedi `buildZones`), quindi va detto perché. Se l'accordo
+     fra modelli non è arrivato, `prob` è null e non si conclude niente. */
+  const noneForecast =
+    hazard.id === 'hail' &&
+    Boolean(hazardCells?.length) &&
+    hazardCells.every((c) => c.prob === 0) &&
+    !quiet
 
   return (
     <Card>
@@ -325,6 +333,16 @@ export default function HailRisk({
             hazard={hazard}
             onSelectCell={setSelected}
           />
+          {/* Con zero modelli su tre la mappa non evidenzia niente, di
+              proposito: senza una riga che lo dica sembrerebbe rotta. */}
+          {noneForecast && (
+            <div className="mt-2.5 text-[12px] text-ink-muted">
+              Nessuno dei {AGREEMENT_COUNT} modelli prevede temporali{' '}
+              {dayOffset === 0 ? 'per il resto di oggi' : 'in questo giorno'}: nessuna area
+              evidenziata. L&apos;ambiente sarebbe da {worst?.metric.badge}, se un temporale si
+              formasse.
+            </div>
+          )}
           <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-ink-sec">
             <span className="text-ink-muted">{zoneSpecOf(hazard).legendTitle}:</span>
             {(zoneSpecOf(hazard).labels ?? SEVERITY_LABELS.slice(1)).map((label, i) => (
