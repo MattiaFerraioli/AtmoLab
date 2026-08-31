@@ -100,8 +100,8 @@ export const HAZARDS = [
         value: peak.value,
         at: peak.at,
         badge: peak.value ? `${Math.round(peak.value / 5) * 5} km/h` : '—',
-        detail: convective ? 'nel temporale' : 'vento non temporalesco',
-        note: convective ? 'raffica da downburst' : 'raffica di gradiente, non da temporale',
+        detail: convective ? 'Nel temporale' : 'Vento non temporalesco',
+        note: convective ? 'Raffica da downburst' : 'Raffica di gradiente, non da temporale',
       }
     },
     quietText: 'Nessuna raffica rilevante',
@@ -130,8 +130,8 @@ export const HAZARDS = [
         value: total,
         at,
         badge: total >= 0.5 ? `${nf(total, total >= 10 ? 0 : 1)} mm` : '—',
-        detail: peakRate >= 1 ? `punta ${nf(peakRate, 1)} mm/h` : 'nessun rovescio intenso',
-        note: peakRate >= 30 ? 'intensità da nubifragio' : peakRate >= 15 ? 'rovescio intenso' : 'pioggia ordinaria',
+        detail: peakRate >= 1 ? `Punta ${nf(peakRate, 1)} mm/h` : 'Nessun rovescio intenso',
+        note: peakRate >= 30 ? 'Intensità da nubifragio' : peakRate >= 15 ? 'Rovescio intenso' : 'Pioggia ordinaria',
       }
     },
     quietText: 'Accumuli irrilevanti',

@@ -249,7 +249,11 @@ export default function HailRisk({
       {narrative && (
         <div className="border-b border-hair p-4">
           <div className="mb-1 text-[11px] uppercase tracking-[0.06em] text-ink-muted">In sintesi</div>
-          <p className="max-w-[75ch] text-[13.5px] leading-relaxed text-ink-sec">
+          {/* Nessun tetto alla misura: `max-w-[75ch]` mandava a capo a metà
+              riquadro con mezzo schermo vuoto a destra. Non serve nemmeno un
+              limite di sicurezza, perché la pagina è già larga al massimo
+              1180 px, quindi la riga non può diventare illeggibile. */}
+          <p className="text-[13.5px] leading-relaxed text-ink-sec">
             {narrative.sentences.join(' ')}
           </p>
         </div>
@@ -288,7 +292,7 @@ export default function HailRisk({
         {hazard.id === 'hail' ? (
           <Tile
             k="Probabilità di temporali"
-            sub={worst?.prob != null ? fractionText(worst.prob) : 'accordo fra modelli non disponibile'}
+            sub={worst?.prob != null ? fractionText(worst.prob) : 'Accordo fra modelli non disponibile'}
           >
             <span className="text-[17px]">
               {worst?.prob != null ? fractionLabel(worst.prob) : '–'}
@@ -317,10 +321,10 @@ export default function HailRisk({
           k="Quando"
           sub={
             quiet
-              ? 'nessun picco significativo'
+              ? 'Nessun picco significativo'
               : worst?.cape != null
                 ? `Energia ${capeBand(worst.cape)} · CAPE ${nf(worst.cape, 0)} J/kg`
-                : 'ora del picco nell\u2019area'
+                : 'Ora del picco nell\u2019area'
           }
         >
           <span className="text-[17px]">{worst?.metric.at && !quiet ? fmtDayHour(worst.metric.at) : '–'}</span>
