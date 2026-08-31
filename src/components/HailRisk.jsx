@@ -65,6 +65,14 @@ function RiskTooltip({ active, payload, label, palette, hazard }) {
           ? `${hazard.hourly.label} ${hailSize(p.ship).label}`
           : `${hazard.hourly.label} ${nf(value ?? 0, hazard.hourly.dec)} ${hazard.hourly.unit}`}
       </div>
+      {/* Ora mascherata: la barra è a zero perché nessun modello prevede il
+          temporale, ma l'ambiente va detto — senza, il tooltip smentirebbe
+          la tile "In caso di convezione" del riepilogo. */}
+      {p.shipAmbiente != null && p.shipAmbiente > 0.05 && (
+        <div className="text-ink-sec">
+          Nessun modello prevede il temporale · ambiente da {hailSize(p.shipAmbiente).label}
+        </div>
+      )}
       {p.cape != null && (
         <div className="tnum text-ink-sec">
           CAPE {nf(p.cape, 0)} J/kg ({capeBand(p.cape)})
@@ -193,7 +201,24 @@ export default function HailRisk({
   }, [hazardCells, location.latitude, location.longitude])
   const focus = selected ?? home ?? worst
 
-  const focusSeries = useMemo(() => focus?.series ?? [], [focus])
+  /**
+   * Serie del grafico, con la stessa maschera di mappa e lista: nelle ore in
+   * cui NESSUN modello prevede il temporale la barra della grandine va a
+   * zero — il diametro è condizionale, e un grafico pieno con 0/3 raccontava
+   * una grandinata che nessuno prevede. La barra si azzera ma resta, così
+   * l'asse orario e la forma della giornata rimangono leggibili; il valore
+   * d'ambiente sopravvive in `shipAmbiente` per il tooltip, che deve poter
+   * dire "l'ambiente ci sarebbe" senza contraddire la barra.
+   * Accordo assente (null) = "non lo so": non si maschera. Vento e pioggia
+   * sono output diretti del modello e non si toccano.
+   */
+  const focusSeries = useMemo(() => {
+    const serie = focus?.series ?? []
+    if (hazard.id !== 'hail' || !focus?.probAt) return serie
+    return serie.map((p) =>
+      focus.probAt.get(p.t) === 0 ? { ...p, ship: 0, shipAmbiente: p.ship } : p,
+    )
+  }, [focus, hazard.id])
   const worstName = useCellName(worst?.gridLat, worst?.gridLon)
 
   if (error) return <Message tone="error">Rischio grandine non disponibile: {error}</Message>
@@ -524,7 +549,8 @@ export default function HailRisk({
             <Bar dataKey={hazard.hourly.dataKey} radius={[3, 3, 0, 0]} isAnimationActive={false}>
               {focusSeries.map((p) => {
                 const frazione = focus?.probAt?.get(p.t) ?? (hazard.id === 'rain' ? focus?.prob : null)
-                const etichetta = fractionLabel(frazione)
+                const alta = (hazard.hourly.pick(p) ?? 0) > 0
+                const etichetta = alta ? fractionLabel(frazione) : null
                 return (
                   <Cell
                     key={p.t}
