@@ -79,16 +79,23 @@ export function cellFraction(agreement, hazardId, hoursFilter, targetDay) {
 }
 
 /**
- * Etichetta di probabilità dalla frazione: tre gradini, nient'altro.
- * Lo zero era una quarta voce a sé ("solo ambiente"), ma si leggeva come una
- * categoria misteriosa invece dell'estremo basso della stessa scala. Ora 0/3
- * è "bassa", e accanto resta sempre scritto il conteggio: chi vuole sapere se
- * è 0 o 1 modello su 3 lo legge lì, senza gergo.
+ * Etichetta di probabilità dalla frazione: un gradino per modello.
+ *
+ * Con tre modelli: uno solo è **bassa**, due sono **media**, tutti e tre
+ * **alta**. Prima la soglia della media era `>= 1/3`, quindi un modello su tre
+ * finiva in "media" e "bassa" si otteneva solo con zero — che da quando le
+ * zone senza previsione non vengono disegnate non compare mai: la legenda
+ * mostrava un gradino irraggiungibile, e un singolo modello veniva presentato
+ * come probabilità intermedia.
+ *
+ * Lo zero resta dentro "bassa" per i pochi punti in cui può ancora apparire
+ * (vento e pioggia, che non mascherano il campo); accanto c'è sempre il
+ * conteggio esatto, quindi chi vuole distinguere 0 da 1 lo legge lì.
  */
 export function fractionLabel(frac) {
   if (frac == null) return null
   if (frac > 2 / 3) return 'alta'
-  if (frac >= 1 / 3) return 'media'
+  if (frac > 1 / 3) return 'media'
   return 'bassa'
 }
 

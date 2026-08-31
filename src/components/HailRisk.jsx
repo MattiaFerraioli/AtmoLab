@@ -355,7 +355,7 @@ export default function HailRisk({
               <span className="inline-flex items-center gap-3 text-ink-muted">
                 <span
                   className="text-ink-muted"
-                  title={`Accordo fra ${AGREEMENT_COUNT} modelli (ECMWF, GFS, ICON): bassa = nessuno o uno prevede il temporale, media = due, alta = tutti. Il conteggio esatto è scritto su ogni zona.`}
+                  title={`Accordo fra ${AGREEMENT_COUNT} modelli (ECMWF, GFS, ICON): bassa = uno prevede il temporale, media = due, alta = tutti e tre. Il conteggio esatto è scritto su ogni zona.`}
                 >
                   Probabilità:
                 </span>

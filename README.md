@@ -484,9 +484,11 @@ SHIP × un peso d'innesco letto da un solo run: è una **frequenza reale** — q
 (ECMWF, GFS, ICON, `lib/agreement.js`) prevedono l'evento nella cella. Evento: convezione per la
 grandine (codice temporalesco, o pioggia ≥ 1 mm/h con CAPE ≥ 500), raffiche ≥ 60 km/h per il
 vento, accumulo giornaliero ≥ 10 mm per la pioggia. Soglie: bassa = un modello,
-media = due, alta = tutti; **zero modelli sta dentro "bassa"** — aveva una voce sua ("solo
-ambiente") ma si leggeva come una quarta categoria misteriosa invece dell'estremo basso della
-stessa scala, e il conteggio scritto di fianco ("0/3") dice già esattamente quanto vale. I
+media = due, alta = tutti e tre — **un gradino per modello**. La soglia della media era `>= 1/3`,
+quindi un singolo modello finiva in "media" e "bassa" si raggiungeva solo con zero: da quando le
+zone senza previsione non si disegnano, quel gradino era irraggiungibile e la legenda mostrava una
+voce impossibile. Lo zero resta dentro "bassa" dove può ancora comparire (vento e pioggia non
+mascherano il campo), e il conteggio scritto di fianco dice sempre quanto vale davvero. I
 **valori** (diametro, raffica, accumulo, geometria delle zone)
 restano dal modello a più alta risoluzione: mai mediare gli ingredienti fra modelli — la media
 cancella proprio le code che si cercano. Costo: +4 variabili × 3 modelli sulla stessa griglia.
