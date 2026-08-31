@@ -16,123 +16,186 @@ const TERZI = [
   {
     nome: 'Open-Meteo',
     url: 'https://open-meteo.com/en/terms',
-    cosa: 'previsioni, qualità dell’aria, ricerca delle località, ensemble, dati osservati e stato delle corse dei modelli',
+    cosa: 'fornitura dei dati previsionali, qualità dell’aria, ricerca geografica, dati osservati e stato dei modelli meteo',
   },
   {
     nome: 'BigDataCloud',
     url: 'https://www.bigdatacloud.com/privacy-and-cookie-policy',
-    cosa: 'nome del luogo a partire dalle coordinate, solo se usi la localizzazione',
+    cosa: 'servizio di geocodifica inversa per il rilevamento del nome della località, utilizzato esclusivamente previa attivazione della localizzazione',
   },
   {
-    nome: 'OpenFreeMap e OpenMapTiles',
+    nome: 'OpenFreeMap / OpenMapTiles',
     url: 'https://openfreemap.org/',
-    cosa: 'sfondo cartografico delle mappe, su dati OpenStreetMap',
+    cosa: 'rendering della cartografia di base, su dati OpenStreetMap',
   },
   {
     nome: 'Dipartimento della Protezione Civile',
     url: 'https://www.protezionecivile.gov.it/it/privacy/',
-    cosa: 'bollettino di allerta, mappe nazionali e tile del radar (queste ultime da una cache su Amazon S3)',
+    cosa: 'download dei bollettini nazionali di allerta e tile radar, queste ultime erogate tramite infrastruttura di caching su Amazon S3',
   },
   {
     nome: 'GitHub',
     url: 'https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement',
-    cosa: 'ospita i dati aperti della Protezione Civile; contattato solo quando l’estratto pubblicato non è disponibile',
+    cosa: 'host della risorsa dati aperti della Protezione Civile, consultato in via secondaria ove l’estratto primario risulti indisponibile',
   },
   {
     nome: 'Supabase',
     url: 'https://supabase.com/privacy',
-    cosa: 'conserva l’estratto delle allerte che l’app scarica una volta al giorno',
+    cosa: 'servizio per il recupero dell’estratto giornaliero dei bollettini di allerta',
   },
   {
     nome: 'Cloudflare',
     url: 'https://www.cloudflare.com/privacypolicy/',
-    cosa: 'ospita il sito e ne serve i file',
+    cosa: 'servizio di Content Delivery Network (CDN) ed hosting dei file statici del sito web',
   },
 ]
 
-const MEMORIA = [
-  ['località scelta, preferiti e ricerche recenti', 'per ritrovarle alla visita successiva'],
-  ['tema chiaro o scuro, modelli e variabile selezionati, pericolo e giorno della sezione temporali', 'per non doverli reimpostare ogni volta'],
-  ['ultimo bollettino di allerta scaricato', 'per non riscaricarlo a ogni apertura'],
-  ['griglie di calcolo dei temporali, in un database del browser chiamato «atmolab»', 'per non richiedere gli stessi dati due volte e non esaurire il limite giornaliero'],
+const NON_FACCIAMO = [
+  'creazione di account utente o procedure di registrazione',
+  'invio di newsletter o comunicazioni commerciali',
+  'impiego di cookie di profilazione o strumenti di analisi e tracciamento (analytics)',
+  'tracciamento della cronologia di ricerca',
+  'cessione o vendita di dati a soggetti terzi',
 ]
+
+const ARCHIVIAZIONE = [
+  [
+    'Preferenze di navigazione e ricerca',
+    'località selezionate, elenco dei preferiti e cronologia delle ricerche recenti',
+  ],
+  [
+    'Impostazioni di configurazione',
+    'tema dell’interfaccia (chiaro/scuro), modelli meteo, variabili selezionate, parametri relativi alle allerte e ai temporali',
+  ],
+  [
+    'Dati tecnici di cache',
+    'l’ultimo bollettino di allerta scaricato e le griglie di calcolo per la sezione temporali, memorizzate nel database locale del browser denominato «atmolab», al fine di ridurre le richieste di rete ed evitare il superamento delle soglie di traffico consentite',
+  ],
+]
+
+/** Titolo di sezione numerato. */
+function Sezione({ n, titolo, children }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <h2 className="text-[15px] font-bold text-ink">
+        {n}. {titolo}
+      </h2>
+      {children}
+    </section>
+  )
+}
 
 export default function PrivacyContent() {
   return (
     <div className="flex flex-col gap-5 text-[13.5px] leading-relaxed text-ink-sec">
       <p>
-        AtmoLab è un sito senza registrazione e senza backend proprio: le pagine sono file statici e
-        tutto il resto avviene nel browser. <strong className="text-ink">Non raccogliamo, non
-        conserviamo e non trasmettiamo a nessuno dati personali</strong>, perché non c'è nessun
-        server nostro che possa riceverli.
+        AtmoLab è un’applicazione web statica gestita interamente lato client (client-side). Il
+        servizio non dispone di un server backend proprietario, né richiede alcuna procedura di
+        registrazione.{' '}
+        <strong className="text-ink">
+          Nessun dato personale viene raccolto, archiviato o trasmesso a terzi da parte di AtmoLab.
+        </strong>
       </p>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-[15px] font-bold text-ink">Cosa NON facciamo</h2>
+      <Sezione n={1} titolo="Trattamento dei dati personali">
+        <p>
+          AtmoLab si astiene da qualsiasi attività di profilazione e tracciamento. In particolare,
+          il servizio non effettua:
+        </p>
         <ul className="ml-4 list-disc space-y-1">
-          <li>nessun account, nessuna registrazione, nessuna newsletter</li>
-          <li>nessuna analitica, nessun tracciamento, nessun cookie di profilazione</li>
-          <li>nessuna pubblicità e nessun dato ceduto o venduto</li>
-          <li>nessuno storico di ciò che cerchi conservato da noi</li>
+          {NON_FACCIAMO.map((v) => (
+            <li key={v}>{v}</li>
+          ))}
         </ul>
-      </section>
+      </Sezione>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-[15px] font-bold text-ink">La tua posizione</h2>
+      <Sezione n={2} titolo="Dati di geolocalizzazione">
         <p>
-          È <strong className="text-ink">facoltativa</strong> e viene chiesta solo quando premi il
-          pulsante di localizzazione o accetti l'invito che appare alla prima visita: non parte
-          nulla da sola. Le coordinate servono a scegliere la località e a trovarne il nome, restano
-          sul dispositivo e non vengono inviate a noi. Puoi revocare il permesso dalle impostazioni
-          del browser in qualunque momento, e l'app continua a funzionare cercando la città a mano.
+          L’accesso ai dati relativi alla posizione geografica dell’utente è{' '}
+          <strong className="text-ink">esclusivamente facoltativo</strong>. La richiesta di
+          localizzazione viene attivata soltanto previo consenso esplicito dell’utente, tramite
+          l’apposito pulsante o l’invito mostrato al primo accesso al servizio.
         </p>
-      </section>
+        <p>
+          Le coordinate geografiche acquisite sono utilizzate al solo scopo di identificare la
+          località corrente e non vengono in alcun caso trasmesse ai sistemi di AtmoLab. L’utente
+          può revocare le autorizzazioni alla localizzazione in qualsiasi momento tramite le
+          impostazioni del proprio browser; il servizio rimarrà pienamente fruibile mediante la
+          ricerca manuale dei luoghi.
+        </p>
+      </Sezione>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-[15px] font-bold text-ink">Cosa resta sul tuo dispositivo</h2>
+      <Sezione n={3} titolo="Archiviazione locale (Local Storage e IndexedDB)">
         <p>
-          Alcune preferenze e dati tecnici vengono salvati nella memoria locale del browser. Non
-          escono dal dispositivo, non servono a riconoscerti e si cancellano svuotando i dati del
-          sito.
+          Per ottimizzare l’esperienza d’uso ed evitare il download ridondante di informazioni, il
+          servizio memorizza alcuni dati tecnici ed elementi di configurazione direttamente
+          all’interno della memoria locale del browser dell’utente (Local Storage e IndexedDB). Tali
+          dati non consentono l’identificazione dell’utente e non vengono trasmessi esternamente.
         </p>
+        <p>Nello specifico, vengono memorizzati localmente:</p>
         <ul className="ml-4 list-disc space-y-1">
-          {MEMORIA.map(([cosa, perche]) => (
-            <li key={cosa}>
-              {cosa} — <span className="text-ink-muted">{perche}</span>
+          {ARCHIVIAZIONE.map(([voce, dettaglio]) => (
+            <li key={voce}>
+              <strong className="text-ink">{voce}</strong>: {dettaglio}.
             </li>
           ))}
         </ul>
-      </section>
-
-      <section className="flex flex-col gap-2">
-        <h2 className="text-[15px] font-bold text-ink">Servizi contattati dal tuo browser</h2>
         <p>
-          I dati meteo e le mappe arrivano direttamente dai loro fornitori: è il tuo browser a
-          chiederli, non un nostro server a fare da tramite. Questo significa che{' '}
-          <strong className="text-ink">quei servizi vedono il tuo indirizzo IP</strong> e i dati
-          tecnici della richiesta, come farebbe qualunque sito che visiti. Ognuno applica la propria
-          informativa.
+          I dati locali possono essere rimossi in qualsiasi momento dall’utente tramite la pulizia
+          della cronologia o dei dati di navigazione del browser.
+        </p>
+      </Sezione>
+
+      <Sezione n={4} titolo="Servizi e connessioni di terze parti">
+        <p>
+          L’architettura del sito prevede che le richieste relative ai dati meteorologici, alla
+          cartografia e alle allerte vengano effettuate direttamente dal browser dell’utente verso i
+          server dei rispettivi fornitori, senza l’intermediazione di un backend di AtmoLab.
+        </p>
+        <p>
+          Di conseguenza,{' '}
+          <strong className="text-ink">
+            tali fornitori terzi possono visualizzare l’indirizzo IP dell’utente
+          </strong>{' '}
+          e i metadati tecnici della connessione. Per tali trattamenti si rinvia alle rispettive
+          informative sulla privacy:
         </p>
         <ul className="ml-4 list-disc space-y-1">
           {TERZI.map((t) => (
             <li key={t.nome}>
               <a href={t.url} target="_blank" rel="noreferrer" className="text-accent">
                 {t.nome}
-              </a>{' '}
-              — {t.cosa}
+              </a>
+              : {t.cosa}.
             </li>
           ))}
         </ul>
-      </section>
+      </Sezione>
 
-      <section className="flex flex-col gap-2">
-        <h2 className="text-[15px] font-bold text-ink">Fonti e licenze</h2>
+      <Sezione n={5} titolo="Fonti dei dati e licenze">
         <p>
-          Dati meteo Open-Meteo (CC-BY 4.0), allerte e radar del Dipartimento della Protezione
-          Civile, cartografia OpenFreeMap e OpenMapTiles su dati OpenStreetMap. Le attribuzioni
-          complete sono in fondo alla pagina e sotto le mappe.
+          I contenuti informativi e cartografici integrati nell’applicazione provengono dalle
+          seguenti fonti ufficiali:
         </p>
-      </section>
+        <ul className="ml-4 list-disc space-y-1">
+          <li>
+            <strong className="text-ink">Dati meteorologici</strong>: Open-Meteo, distribuiti con
+            licenza CC-BY 4.0.
+          </li>
+          <li>
+            <strong className="text-ink">Allerte e dati radar</strong>: Dipartimento della
+            Protezione Civile.
+          </li>
+          <li>
+            <strong className="text-ink">Mappe e cartografia</strong>: OpenFreeMap e OpenMapTiles,
+            su base dati OpenStreetMap.
+          </li>
+        </ul>
+        <p>
+          Le attribuzioni complete e le specifiche sulle licenze sono riportate nel piè di pagina
+          della piattaforma e nelle relative note cartografiche.
+        </p>
+      </Sezione>
     </div>
   )
 }

@@ -328,7 +328,10 @@ export default function HailRisk({
 
         <Tile
           k="Raffiche nei temporali"
-          sub={gustMax ? 'Previste dai modelli nelle ore convettive' : 'Nessuna convezione prevista'}
+          /* Corta di proposito: la tile taglia il testo con `truncate`, e
+             "Previste dai modelli nelle ore convettive" arrivava a schermo
+             come "...nelle ore c…", cioè illeggibile. */
+          sub={gustMax ? 'Solo nelle ore convettive' : 'Nessuna convezione prevista'}
         >
           {gustMax ? (
             <>
@@ -413,8 +416,9 @@ export default function HailRisk({
           <div className="mb-2 text-[13px] font-semibold text-ink-sec">Celle più esposte</div>
           {quiet ? (
             <Message>
-              Nessuna cella con grandine attesa {dayOffset === 0 ? 'per il resto di oggi' : 'in questo giorno'}:
-              l&apos;ambiente non è favorevole.
+              {/* Il pericolo lo dichiara `quietText`: prima la frase diceva
+                  "grandine" anche mentre si guardava vento o pioggia. */}
+              {hazard.quietText} {dayOffset === 0 ? 'per il resto di oggi' : 'in questo giorno'}.
             </Message>
           ) : (
             <ol className="flex flex-col gap-1.5">
@@ -522,12 +526,13 @@ export default function HailRisk({
                     key={p.t}
                     fill={SEVERITY_COLORS[severityOf(hazard.hourly.pick(p), hazard.hourly.bands)]}
                     stroke={etichetta ? palette.ink : undefined}
-                    /* Abbastanza marcato da leggersi anche sulle barre basse,
-                       dove un contorno tenue sparisce del tutto. */
-                    strokeOpacity={etichetta ? 0.75 : 0}
-                    strokeWidth={etichetta ? 1.4 : 0}
+                    /* Pieno e spesso: a opacità ridotta il tratto si perdeva
+                       nel colore della barra, che è la cosa che deve leggersi
+                       a colpo d'occhio insieme al riempimento. */
+                    strokeOpacity={etichetta ? 1 : 0}
+                    strokeWidth={etichetta ? 2 : 0}
                     strokeDasharray={
-                      etichetta === 'bassa' ? '1 2.5' : etichetta === 'media' ? '4 2.5' : undefined
+                      etichetta === 'bassa' ? '2 3' : etichetta === 'media' ? '6 3' : undefined
                     }
                   />
                 )
