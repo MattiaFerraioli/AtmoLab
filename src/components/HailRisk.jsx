@@ -134,13 +134,34 @@ export default function HailRisk({
     return enriched.map((c, k) => {
       const valid = new Set(c.series.map((p) => p.t))
       const frac = cellFraction(agreement[k], hazardId, (t) => valid.has(t), targetDay)
-      return { ...c, prob: frac }
+      /* Anche ora per ora, non solo il picco: serve a contornare le barre del
+         grafico con lo stesso tratto delle zone. La pioggia ha l'accordo per
+         giorno, non per ora, quindi vale lo stesso valore su tutta la
+         giornata. */
+      const key = hazardId === 'wind' ? 'gust' : 'conv'
+      const perOra =
+        hazardId === 'rain'
+          ? null
+          : new Map(agreement[k].series.filter((p) => valid.has(p.t)).map((p) => [p.t, p[key]]))
+      return { ...c, prob: frac, probAt: perOra }
     })
   }, [cells, hazardId, agreement, targetDay])
-  const ranked = useMemo(
-    () => [...(hazardCells ?? [])].sort((a, b) => b.metric.value - a.metric.value),
-    [hazardCells],
-  )
+  /**
+   * Classifica delle celle, con la STESSA regola della mappa: fuori quelle in
+   * cui nessun modello prevede il temporale.
+   *
+   * Senza il filtro la lista contraddiceva la mappa — in cima celle da 2-4 cm
+   * con 0/3, cioè proprio quelle che le macchie non disegnano più. Se però
+   * NESSUNA cella ha una previsione si torna all'elenco completo: il riepilogo
+   * è dichiaratamente condizionale ("in caso di convezione") e lasciarlo vuoto
+   * nasconderebbe l'unica informazione disponibile.
+   */
+  const ranked = useMemo(() => {
+    const tutte = [...(hazardCells ?? [])].sort((a, b) => b.metric.value - a.metric.value)
+    if (hazard.id !== 'hail') return tutte
+    const previste = tutte.filter((c) => c.prob !== 0)
+    return previste.length ? previste : tutte
+  }, [hazardCells, hazard.id])
   const steering = useMemo(() => (cells?.length ? steeringOf(cells) : null), [cells])
   const narrative = useMemo(
     () => (cells?.length ? buildNarrative(cells, location) : null),
@@ -486,10 +507,31 @@ export default function HailRisk({
               cursor={{ fill: palette.ink, fillOpacity: 0.06 }}
               content={<RiskTooltip palette={palette} hazard={hazard} />}
             />
-            <Bar dataKey={hazard.id === 'hail' ? 'risk' : hazard.id === 'wind' ? 'gust' : 'precip'} radius={[3, 3, 0, 0]} isAnimationActive={false}>
-              {focusSeries.map((p) => (
-                <Cell key={p.t} fill={SEVERITY_COLORS[severityOf(hazard.hourly.pick(p), hazard.hourly.bands)]} />
-              ))}
+            {/* Il contorno delle barre porta la probabilità con lo stesso
+                tratto delle zone sulla mappa: puntinato bassa, tratteggiato
+                media, continuo alta. Così l'ora per ora non racconta solo
+                quanto sarebbe grosso il chicco, ma anche quanto è probabile
+                che quell'ora abbia un temporale. Senza accordo, nessun
+                contorno: non si inventa un tratto. */}
+            <Bar dataKey={hazard.hourly.dataKey} radius={[3, 3, 0, 0]} isAnimationActive={false}>
+              {focusSeries.map((p) => {
+                const frazione = focus?.probAt?.get(p.t) ?? (hazard.id === 'rain' ? focus?.prob : null)
+                const etichetta = fractionLabel(frazione)
+                return (
+                  <Cell
+                    key={p.t}
+                    fill={SEVERITY_COLORS[severityOf(hazard.hourly.pick(p), hazard.hourly.bands)]}
+                    stroke={etichetta ? palette.ink : undefined}
+                    /* Abbastanza marcato da leggersi anche sulle barre basse,
+                       dove un contorno tenue sparisce del tutto. */
+                    strokeOpacity={etichetta ? 0.75 : 0}
+                    strokeWidth={etichetta ? 1.4 : 0}
+                    strokeDasharray={
+                      etichetta === 'bassa' ? '1 2.5' : etichetta === 'media' ? '4 2.5' : undefined
+                    }
+                  />
+                )
+              })}
             </Bar>
           </BarChart>
         </ResponsiveContainer>

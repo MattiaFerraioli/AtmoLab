@@ -433,6 +433,19 @@ massimo che contiene, a partire dal livello "Basso": con le etichette solo da "m
 una giornata tutta gialla lasciava la mappa muta. I rettangoli restano come hit-area invisibili
 per tooltip e selezione.
 
+**La stessa regola vale per la lista e per il grafico.** Le "celle più esposte" escludono quelle
+senza previsione, altrimenti la lista contraddiceva la mappa mettendo in cima celle da 2-4 cm con
+0/3 — proprio quelle che le macchie non disegnano. Se nessuna cella ha una previsione si torna
+all'elenco completo: il riepilogo è dichiaratamente condizionale e lasciarlo vuoto nasconderebbe
+l'unica informazione disponibile. Le barre del grafico orario portano il **contorno col tratto
+della probabilità di quell'ora** — puntinato, tratteggiato, continuo — così l'ora per ora dice
+anche quanto è probabile, non solo quanto sarebbe grosso il chicco.
+
+Nota per chi tocca il grafico: `hourly.dataKey` e `hourly.pick` in `hazards.js` devono puntare allo
+**stesso campo**. Le barre leggono il primo, colori e tooltip il secondo, e quando divergono il
+grafico racconta due cose diverse — è successo passando da `risk` a `ship`, con le altezze rimaste
+sul vecchio campo.
+
 **Niente zone dove nessun modello vede il temporale.** Il diametro viene dall'ambiente (SHIP) ed è
 condizionale — "se si formasse un temporale" — ma il colore non lo dice, e il colore è ciò che
 allarma: mezza regione dipinta 2-4 cm con probabilità **0/3** si legge come una previsione di
