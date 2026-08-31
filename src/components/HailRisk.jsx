@@ -253,7 +253,7 @@ export default function HailRisk({
           </div>
           <div className="mt-1 truncate text-[12.5px] text-ink-sec">
             {hazard.id === 'hail'
-              ? (quiet ? 'Ambiente non favorevole' : 'Se si forma il temporale')
+              ? (quiet ? 'Ambiente non favorevole' : 'In caso di convezione')
               : worst?.prob != null
                 ? `Previsto da ${fractionText(worst.prob)}`
                 : (worst?.metric.detail ?? '–')}
@@ -360,7 +360,11 @@ export default function HailRisk({
                   Probabilità:
                 </span>
                 {[
-                  ['Bassa', '2 6'],
+                  /* Il puntinato deve leggersi come punti, non come un
+                     tratteggio corto: con "2 6" si distingueva a fatica dal
+                     medio. Stessi rapporti del tratto sulla mappa, scalati
+                     per questi 24 px di anteprima. */
+                  ['Bassa', '1 5'],
                   ['Media', '7 5'],
                   ['Alta', null],
                 ].map(([label, dash]) => (

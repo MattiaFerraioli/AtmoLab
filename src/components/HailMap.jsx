@@ -335,8 +335,10 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                 color: SEVERITY_COLORS[z.level],
                 weight: 2,
                 opacity: 0.9,
+                /* Punti veri per la probabilità bassa: "3 9" restava un
+                   tratteggio corto e si confondeva col medio. */
                 dashArray:
-                  z.prob?.label === 'bassa' ? '3 9' : z.prob?.label === 'media' ? '10 7' : null,
+                  z.prob?.label === 'bassa' ? '1 7' : z.prob?.label === 'media' ? '10 7' : null,
                 fill: false,
               }}
             />
