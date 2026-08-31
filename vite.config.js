@@ -3,7 +3,13 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+/* Percorso relativo a questo file. NON `import.meta.dirname`: esiste solo da
+   Node 20.11, e su una versione precedente sarebbe `undefined` — `resolve()`
+   riceverebbe undefined e la build morirebbe, in un ambiente che non è quello
+   dove la provi. Questa forma funziona da Node 18. */
+const qui = (file) => fileURLToPath(new URL(file, import.meta.url))
 
 export default defineConfig({
   /* Seconda pagina statica: la privacy ha un URL vero e citabile senza tirare
@@ -12,10 +18,7 @@ export default defineConfig({
      per chi arriva solo a leggerla. */
   build: {
     rollupOptions: {
-      input: {
-        main: resolve(import.meta.dirname, 'index.html'),
-        privacy: resolve(import.meta.dirname, 'privacy.html'),
-      },
+      input: { main: qui('index.html'), privacy: qui('privacy.html') },
     },
   },
   // Il worker di MapLibre è ESM: senza questo Vite lo impacchetta come IIFE.
