@@ -117,7 +117,7 @@ export function DpcAlertBand({ alert }) {
           <button
             type="button"
             title="Mappa nazionale delle allerte"
-            aria-label="Apri la mappa nazionale delle allerte"
+            aria-label="Aprire la mappa nazionale delle allerte"
             onClick={() => setShowMap(true)}
             className="flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-full text-white/70 transition duration-300 hover:bg-white/15 hover:text-white"
           >

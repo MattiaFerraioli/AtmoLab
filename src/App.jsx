@@ -371,7 +371,7 @@ export default function App() {
         setHailTiles([])
         setHailError(
           /minutely api request limit/i.test(e.message)
-            ? 'quota API al minuto esaurita — riprova fra un minuto'
+            ? 'quota API al minuto esaurita — riprovare fra un minuto'
             : e.message,
         )
         setHailLoading(false)
@@ -489,8 +489,8 @@ export default function App() {
         {locateInvite && (
           <div className="mt-4 flex flex-wrap items-center gap-3 rounded-2xl border border-hair bg-surface/70 px-4 py-3 text-[13px] backdrop-blur-md">
             <span className="min-w-[200px] flex-1 text-ink-sec">
-              Stai vedendo <strong className="text-ink">{DEFAULT_LOCATION.name}</strong>. Vuoi le
-              previsioni per dove sei adesso?
+              È visualizzata <strong className="text-ink">{DEFAULT_LOCATION.name}</strong>. Mostrare le
+              previsioni per la posizione attuale?
             </span>
             <button
               type="button"
@@ -500,7 +500,7 @@ export default function App() {
               }}
               className="cursor-pointer rounded-full bg-accent px-4 py-2 text-[13px] font-semibold text-white transition duration-300 hover:bg-[color-mix(in_srgb,var(--accent)_82%,white)]"
             >
-              Usa la mia posizione
+              Rilevare la posizione
             </button>
             <button
               type="button"
@@ -528,8 +528,8 @@ export default function App() {
         </div>
 
         <Section
-          title="Previsione 14 giorni"
-          hint={selectedDay ? 'Clicca di nuovo il giorno per togliere il filtro' : 'Seleziona un giorno per filtrare'}
+          title="Previsione a 14 giorni"
+          hint={selectedDay ? 'Selezionare di nuovo il giorno per rimuovere il filtro' : 'Selezionare un giorno per filtrare'}
         >
           <DailyStrip forecast={forecast} selectedDay={selectedDay} onSelectDay={setSelectedDay} />
           {selectedDay && (
@@ -572,7 +572,7 @@ export default function App() {
           title="Rischio temporali"
           hint={
             !SHOW_ENSEMBLE_TAB || stormTab === 'previsione'
-              ? 'Grandine, raffiche e accumuli: dove, quando, e con che intensità'
+              ? 'Grandine, raffiche e accumuli: dove, quando e con quale intensità'
               : 'Sperimentale — probabilità dai 31 membri di GFS, incrociata con la previsione'
           }
           action={
@@ -611,7 +611,7 @@ export default function App() {
                 onClick={() => setHailEnabled(true)}
                 className="cursor-pointer rounded-full bg-accent px-5 py-2.5 text-[13.5px] font-semibold text-white transition duration-300 hover:bg-[color-mix(in_srgb,var(--accent)_82%,white)]"
               >
-                Calcola rischio temporali
+                Calcolare il rischio temporali
               </button>
             </Card>
           ) : (
@@ -657,7 +657,7 @@ export default function App() {
           </div>
         </footer>
         {showPrivacy && (
-          <Modal title="Privacy" subtitle="Cosa fa e cosa non fa AtmoLab con i tuoi dati" onClose={() => setShowPrivacy(false)} maxWidth={720}>
+          <Modal title="Privacy" subtitle="Come AtmoLab tratta i dati degli utenti" onClose={() => setShowPrivacy(false)} maxWidth={720}>
             <PrivacyContent />
           </Modal>
         )}

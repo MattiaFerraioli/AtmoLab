@@ -40,7 +40,7 @@ export default function SpreadStats({ times, spread, meta, seriesNames, palette 
   return (
     <div className="grid border-t border-hair sm:grid-cols-2 lg:grid-cols-3">
       <div className="p-4">
-        <div className="text-[11px] uppercase tracking-[0.06em] text-ink-muted">Quanto concordano</div>
+        <div className="text-[11px] uppercase tracking-[0.06em] text-ink-muted">Grado di accordo</div>
         <div className="mt-1">
           <span
             className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] font-semibold"
@@ -51,7 +51,7 @@ export default function SpreadStats({ times, spread, meta, seriesNames, palette 
           </span>
         </div>
         <div className="mt-1 text-[12.5px] leading-snug text-ink-sec">
-          Fra il modello più alto e il più basso corrono in media{' '}
+          Lo scarto medio fra il modello più alto e il più basso è di{' '}
           <strong className="tnum font-semibold">
             {nf(avg, meta.dec)} {meta.unit}
           </strong>
@@ -59,9 +59,9 @@ export default function SpreadStats({ times, spread, meta, seriesNames, palette 
       </div>
 
       <Tile
-        k="Momento peggiore"
+        k="Divergenza massima"
         value={`${nf(max, meta.dec)} ${meta.unit}`}
-        sub={iMax >= 0 ? `Di distanza fra i modelli, ${fmtDayHour(times[iMax])}` : '–'}
+        sub={iMax >= 0 ? `Fra i modelli, ${fmtDayHour(times[iMax])}` : '–'}
       />
 
       <Tile k="Modelli a confronto" value={seriesNames.length} sub={seriesNames.join(', ')} />

@@ -107,14 +107,14 @@ export default function ModelRuns({ runs, coverage, horizons, slots, selected, p
                   {cov?.end ? (
                     <span className={cov.truncated ? 'text-[#ec835a]' : undefined}>
                       {fmtDayHour(cov.end)}
-                      {cov.days != null && ` · ${nf(cov.days, 1)} giorni da adesso`}
+                      {cov.days != null && ` · ${nf(cov.days, 1)} giorni da ora`}
                     </span>
                   ) : horizon ? (
                     `${new Date(horizon.end).toLocaleDateString('it-IT', {
                       weekday: 'short',
                       day: 'numeric',
                       month: 'short',
-                    })} · ${nf(horizon.days, 1)} giorni da adesso`
+                    })} · ${nf(horizon.days, 1)} giorni da ora`
                   ) : (
                     '–'
                   )}

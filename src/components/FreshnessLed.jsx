@@ -18,9 +18,9 @@ export default function FreshnessLed({ updatedAt, loading, error, palette, onRef
   const label = loading
     ? 'Aggiornamento in corso'
     : error
-      ? `Aggiornamento fallito: ${error}`
+      ? `Aggiornamento non riuscito: ${error}`
       : stale
-        ? `Dati fermi da ${Math.round(ageMs / 60000)} min — tocca per aggiornare`
+        ? `Dati non aggiornati da ${Math.round(ageMs / 60000)} min — toccare per aggiornare`
         : `Aggiornato alle ${fmtTime(updatedAt)}`
 
   return (

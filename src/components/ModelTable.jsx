@@ -46,7 +46,7 @@ export default function ModelTable({ rows, series, meta }) {
         </tbody>
       </table>
       <div className="px-3 py-2 text-[12px] text-ink-muted">
-        Valori ogni {STEP} ore, in {meta.unit}. Le celle vuote (–) sono modelli senza dati per questa località o oltre il
+        Valori ogni {STEP} ore, in {meta.unit}. Le celle vuote (–) indicano modelli senza dati per questa località o oltre il
         loro orizzonte di previsione.
       </div>
     </div>

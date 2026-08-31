@@ -40,7 +40,7 @@ const VARS = [
 export const ENSEMBLE_METRICS = [
   { id: 'ship08', label: 'SHIP > 0,8', hint: 'Ambiente da grandine 2–4 cm' },
   { id: 'ship15', label: 'SHIP > 1,5', hint: 'Ambiente da grandine oltre 4 cm' },
-  { id: 'cape500', label: 'CAPE ≥ 500', hint: 'Energia convettiva significativa, sul metro di GFS' },
+  { id: 'cape500', label: 'CAPE ≥ 500', hint: 'Energia convettiva significativa, sulla scala di GFS' },
   { id: 'rain1', label: 'Pioggia ≥ 1 mm/h', hint: 'Precipitazione in atto' },
   { id: 'gust60', label: 'Raffiche ≥ 60 km/h', hint: 'Vento da danni leggeri' },
 ]
@@ -169,10 +169,10 @@ export const fractionStep = (f) => (f >= 0.9 ? 4 : f > 2 / 3 ? 3 : f >= 1 / 3 ? 
 
 const VERDICTS = {
   solid: { label: 'Segnale solido', color: '#30d158', hint: 'Dettaglio e membri concordano' },
-  lone: { label: 'Solo il dettaglio', color: '#f97316', hint: 'I membri non lo vedono: possibile abbaglio della risoluzione' },
-  tepid: { label: 'Membri tiepidi', color: '#eab308', hint: 'Qualche membro concorda, la maggioranza no' },
-  spread: { label: 'Scenario diffuso', color: '#3987e5', hint: 'Membri caldi ma dettaglio quieto: minoritario ma da seguire' },
-  quiet: { label: 'Concordano sul quieto', color: '#8e8e93', hint: 'Nessuna delle due letture vede l\u2019evento' },
+  lone: { label: 'Solo il dettaglio', color: '#f97316', hint: 'I membri non lo rilevano: possibile artefatto della risoluzione' },
+  tepid: { label: 'Segnale parziale', color: '#eab308', hint: 'Solo una minoranza dei membri concorda' },
+  spread: { label: 'Scenario diffuso', color: '#3987e5', hint: 'Membri favorevoli ma dettaglio quieto: minoritario, da monitorare' },
+  quiet: { label: 'Concordano sulla quiete', color: '#8e8e93', hint: 'Nessuna delle due letture rileva l\u2019evento' },
 }
 
 const verdictOf = (strong, frac) => {

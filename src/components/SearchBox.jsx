@@ -95,17 +95,17 @@ export default function SearchBox({ onPick }) {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length && setOpen(true)}
           onKeyDown={onKeyDown}
-          placeholder="Cerca città"
+          placeholder="Ricerca città"
           autoComplete="off"
           spellCheck={false}
-          aria-label="Cerca località"
+          aria-label="Ricerca località"
           className="w-full rounded-full bg-fill py-2.5 pl-9 pr-[74px] text-ink outline-none transition duration-300 placeholder:text-ink-muted hover:bg-fill-hover focus:bg-surface focus:shadow-md focus:ring-2 focus:ring-accent/50"
         />
 
         {open && (
           <div data-lenis-prevent className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-[340px] overflow-auto rounded-[16px] border border-hair bg-surface card-shadow">
             {error ? (
-              <div className="p-3 text-[13.5px] text-[#d03b3b]">Errore ricerca: {error}</div>
+              <div className="p-3 text-[13.5px] text-[#d03b3b]">Errore nella ricerca: {error}</div>
             ) : results.length ? (
               results.map((r, i) => (
                 <button
@@ -128,7 +128,7 @@ export default function SearchBox({ onPick }) {
               ))
             ) : (
               <div className="p-3 text-[13.5px] text-ink-muted">
-                {loading ? 'Ricerca…' : 'Nessun risultato.'}
+                {loading ? 'Ricerca in corso…' : 'Nessun risultato.'}
               </div>
             )}
           </div>

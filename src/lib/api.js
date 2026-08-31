@@ -30,14 +30,14 @@ async function getJSON(url, signal) {
     const json = await res.json()
     // Open-Meteo restituisce 400 con {error:true, reason:"…"} — il reason è l'informazione utile.
     if (json && json.error) {
-      const reason = json.reason || 'Errore API'
+      const reason = json.reason || 'Errore del servizio dati'
       if (/minutely api request limit/i.test(reason) && attempt < RETRY_DELAYS.length) {
         await sleep(RETRY_DELAYS[attempt], signal)
         continue
       }
       throw new Error(reason)
     }
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (!res.ok) throw new Error(`Errore del servizio (HTTP ${res.status})`)
     return json
   }
 }

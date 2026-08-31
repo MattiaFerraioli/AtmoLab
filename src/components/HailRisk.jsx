@@ -226,7 +226,7 @@ export default function HailRisk({
     return (
       <Message>
         Il rischio grandine si calcola solo entro 72 ore: oltre, i parametri convettivi non hanno più significato
-        pratico. Il giorno selezionato è fuori portata — torna ai 14 giorni o scegline uno più vicino.
+        pratico. Il giorno selezionato è oltre tale limite: tornare alla vista dei 14 giorni o selezionarne uno più vicino.
       </Message>
     )
   if (loading || !cells) return <Skeleton className="h-[520px] w-full" />
@@ -336,14 +336,14 @@ export default function HailRisk({
             sensata. Il nome del posto sta sotto, come contesto — su celle
             remote o sul mare il reverse geocoding restituisce toponimi oscuri,
             che in testata sarebbero peggio delle coordinate che sostituiscono. */}
-        <Tile k="Dove" sub={worstName ?? undefined}>
+        <Tile k="Posizione" sub={worstName ?? undefined}>
           <span className="text-[17px]">
             {worst ? placeLabel(location, worst.gridLat, worst.gridLon, home) : '–'}
           </span>
         </Tile>
 
         <Tile
-          k="Quando"
+          k="Orario"
           sub={
             quiet
               ? 'Nessun picco significativo'
@@ -392,7 +392,7 @@ export default function HailRisk({
             <div className="mt-2.5 text-[12px] text-ink-muted">
               Nessuno dei {AGREEMENT_COUNT} modelli prevede temporali{' '}
               {dayOffset === 0 ? 'per il resto della giornata' : 'in questo giorno'}: nessuna area
-              evidenziata. L&apos;ambiente sarebbe da {worst?.metric.badge}, se un temporale si
+              evidenziata. L&apos;ambiente sosterrebbe grandine da {worst?.metric.badge}, se un temporale si
               formasse.
             </div>
           )}
@@ -408,7 +408,7 @@ export default function HailRisk({
               <span className="inline-flex items-center gap-3 text-ink-muted">
                 <span
                   className="text-ink-muted"
-                  title={`Accordo fra ${AGREEMENT_COUNT} modelli (ECMWF, GFS, ICON): bassa = uno prevede il temporale, media = due, alta = tutti e tre. Il conteggio esatto è scritto su ogni zona.`}
+                  title={`Accordo fra ${AGREEMENT_COUNT} modelli (ECMWF, GFS, ICON): bassa = uno prevede il temporale, media = due, alta = tutti e tre. Il conteggio esatto è riportato su ogni zona.`}
                 >
                   Probabilità:
                 </span>
@@ -474,7 +474,7 @@ export default function HailRisk({
                               l'altra metà della storia, quanto è probabile. */}
                           {hazard.id === 'hail'
                             ? c.prob != null
-                              ? `prob. ${fractionLabel(c.prob)} · ${Math.round(c.prob * AGREEMENT_COUNT)}/${AGREEMENT_COUNT}`
+                              ? `probabilità ${fractionLabel(c.prob)} · ${Math.round(c.prob * AGREEMENT_COUNT)}/${AGREEMENT_COUNT}`
                               : 'probabilità n/d'
                             : SEVERITY_LABELS[c.severity]}
                           {c.rotation && (
@@ -575,24 +575,24 @@ export default function HailRisk({
       <div className="border-t border-hair p-4 text-[12.5px] leading-relaxed text-ink-muted">
         <div className="mb-2">
           Griglia {GRID_SIDE}×{GRID_SIDE} · lato {HAIL_GRID.span} ·{' '}
-          {hiRes ? 'modello ICON-2I a 2,2 km' : 'blend multi-modello, più liscio: i picchi si attenuano'}
+          {hiRes ? 'modello ICON-2I a 2,2 km' : 'blend multi-modello, più smussato: i picchi si attenuano'}
         </div>
         {hazard.id === 'hail' ? (
           <>
-            Due numeri separati, come negli outlook convettivi: il <strong>diametro</strong> dice quanto
+            Due numeri separati, come negli outlook convettivi: il <strong>diametro</strong> indica quanto
             sarebbero grossi i chicchi <em>se</em> il temporale si formasse — stimato dall&apos;indice
             <strong> SHIP</strong>, non un dato diretto del modello, quindi da prendere con cautela sull&apos;entità
-            del chicco. La <strong>probabilità</strong> dice quanto è probabile che si formi, ed è l&apos;accordo fra
+            del chicco. La <strong>probabilità</strong> indica quanto è probabile che si formi, ed è l&apos;accordo fra
             tre modelli. Nessuno dei due contiene l&apos;altro.
           </>
         ) : hazard.id === 'wind' ? (
           <>
-            La raffica è <strong>output diretto del modello</strong>. Sopra i 90 km/h si entra nel campo dei danni.
+            La raffica è <strong>output diretto del modello</strong>. Oltre i 90 km/h le raffiche possono causare danni.
           </>
         ) : (
           <>
             L&apos;accumulo è <strong>output diretto del modello</strong>, media sulla cella di griglia: il massimo
-            puntuale nel cuore di un temporale può valere 2–3 volte tanto.
+            puntuale nel nucleo di un temporale può risultare 2–3 volte superiore.
           </>
         )}
       </div>

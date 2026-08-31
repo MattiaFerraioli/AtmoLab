@@ -101,4 +101,4 @@ export function fractionLabel(frac) {
 
 /** "2 su 3 modelli" — la forma leggibile della frazione. */
 export const fractionText = (frac) =>
-  frac == null ? null : `${Math.round(frac * AGREEMENT_COUNT)} su ${AGREEMENT_COUNT} modelli`
+  frac == null ? null : `${Math.round(frac * AGREEMENT_COUNT)} modelli su ${AGREEMENT_COUNT}`

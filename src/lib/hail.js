@@ -233,7 +233,7 @@ export function triggerWeight(weatherCode, precipitation) {
  * Stima da parametri, non output di un modello di grandine.
  */
 export function hailSize(ship) {
-  if (ship >= 1.5) return { label: '> 4 cm', note: 'Grandine grossa, distruttiva' }
+  if (ship >= 1.5) return { label: '> 4 cm', note: 'Grandine di grosse dimensioni' }
   if (ship >= 0.8) return { label: '2–4 cm', note: 'Danni a colture, coperture e veicoli' }
   if (ship >= 0.35) return { label: '1–2 cm', note: 'Chicchi piccoli' }
   if (ship > 0.05) return { label: '< 1 cm', note: 'Graupel / chicchi minuti' }
@@ -432,7 +432,7 @@ export function buildNarrative(cells, centre) {
     return {
       sentences: [
         weak >= 0.05
-          ? 'Solo convezione debole e isolata nell\u2019area: qualche rovescio o breve temporale possibile, grandine improbabile.'
+          ? 'Solo convezione debole e isolata nell\u2019area: possibili rovesci sparsi o brevi temporali, grandine improbabile.'
           : 'Giornata senza convezione rilevante nell\u2019area: ambiente poco favorevole alla grandine, o nessun temporale previsto dai modelli.',
       ],
       quiet: true,
@@ -443,7 +443,7 @@ export function buildNarrative(cells, centre) {
   const anyRotation = cells.some(
     (c) => hasRotationPotential(c.series) && c.series.some((p) => p.risk >= 0.2),
   )
-  if (anyRotation) sentences.push('Nelle celle più intense l\u2019ambiente è da temporale rotante (supercella).')
+  if (anyRotation) sentences.push('Nelle celle più intense l\u2019ambiente favorisce temporali rotanti (supercelle).')
 
   /* Raffiche: massimo previsto nelle sole ore convettive. */
   let gustMax = 0

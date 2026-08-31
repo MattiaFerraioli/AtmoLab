@@ -109,9 +109,9 @@ function HistoryTable({ location }) {
   if (rows.length < 2)
     return (
       <p className="text-[12.5px] text-ink-muted">
-        Il confronto nel tempo si costruisce da solo: ogni giorno in cui apri questa sezione viene salvata una riga
-        (previsto deterministico, previsto ensemble) e dal giorno dopo arriva l&apos;osservato ERA5. Torna fra qualche
-        giorno.
+        Il confronto nel tempo si costruisce automaticamente: a ogni apertura di questa sezione viene salvata una riga
+        (previsto deterministico, previsto ensemble) e dal giorno successivo si aggiunge l&apos;osservato ERA5. I primi
+        dati compariranno entro pochi giorni.
       </p>
     )
 
@@ -124,7 +124,7 @@ function HistoryTable({ location }) {
             <th className="px-2 py-1 text-right font-semibold">SHIP det.</th>
             <th className="px-2 py-1 text-right font-semibold">SHIP&gt;0,8 ens.</th>
             <th className="px-2 py-1 text-right font-semibold">Raffica det.</th>
-            <th className="px-2 py-1 text-right font-semibold">Raff.≥60 ens.</th>
+            <th className="px-2 py-1 text-right font-semibold">Raffica ≥60 ens.</th>
             <th className="px-2 py-1 text-right font-semibold">Raffica oss.</th>
             <th className="px-2 py-1 text-right font-semibold">Pioggia det.</th>
             <th className="px-2 py-1 text-right font-semibold">Pioggia oss.</th>
@@ -146,9 +146,9 @@ function HistoryTable({ location }) {
         </tbody>
       </table>
       <p className="mt-1.5 text-[11.5px] text-ink-muted">
-        Osservato: ERA5, disponibile dal giorno dopo. La grandine osservata non esiste in nessun dataset gratuito,
-        quindi per SHIP il confronto resta indiretto (SHIP alto + raffiche/pioggia osservate forti = giornata convettiva
-        vera).
+        Osservato: ERA5, disponibile dal giorno successivo. La grandine osservata non è presente in alcun dataset
+        gratuito, quindi per SHIP il confronto resta indiretto: SHIP elevato con raffiche e pioggia osservate intense
+        indica una giornata convettiva effettiva.
       </p>
     </div>
   )
@@ -243,8 +243,8 @@ function EnsembleMap({ location, timezone, palette, theme }) {
     return (
       <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-hair pt-3">
         <div className="min-w-[220px] flex-1 text-[12.5px] text-ink-sec">
-          La stessa griglia della sezione sopra, ma con la frazione dei 31 membri: temporali, raffiche e pioggia.
-          Niente grandine qui — i livelli in quota per membro peserebbero ~7 MB; SHIP ensemble resta sul punto.
+          La stessa griglia della sezione precedente, con la frazione dei 31 membri: temporali, raffiche e pioggia.
+          La grandine è esclusa — i livelli in quota per membro richiederebbero ~7 MB; SHIP ensemble resta sul punto.
         </div>
         <button
           onClick={() => setEnabled(true)}
@@ -358,7 +358,7 @@ export default function EnsemblePanel({ location, timezone, detSnapshot, detCell
     return (
       <Card className="flex flex-wrap items-center gap-3 p-4">
         <div className="min-w-[220px] flex-1 text-[13px] text-ink-sec">
-          31 versioni dello stesso modello con partenze diverse.
+          31 versioni dello stesso modello con condizioni iniziali diverse.
         </div>
         <button
           onClick={() => setEnabled(true)}
@@ -380,8 +380,8 @@ export default function EnsemblePanel({ location, timezone, detSnapshot, detCell
         </span>
         <span className="text-[12px] text-ink-muted">
           Solo il punto di {location.name} · prossime 48 ore · SHIP calcolato membro per membro · il CAPE di GFS a
-          0,5° corre più basso dei modelli km-scale: confronta le frazioni nel tempo, non i valori assoluti con la
-          sezione sopra
+          0,5° risulta più basso dei modelli km-scale: confrontare le frazioni nel tempo, non i valori assoluti con la
+          sezione precedente
         </span>
       </div>
 
@@ -410,13 +410,13 @@ export default function EnsemblePanel({ location, timezone, detSnapshot, detCell
           </div>
           <p className="mt-2 text-[11.5px] text-ink-muted">
             Nessuna fusione: il valore resta del modello di dettaglio, la percentuale è la frazione dei {data.memberCount}{' '}
-            membri. Il verdetto dice solo se le due letture concordano.
+            membri. Il verdetto indica soltanto se le due letture concordano.
           </p>
         </div>
       ) : (
         <p className="mb-4 text-[12.5px] text-ink-muted">
-          Per l&apos;incrocio con la previsione serve la griglia della tab Previsione (e un giorno entro le 48 ore
-          dell&apos;ensemble).
+          Per l&apos;incrocio con la previsione è necessaria la griglia della scheda Previsione (e un giorno entro le 48
+          ore dell&apos;ensemble).
         </p>
       )}
 

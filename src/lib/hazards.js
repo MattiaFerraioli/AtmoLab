@@ -137,7 +137,7 @@ export const HAZARDS = [
     quietText: 'Accumuli irrilevanti',
     /* Soglie orarie, non giornaliere: 20 mm in un'ora è nubifragio, 20 mm in
        un giorno è pioggia normale. */
-    hourly: { pick: (p) => p.precip, dataKey: 'precip', bands: [1, 4, 10, 20], unit: 'mm/h', dec: 1, label: 'Intensità', title: 'Intensità pioggia' },
+    hourly: { pick: (p) => p.precip, dataKey: 'precip', bands: [1, 4, 10, 20], unit: 'mm/h', dec: 1, label: 'Intensità', title: 'Intensità di pioggia' },
   },
 ]
 

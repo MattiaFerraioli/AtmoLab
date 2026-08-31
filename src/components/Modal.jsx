@@ -39,7 +39,7 @@ export default function Modal({ title, subtitle, onClose, children, bodyClassNam
           <button
             type="button"
             onClick={onClose}
-            aria-label="Chiudi"
+            aria-label="Chiudere"
             className="ml-auto flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-fill text-[17px] leading-none text-ink transition duration-300 hover:bg-fill-hover"
           >
             ×

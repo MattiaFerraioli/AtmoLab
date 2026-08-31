@@ -51,7 +51,7 @@ export default function CurrentHero({ location, forecast, air, palette, isFavour
             <h1 className="text-[24px] font-bold tracking-[-0.02em]">{location.name}</h1>
             <button
               onClick={onToggleFavourite}
-              title={isFavourite ? 'Rimuovi dai preferiti' : 'Aggiungi ai preferiti'}
+              title={isFavourite ? 'Rimuovere dai preferiti' : 'Aggiungere ai preferiti'}
               aria-pressed={isFavourite}
               className={`inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border transition ${
                 isFavourite

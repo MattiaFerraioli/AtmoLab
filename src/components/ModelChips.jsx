@@ -39,7 +39,7 @@ export default function ModelChips({ selected, slots, palette, availability, day
             <span>{m.name}</span>
             <span className="text-[11.5px] font-normal text-ink-muted">
               {m.org}
-              {unavailable && (dayFiltered ? ' · oltre il suo orizzonte' : ' · n/d qui')}
+              {unavailable && (dayFiltered ? ' · oltre il suo orizzonte' : ' · senza dati')}
             </span>
           </button>
         )

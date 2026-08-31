@@ -40,8 +40,8 @@ export default function TopBar({
           <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 items-center gap-0.5">
             <button
               type="button"
-              title="Usa la mia posizione"
-              aria-label="Usa la mia posizione"
+              title="Rilevare la posizione"
+              aria-label="Rilevare la posizione"
               onClick={onLocate}
               className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-full text-ink-muted transition duration-300 hover:bg-fill-hover hover:text-ink"
             >
@@ -71,7 +71,7 @@ export default function TopBar({
             palette={palette}
             onRefresh={onRefresh}
           />
-          <IconButton title={theme === 'dark' ? 'Passa al tema chiaro' : 'Passa al tema scuro'} onClick={onToggleTheme}>
+          <IconButton title={theme === 'dark' ? 'Passare al tema chiaro' : 'Passare al tema scuro'} onClick={onToggleTheme}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" className="h-[18px] w-[18px]">
               {theme === 'dark' ? SunGlyph : MoonGlyph}
             </svg>

@@ -35,7 +35,7 @@ export function DayFilterBar({ label, onClear }) {
         onClick={onClear}
         className="ml-auto cursor-pointer rounded-full bg-fill px-3 py-1.5 text-[12.5px] font-semibold text-ink-sec transition duration-300 hover:text-ink"
       >
-        ✕ Torna ai 14 giorni
+        ✕ Tornare ai 14 giorni
       </button>
     </div>
   )

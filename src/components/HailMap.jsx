@@ -366,7 +366,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                 <strong>
                   {hazard.label} ·{' '}
                   {hazard.id === 'hail'
-                    ? `chicchi ${c.metric.badge}`
+                    ? `diametro ${c.metric.badge}`
                     : `rischio ${SEVERITY_LABELS[c.severity].toLowerCase()}`}
                 </strong>
                 {/* Per la grandine il diametro è già nella riga sopra: qui
@@ -385,7 +385,7 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
                   </>
                 )}
                 <br />
-                {c.metric.at ? fmtDayHour(c.metric.at) : 'nessun picco'}
+                {c.metric.at ? fmtDayHour(c.metric.at) : 'nessun picco previsto'}
                 {c.prob != null && (
                   <>
                     <br />

@@ -18,8 +18,8 @@ function Row({ place, onPick, onRemove }) {
       {onRemove && (
         <button
           onClick={() => onRemove(place)}
-          title={`Rimuovi ${place.name} dai preferiti`}
-          aria-label={`Rimuovi ${place.name} dai preferiti`}
+          title={`Rimuovere ${place.name} dai preferiti`}
+          aria-label={`Rimuovere ${place.name} dai preferiti`}
           className="mr-2 flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-full text-[15px] leading-none text-ink-muted transition duration-300 hover:bg-fill hover:text-ink"
         >
           ×
@@ -81,7 +81,7 @@ export default function PlacesMenu({ favourites, recent, onPick, onRemoveFavouri
             ))
           ) : (
             <div className="px-3 pb-1.5 text-[12.5px] text-ink-muted">
-              Nessun preferito: usa la stella accanto al nome della località.
+              Nessun preferito: utilizzare la stella accanto al nome della località.
             </div>
           )}
 
@@ -93,7 +93,7 @@ export default function PlacesMenu({ favourites, recent, onPick, onRemoveFavouri
                     onClick={onClearRecent}
                     className="cursor-pointer text-[11px] text-ink-muted transition duration-300 hover:text-ink"
                   >
-                    svuota
+                    Svuotare
                   </button>
                 }
               >

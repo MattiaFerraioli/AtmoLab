@@ -256,9 +256,9 @@ export default function ModelCompare({
 
       {missingForDay.length > 0 && (
         <div className="border-b border-hair px-4 pb-3 text-[12.5px] text-ink-muted">
-          Non arriva{missingForDay.length > 1 ? 'no' : ''} al giorno selezionato:{' '}
+          Non copr{missingForDay.length > 1 ? 'ono' : 'e'} il giorno selezionato:{' '}
           <strong className="font-semibold text-ink-sec">{missingForDay.map((m) => m.name).join(', ')}</strong> — chip
-          spent{missingForDay.length > 1 ? 'i' : 'o'} e linea assente dal grafico.
+          disattivat{missingForDay.length > 1 ? 'i' : 'o'} e linea assente dal grafico.
         </div>
       )}
 
@@ -281,8 +281,8 @@ export default function ModelCompare({
         ) : !series.length ? (
           <Message>
             Nessun modello selezionato ha dati
-            {selectedDay ? ' per il giorno scelto' : ' per questa località'}. Attivane un altro qui sopra
-            {selectedDay ? ', o scegli un giorno più vicino' : ''}.
+            {selectedDay ? ' per il giorno scelto' : ' per questa località'}. Attivarne un altro qui sopra
+            {selectedDay ? ', o scegliere un giorno più vicino' : ''}.
           </Message>
         ) : (
           <>
@@ -297,7 +297,7 @@ export default function ModelCompare({
                   tickFormatter={(t) => {
                     if (selectedDay) return new Date(t).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
                     return t === xTicks[0]
-                      ? 'adesso'
+                      ? 'ora'
                       : new Date(t).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric' })
                   }}
                 />
@@ -363,14 +363,14 @@ export default function ModelCompare({
               ))}
               <span
                 className="inline-flex items-center gap-2"
-                title="Il valore centrale fra tutti i modelli, ora per ora: metà stanno sopra, metà sotto."
+                title="Il valore centrale fra i modelli, ora per ora: metà dei valori è al di sopra, metà al di sotto."
               >
                 <span className="h-[3px] w-3.5 rounded-full" style={{ background: palette.ink, opacity: 0.9 }} />
                 Consenso (mediana)
               </span>
               <span
                 className="inline-flex items-center gap-2"
-                title="La fascia grigia copre tutti i valori previsti in quell'ora: dal modello più basso al più alto."
+                title="La fascia grigia copre tutti i valori previsti in quell'ora: dal minimo al massimo fra i modelli."
               >
                 <span className="h-2.5 w-3.5 rounded-sm" style={{ background: palette.inkSec, opacity: 0.22 }} />
                 Intervallo min–max

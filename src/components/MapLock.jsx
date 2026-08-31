@@ -27,7 +27,7 @@ export function LockOverlay({ onUnlock }) {
       onClick={onUnlock}
       className="absolute inset-0 z-[500] flex items-end justify-center bg-black/15 pb-6 text-[13px] font-semibold text-white backdrop-blur-[1px]"
     >
-      <span className="rounded-full bg-black/70 px-3.5 py-2">Tocca per attivare la mappa</span>
+      <span className="rounded-full bg-black/70 px-3.5 py-2">Toccare per attivare la mappa</span>
     </button>
   )
 }
