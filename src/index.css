@@ -248,9 +248,16 @@ body::before {
   animation: shimmer 1.2s linear infinite;
 }
 
-/* Strato radar: fusione "screen" così il nero del non-dato non dipinge nulla.
-   Vedi il commento in HailMap.jsx — senza, i pixel di copertura e clutter
-   comparivano come macchie scure sopra le zone colorate. */
-.radar-screen {
+/* Strato radar: il non-dato è nero opaco e va tolto, ma il come dipende dal
+   fondo. Sul tema scuro la fusione "screen" lo annulla e costa nulla. Sul tema
+   chiaro screen porta tutto al bianco, radar compreso — là serve il filtro
+   dichiarato in index.html, che il nero lo rende trasparente sul serio.
+   Vedi anche il commento in HailMap.jsx. */
+.radar-layer {
   mix-blend-mode: screen;
+}
+
+[data-theme='light'] .radar-layer {
+  mix-blend-mode: normal;
+  filter: url(#radar-alpha);
 }

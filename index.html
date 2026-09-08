@@ -18,6 +18,28 @@
     <title>AtmoLab</title>
   </head>
   <body>
+    <!-- Il radar DPC dipinge di NERO OPACO tutto ciò che non è eco: fuori
+         copertura, clutter filtrato, cielo pulito. Sul tema scuro basta la
+         fusione "screen" a farlo sparire, ma su fondo chiaro screen schiarisce
+         verso il bianco e cancella proprio gli echi. Questo filtro rende il
+         nero trasparente per davvero, indipendentemente da cosa c'è sotto:
+         l'alfa diventa la luminanza del pixel (nero = 0), moltiplicata per sei
+         perché anche gli echi deboli, che nella palette DPC sono rosso scuro,
+         restino pieni. `feComposite in` la interseca con l'alfa originale,
+         così le zone già trasparenti della tile non tornano opache. -->
+    <svg aria-hidden="true" focusable="false" style="position: absolute; width: 0; height: 0">
+      <filter id="radar-alpha" color-interpolation-filters="sRGB">
+        <feColorMatrix
+          type="matrix"
+          values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0.4 0.4 0.4 0 0"
+          result="lum"
+        />
+        <feComponentTransfer in="lum" result="boost">
+          <feFuncA type="linear" slope="6" />
+        </feComponentTransfer>
+        <feComposite in="boost" in2="SourceGraphic" operator="in" />
+      </filter>
+    </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
