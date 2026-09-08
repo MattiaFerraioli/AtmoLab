@@ -223,10 +223,16 @@ export async function fetchObserved({ latitude, longitude }, dateISO, signal) {
   }
 }
 
-/** Ricerca località. I risultati portano già il paese, quindi disambiguare
- *  fra omonimi è questione di leggere la riga giusta, non di pre-filtrare. */
+/** Ricerca località, limitata all'Italia: il servizio filtra per countryCode,
+ *  e il controllo sul country_code scarta comunque quanto sfugge al parametro. */
 export async function searchPlaces(name, signal) {
-  const p = new URLSearchParams({ name, count: 10, language: 'it', format: 'json' })
+  const p = new URLSearchParams({
+    name,
+    count: 20,
+    language: 'it',
+    format: 'json',
+    countryCode: 'IT',
+  })
   const json = await getJSON(`${GEOCODE}?${p}`, signal)
-  return json.results || []
+  return (json.results || []).filter((r) => r.country_code === 'IT').slice(0, 10)
 }
