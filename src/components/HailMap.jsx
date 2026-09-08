@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import L from 'leaflet'
-import { MapContainer, Marker, Polygon, Polyline, Rectangle, Tooltip, useMap } from 'react-leaflet'
+import { MapContainer, Marker, Polygon, Polyline, Rectangle, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 /* MapLibre calcola l'URL del suo worker a runtime (`new URL('./' + nome,
    import.meta.url)`): essendo costruito da una template string, nessun
@@ -11,9 +11,9 @@ import 'leaflet/dist/leaflet.css'
    dipendenze e ci restituisce l'URL vero, da passare a setWorkerUrl(). */
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 import { TILE_ATTRIB } from '../lib/constants'
-import { fmtDayHour, nf, windDir } from '../lib/format'
-import { SEVERITY_COLORS, SEVERITY_LABELS, zoneSpecOf } from '../lib/hazards'
-import { AGREEMENT_COUNT, fractionText } from '../lib/agreement'
+import { nf, windDir } from '../lib/format'
+import { SEVERITY_COLORS, zoneSpecOf } from '../lib/hazards'
+import { AGREEMENT_COUNT } from '../lib/agreement'
 import { FIELD_PAD, buildZones } from '../lib/zones'
 import { DragControl, LockOverlay } from './MapLock'
 import { useIsTouch, useRadar } from '../lib/hooks'
@@ -224,13 +224,6 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
      la mappa nasce ferma e si attiva con un tocco. Su mouse non serve. */
   const locked = isTouch && !unlocked
   const half = step / 2
-  /* Quale quadrante sta sotto il puntatore. Serve a mostrarne il contorno: il
-     colore viene dal campo interpolato, che cambia fascia dove vuole, mentre i
-     numeri del tooltip appartengono al NODO al centro della cella — fino a una
-     ventina di km più in là. Senza vedere il quadrante le due cose si leggono
-     come una contraddizione ("> 4 cm" stando sull'arancione); con il contorno
-     si legge per quello che è: il dato di quella cella. */
-  const [hoverKey, setHoverKey] = useState(null)
 
   const bounds = useMemo(() => {
     if (!cells.length) return null
@@ -358,66 +351,24 @@ export default function HailMap({ cells, step, origin, palette, theme, steering,
           pathOptions={{ color: palette.axis, weight: 1, opacity: 0.55, fill: false }}
         />
 
-        {cells.map((c) => {
-          const cellKey = `${c.gridLat},${c.gridLon}`
-          return (
-            <Rectangle
-              key={cellKey}
-              bounds={[
-                [c.gridLat - half, c.gridLon - half],
-                [c.gridLat + half, c.gridLon + half],
-              ]}
-              pathOptions={{
-                stroke: hoverKey === cellKey,
-                color: palette.ink,
-                weight: 1,
-                opacity: 0.45,
-                dashArray: '3 4',
-                fillColor: '#000',
-                fillOpacity: 0,
-              }}
-              eventHandlers={{
-                click: () => onSelectCell?.(c),
-                mouseover: () => setHoverKey(cellKey),
-                mouseout: () => setHoverKey((k) => (k === cellKey ? null : k)),
-              }}
-            >
-              <Tooltip sticky>
-                <div className="text-[12px] leading-snug">
-                  <strong>
-                    {hazard.label} ·{' '}
-                    {hazard.id === 'hail'
-                      ? `diametro ${c.metric.badge}`
-                      : `rischio ${SEVERITY_LABELS[c.severity].toLowerCase()}`}
-                  </strong>
-                  {/* Per la grandine il diametro è già nella riga sopra: qui
-                      resta solo il dettaglio degli altri pericoli, se c'è. */}
-                  {c.metric.detail && (
-                    <>
-                      <br />
-                      {c.metric.badge} · {c.metric.detail}
-                    </>
-                  )}
-                  {c.rotation && (
-
-                    <>
-                      {' '}
-                      · <strong style={{ color: '#8b3fb5' }}>possibile supercella</strong>
-                    </>
-                  )}
-                  <br />
-                  {c.metric.at ? fmtDayHour(c.metric.at) : 'nessun picco previsto'}
-                  {c.prob != null && (
-                    <>
-                      <br />
-                      {hazard.id === 'hail' ? 'Innesco previsto da' : 'Previsto da'} {fractionText(c.prob)}
-                    </>
-                  )}
-                </div>
-              </Tooltip>
-            </Rectangle>
-          )
-        })}
+        {/* Le celle sono solo il bersaglio del click che apre il grafico: niente
+            tooltip al passaggio. Il colore sotto il puntatore viene dal campo
+            interpolato, che cambia fascia dove vuole, mentre i numeri di una
+            cella appartengono al nodo al suo centro, fino a una ventina di km
+            più in là: affiancati si leggevano come una contraddizione ("> 4 cm"
+            stando sull'arancione). Diametro, ora e accordo fra modelli stanno
+            nella lista qui di fianco, dove la cella è nominata. */}
+        {cells.map((c) => (
+          <Rectangle
+            key={`${c.gridLat},${c.gridLon}`}
+            bounds={[
+              [c.gridLat - half, c.gridLon - half],
+              [c.gridLat + half, c.gridLon + half],
+            ]}
+            pathOptions={{ stroke: false, fillColor: '#000', fillOpacity: 0 }}
+            eventHandlers={{ click: () => onSelectCell?.(c) }}
+          />
+        ))}
 
         <Marker position={[origin.latitude, origin.longitude]} icon={hereIcon} interactive={false} />
 
