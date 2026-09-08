@@ -38,6 +38,33 @@ const EXTRACT_URL = import.meta.env.VITE_DPC_EXTRACT_URL
 /** Copre ancora oggi? Un bollettino di ieri non vale, per quanto recente. */
 const coversToday = (data) => Boolean(data?.days?.[1]?.date >= localDate())
 
+/**
+ * Arriva fino a domani, o si ferma a oggi?
+ *
+ * Il bollettino di ieri contiene ieri e oggi, quindi `coversToday` lo promuove
+ * — ma la sezione butta i giorni passati e ne resta uno solo: l'app mostrava
+ * "Oggi" con i dati di ieri e nessuna traccia di domani, che è proprio il
+ * giorno per cui serve l'allerta. Verificato l'8 settembre 2026: bollettino
+ * nuovo delle 15:19 con arancione su Milano per il 9, e a schermo solo il
+ * giallo di oggi.
+ */
+const coversTomorrow = (data) => Boolean(data?.days?.some((d) => d.date > localDate()))
+
+/**
+ * Quanto fidarsi di quello in cache.
+ *
+ * Un bollettino completo dura le sue sei ore. Se si ferma a oggi vuol dire che
+ * è quello di ieri: dal primo pomeriggio, quando il nuovo comincia a uscire
+ * (emissione mediana ~14:30, coda fino alle 16:05), si torna a chiedere ogni
+ * mezz'ora. Prima di quell'ora il nuovo non esiste e riprovare sarebbe solo
+ * traffico: 270 kB a vuoto ogni trenta minuti.
+ */
+function maxAgeOf(data) {
+  if (!coversToday(data)) return 30 * 60 * 1000
+  if (coversTomorrow(data)) return MAX_AGE_MS
+  return new Date().getHours() >= 14 ? 30 * 60 * 1000 : MAX_AGE_MS
+}
+
 /** L'estratto pubblicato, o null se manca, è illeggibile o è scaduto. */
 async function fromExtract() {
   if (!EXTRACT_URL) return null
@@ -61,10 +88,7 @@ async function fromExtract() {
 export async function fetchDpcBulletin() {
   try {
     const cached = JSON.parse(localStorage.getItem(CACHE_KEY))
-    if (cached?.days?.[0]?.date) {
-      const maxAge = coversToday(cached) ? MAX_AGE_MS : 30 * 60 * 1000
-      if (Date.now() - cached.fetchedAt < maxAge) return cached
-    }
+    if (cached?.days?.[0]?.date && Date.now() - cached.fetchedAt < maxAgeOf(cached)) return cached
   } catch {
     /* cache illeggibile: si riscarica */
   }
