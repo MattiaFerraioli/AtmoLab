@@ -19,9 +19,13 @@ import { fmtDayHour, nf, relativePosition } from '../lib/format'
  */
 const isHome = (home, lat, lon) => Boolean(home) && home.gridLat === lat && home.gridLon === lon
 
+/* "zona di Cogliate", non "Cogliate": mappa e lista parlano di celle da una
+   quarantina di chilometri, mentre il grafico in fondo legge il punto esatto
+   del paese. Chiamare cella e paese con lo stesso nome faceva sembrare un
+   errore i due diametri diversi — sono due cose diverse, e ora lo dicono. */
 const placeLabel = (location, lat, lon, home) =>
   isHome(home, lat, lon)
-    ? location.name
+    ? `zona di ${location.name}`
     : relativePosition(location.latitude, location.longitude, lat, lon)
 
 /* Come placeLabel, ma da incastrare in una frase: "a Cogliate" per la cella
@@ -33,6 +37,60 @@ const placePhrase = (location, lat, lon, home) =>
     : ` ${relativePosition(location.latitude, location.longitude, lat, lon)}`
 import { useCellName, useIsMobile } from '../lib/hooks'
 
+
+/**
+ * La sezione guarda sempre un giorno solo, e su oggi scarta le ore già
+ * passate: un picco alle 04:00 di stamattina non è una previsione.
+ *
+ * Fuori dal componente perché la percorrono due insiemi di celle: la griglia
+ * che disegna mappa e lista, e il punto della località che alimenta il
+ * grafico.
+ */
+function toDay(rawCells, targetDay) {
+  if (!rawCells?.length) return rawCells
+  const offsetSeconds = rawCells[0].utcOffset ?? 0
+  const localNowHour = new Date(Date.now() + offsetSeconds * 1000).toISOString().slice(0, 13)
+
+  return rawCells.map((c) => {
+    const series = c.series.filter(
+      (p) => p.t.slice(0, 10) === targetDay && p.t.slice(0, 13) >= localNowHour,
+    )
+    const peak = peakOf(series)
+    return {
+      ...c,
+      series,
+      risk: peak.risk,
+      ship: peak.ship,
+      when: peak.t,
+      cape: peak.cape,
+      gust: peak.gust,
+      rotation: hasRotationPotential(series),
+    }
+  })
+}
+
+/** La grandezza del pericolo scelto e, se c'è, l'accordo fra modelli. */
+function withProbability(cells, agreement, hazardId, targetDay) {
+  if (!cells) return null
+  const enriched = applyHazard(cells, hazardId)
+  if (!agreement) return enriched
+  /* Le ore valide sono le stesse del filtro dei valori: giorno scelto, e su
+     oggi niente passato. La serie della cella le conosce già. */
+  return enriched.map((c, k) => {
+    const valid = new Set(c.series.map((p) => p.t))
+    const frac = cellFraction(agreement[k], hazardId, (t) => valid.has(t), targetDay)
+    /* Anche ora per ora, non solo il picco: serve a contornare le barre del
+       grafico con lo stesso tratto delle zone. La pioggia ha l'accordo per
+       giorno, non per ora, quindi vale lo stesso valore su tutta la
+       giornata. */
+    const key = hazardId === 'wind' ? 'gust' : 'conv'
+    const perOra =
+      hazardId === 'rain'
+        ? null
+        : new Map(agreement[k].series.filter((p) => valid.has(p.t)).map((p) => [p.t, p[key]]))
+    return { ...c, prob: frac, probAt: perOra }
+  })
+}
 
 function Tile({ k, children, sub }) {
   return (
@@ -94,6 +152,7 @@ export default function HailRisk({
   hazardId,
   onHazardChange,
   agreement,
+  localPoint,
   hiRes,
   dayLocked,
   dayOutOfRange,
@@ -107,53 +166,26 @@ export default function HailRisk({
   // Cambiando località o giorno, il dettaglio torna sulla cella centrale.
   useEffect(() => setSelected(null), [location, targetDay])
 
-  /* La sezione guarda sempre un giorno solo, e su oggi scarta le ore già
-     passate: un picco alle 04:00 di stamattina non è una previsione. */
-  const cells = useMemo(() => {
-    if (!rawCells?.length) return rawCells
-    const offsetSeconds = rawCells[0].utcOffset ?? 0
-    const localNowHour = new Date(Date.now() + offsetSeconds * 1000).toISOString().slice(0, 13)
-
-    return rawCells.map((c) => {
-      const series = c.series.filter(
-        (p) => p.t.slice(0, 10) === targetDay && p.t.slice(0, 13) >= localNowHour,
-      )
-      const peak = peakOf(series)
-      return {
-        ...c,
-        series,
-        risk: peak.risk,
-        ship: peak.ship,
-        when: peak.t,
-        cape: peak.cape,
-        gust: peak.gust,
-        rotation: hasRotationPotential(series),
-      }
-    })
-  }, [rawCells, targetDay])
+  const cells = useMemo(() => toDay(rawCells, targetDay), [rawCells, targetDay])
 
   const hazard = hazardById(hazardId)
-  const hazardCells = useMemo(() => {
-    if (!cells) return null
-    const enriched = applyHazard(cells, hazardId)
-    if (!agreement) return enriched
-    /* Le ore valide sono le stesse del filtro dei valori: giorno scelto, e su
-       oggi niente passato. La serie della cella le conosce già. */
-    return enriched.map((c, k) => {
-      const valid = new Set(c.series.map((p) => p.t))
-      const frac = cellFraction(agreement[k], hazardId, (t) => valid.has(t), targetDay)
-      /* Anche ora per ora, non solo il picco: serve a contornare le barre del
-         grafico con lo stesso tratto delle zone. La pioggia ha l'accordo per
-         giorno, non per ora, quindi vale lo stesso valore su tutta la
-         giornata. */
-      const key = hazardId === 'wind' ? 'gust' : 'conv'
-      const perOra =
-        hazardId === 'rain'
-          ? null
-          : new Map(agreement[k].series.filter((p) => valid.has(p.t)).map((p) => [p.t, p[key]]))
-      return { ...c, prob: frac, probAt: perOra }
-    })
-  }, [cells, hazardId, agreement, targetDay])
+  const hazardCells = useMemo(
+    () => withProbability(cells, agreement, hazardId, targetDay),
+    [cells, hazardId, agreement, targetDay],
+  )
+  /* Il punto della località passa per la stessa strada della griglia — stesso
+     giorno, stesse ore, stessa grandezza, stesso accordo — così il grafico non
+     può scivolare su una scala diversa da quella di mappa e lista. */
+  const localCell = useMemo(() => {
+    if (!localPoint?.cell) return null
+    const prepared = withProbability(
+      toDay([localPoint.cell], targetDay),
+      localPoint.agreement ? [localPoint.agreement] : null,
+      hazardId,
+      targetDay,
+    )
+    return prepared?.[0] ?? null
+  }, [localPoint, hazardId, targetDay])
   /**
    * Classifica delle celle, con la STESSA regola della mappa: fuori quelle in
    * cui nessun modello prevede il temporale.
@@ -212,13 +244,22 @@ export default function HailRisk({
    * Accordo assente (null) = "non lo so": non si maschera. Vento e pioggia
    * sono output diretti del modello e non si toccano.
    */
+  /* Sul posto in cui si sta, il grafico legge il PUNTO della località e non il
+     nodo di griglia che la contiene: il titolo dice "a Cogliate" e le barre
+     devono essere di Cogliate, non di un punto a venti chilometri. Sulle altre
+     celle il titolo è già relativo ("55 km a E") e la cella è la fonte giusta.
+     Se la richiesta del punto non è arrivata si resta sulla cella. */
+  const focusCell = useMemo(
+    () => (localCell && isHome(home, focus?.gridLat, focus?.gridLon) ? localCell : focus),
+    [localCell, home, focus],
+  )
   const focusSeries = useMemo(() => {
-    const serie = focus?.series ?? []
-    if (hazard.id !== 'hail' || !focus?.probAt) return serie
+    const serie = focusCell?.series ?? []
+    if (hazard.id !== 'hail' || !focusCell?.probAt) return serie
     return serie.map((p) =>
-      focus.probAt.get(p.t) === 0 ? { ...p, ship: 0, shipAmbiente: p.ship } : p,
+      focusCell.probAt.get(p.t) === 0 ? { ...p, ship: 0, shipAmbiente: p.ship } : p,
     )
-  }, [focus, hazard.id])
+  }, [focusCell, hazard.id])
   const worstName = useCellName(worst?.gridLat, worst?.gridLon)
 
   if (error) return <Message tone="error">Rischio grandine non disponibile: {error}</Message>
@@ -548,7 +589,8 @@ export default function HailRisk({
                 contorno: non si inventa un tratto. */}
             <Bar dataKey={hazard.hourly.dataKey} radius={[3, 3, 0, 0]} isAnimationActive={false}>
               {focusSeries.map((p) => {
-                const frazione = focus?.probAt?.get(p.t) ?? (hazard.id === 'rain' ? focus?.prob : null)
+                const frazione =
+                  focusCell?.probAt?.get(p.t) ?? (hazard.id === 'rain' ? focusCell?.prob : null)
                 const alta = (hazard.hourly.pick(p) ?? 0) > 0
                 const etichetta = alta ? fractionLabel(frazione) : null
                 return (

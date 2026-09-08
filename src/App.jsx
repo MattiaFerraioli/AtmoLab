@@ -107,6 +107,45 @@ async function fetchTile({ centre, days, tz, hiRes, run, force }) {
   return { cells, agreement, at }
 }
 
+/**
+ * Serie del PUNTO della località, non del nodo di griglia che la contiene.
+ *
+ * Il grafico in fondo alla sezione si intitola "a Cogliate", ma con il
+ * reticolo fisso il nodo più vicino sta fino a una ventina di chilometri più
+ * in là: le barre raccontavano un altro posto, e a fianco di una mappa che in
+ * quel punto colora un'altra fascia sembravamo dare informazioni sbagliate.
+ * Un punto solo è la stessa richiesta della griglia con una coordinata invece
+ * di 49, quindi una frazione della quota, e ICON-2I lo risolve a 2,2 km.
+ *
+ * Coordinate arrotondate al centesimo di grado (~1 km) perché la chiave di
+ * cache resti la stessa per chi cerca lo stesso paese, come fa il reticolo
+ * per la griglia.
+ */
+async function fetchLocalPoint({ point, days, tz, hiRes, run, force }) {
+  const base = `${point.lat},${point.lon}:${days}:${hiRes ? 'icon2i' : 'blend'}:${tz}:${run}`
+  const { data: cell } = await withCache(
+    `hailpoint:v1:${base}`,
+    () =>
+      fetchHailGrid([point], days, tz, hiRes ? ICON2I_MODEL : null).then(
+        (r) => summariseCells(r, [point])[0],
+      ),
+    { force },
+  )
+  let agreement = null
+  try {
+    agreement = (
+      await withCache(
+        `probpoint:v1:${base}`,
+        () => fetchProbGrid([point], days, tz).then((r) => agreementCells(r)[0]),
+        { force },
+      )
+    ).data
+  } catch {
+    /* come sulla griglia: senza accordo restano i valori */
+  }
+  return { cell, agreement }
+}
+
 export default function App() {
   const { theme, toggle: toggleTheme, palette } = useTheme()
   useSmoothScroll()
@@ -163,6 +202,9 @@ export default function App() {
      del reticolo — se un giorno servisse un'area più larga, il disegno è pronto
      e cambia solo chi decide quante caricarne. */
   const [hailTiles, setHailTiles] = useState([])
+  /* Valori e accordo sul punto esatto della località, per il solo grafico in
+     fondo alla sezione: la mappa e la lista restano sulla griglia. */
+  const [hailLocal, setHailLocal] = useState(null)
   const hailCells = useMemo(
     () => (hailTiles.length ? mergeTiles(hailTiles.map((t) => t.cells), HAIL_GRID.step) : null),
     [hailTiles],
@@ -307,6 +349,16 @@ export default function App() {
     const run = runKeyFor(hiRes)
     return {
       centre,
+      /* Il punto della località, arrotondato al centesimo di grado (~1 km):
+         la chiave di cache resta la stessa per chi cerca lo stesso paese,
+         come fa il reticolo per la griglia. Sta qui e non nell'effetto perché
+         così l'effetto non deve dipendere dall'intero oggetto `location`. */
+      point: {
+        lat: +location.latitude.toFixed(2),
+        lon: +location.longitude.toFixed(2),
+        row: 0,
+        col: 0,
+      },
       hiRes,
       tz,
       base: `${centre.latitude},${centre.longitude}:${hailDays}:${hiRes ? 'icon2i' : 'blend'}:${tz}:${run}`,
@@ -335,7 +387,7 @@ export default function App() {
   /* --- rischio grandine su griglia --- */
   useEffect(() => {
     if (!hailEnabled || !hailKey) return undefined
-    const { centre, hiRes, tz } = hailKey
+    const { centre, point, hiRes, tz } = hailKey
     /* Niente AbortController su queste richieste, ed è una scelta.
        `withCache` restituisce a chi arriva dopo LA STESSA promessa di chi era
        già in volo: annullandola per conto proprio, il primo che se ne va la fa
@@ -350,6 +402,7 @@ export default function App() {
     setHailHiRes(hiRes)
     setHailLoading(true)
     setHailError(null)
+    setHailLocal(null)
     /* Il pulsante di ricarica manuale deve scavalcare la cache, altrimenti non
        ricarica niente — ma solo il giro innescato da lui: senza il confronto
        col valore precedente, dopo una ricarica manuale la cache resterebbe
@@ -365,6 +418,15 @@ export default function App() {
         setHailTiles([{ centre, cells, agreement }])
         setHailUpdatedAt(at)
         setHailLoading(false)
+        /* Il punto della località viene DOPO la griglia e non insieme: sono
+           due richieste sulla stessa quota al minuto, e questa è la meno
+           importante. Se fallisce, il grafico ripiega sulla cella e nessuno se
+           ne accorge, quindi l'errore non risale. */
+        fetchLocalPoint({ point, days: hailDays, tz, hiRes, run: runKeyFor(hiRes), force })
+          .then((local) => {
+            if (!dead) setHailLocal(local)
+          })
+          .catch(() => {})
       })
       .catch((e) => {
         if (dead) return
@@ -626,6 +688,7 @@ export default function App() {
               hazardId={hazardId}
               onHazardChange={setHazardId}
               agreement={hailAgreement}
+              localPoint={hailLocal}
               hiRes={hailHiRes}
               dayLocked={Boolean(selectedDay)}
               dayOutOfRange={hailDayOutOfRange}
